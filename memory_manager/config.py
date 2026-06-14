@@ -1,0 +1,38 @@
+"""Central configuration for backends and on-disk paths.
+
+Everything defaults to the dependency-light "stub" backends so `python
+run_task.py` works immediately after `pip install -r requirements.txt`,
+with no API key and no model download. Set the env vars below to switch to
+the real models for paper experiments.
+"""
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+FAISS_DIR = DATA_DIR / "faiss"
+EML_DIR = DATA_DIR / "eml"
+ICS_DIR = DATA_DIR / "ics"
+ANSWERS_DIR = DATA_DIR / "answers"
+LOG_DIR = DATA_DIR / "logs"
+
+for _dir in (DATA_DIR, FAISS_DIR, EML_DIR, ICS_DIR, ANSWERS_DIR, LOG_DIR):
+    _dir.mkdir(parents=True, exist_ok=True)
+
+
+@dataclass(frozen=True)
+class Settings:
+    embedding_backend: str = os.environ.get("EMBEDDING_BACKEND", "stub")  # "stub" | "sentence-transformers"
+    llm_backend: str = os.environ.get("LLM_BACKEND", "stub")              # "stub" | "anthropic"
+    llm_model: str = os.environ.get("LLM_MODEL", "claude-haiku-4-5-20251001")
+
+    # Router thresholds (see router.py) -- defaults tuned for the stub embedder.
+    stm_cache_threshold: float = float(os.environ.get("STM_CACHE_THRESHOLD", "0.92"))
+    em_sm_similarity_threshold: float = float(os.environ.get("EM_SM_SIMILARITY_THRESHOLD", "0.55"))
+    max_episodes_per_query: int = int(os.environ.get("MAX_EPISODES_PER_QUERY", "3"))
+
+
+SETTINGS = Settings()

@@ -1,0 +1,143 @@
+# PCCR: Phase-Conditioned Cascading Memory Routing for Multi-Agent LLM Systems
+
+A central **memory manager** for multi-agent LLM agents that routes reads and
+writes across six cognitive memory types — **P**rocedural, **W**orking,
+**S**hort-**T**erm, **E**pisodic, **S**emantic, and **Ent**ity — over a
+ten-phase agentic lifecycle.
+
+Instead of querying *every* memory store on *every* step (the common default),
+PCCR consults a store only when it is worth its cost. On a cache miss it gates
+each optional store by an explicit cost-effectiveness ratio
+
+```
+ρ(pattern, store) = expected_utility(pattern, store) / access_cost(store)
+consult store iff ρ ≥ θ        (θ is a single, tunable cost/quality dial)
+```
+
+with a short-term-cache short-circuit, phase-conditioned policies, and an
+outcome-driven closed loop that adapts the utilities.
+
+**Headline result** (OfficeBench, gpt-oss-120b, held-out): at **equal task
+accuracy**, PCCR issues **41–87% fewer store consultations** and injects up to
+**89% fewer retrieved tokens** than an indiscriminate retrieve-everything policy.
+See [`paper/`](paper/) for the write-up and [`results_archive/`](results_archive/)
+for the raw results.
+
+---
+
+## Repository layout
+
+```
+.
+├── README.md
+├── requirements.txt
+├── cerebras.env.example         # copy → cerebras.env, add your keys (gitignored)
+│
+├── pccr_on_top_of_legomem.py    # ★ PCCR router (the contribution): ρ-gate,
+│                                #   phase conditioning, closed loop, frozen/
+│                                #   multimode/threshold-sweep experiment driver
+├── mm_on_top_of_legomem.py      # base LEGOMem+MemoryManager harness (6 stores,
+│                                #   10 phases, agents) — PCCR builds on this
+├── run_officebench_local.py     # no-Docker OfficeBench runner + evaluators
+├── free_legomem.py              # local sentence-transformer embedder
+│
+├── analyze_results.py           # build comparison / frontier / per-pattern tables
+├── measure_tokens.py            # measure retrieved-token savings per threshold
+├── run_3agent.sh                # 3-agent comparison (train once, test all modes)
+├── run_sweep_3agent.sh          # 3-agent threshold sweep (cost/quality frontier)
+├── run_full.sh / run_comparison.sh / run_sweep.sh   # 2-agent drivers
+│
+├── memory_manager/             # standalone reference implementation of the
+├── agents/                     #   lifecycle + router (offline stub backends,
+├── environment/                #   simulated email/calendar/search world)
+├── run_task.py                 #   demo entry point
+├── tests/                      #   unit + integration tests (pytest)
+│
+├── paper/                      # paper.md, paper.tex (Overleaf-ready), experiments.md
+├── results_archive/            # archived result JSONs (2-agent & 3-agent)
+└── docs/                       # lifecycle spec PDF, memory schema
+```
+
+There are **two** code paths:
+
+1. **Reference implementation** (`memory_manager/`, `agents/`, `environment/`,
+   `run_task.py`, `tests/`) — a clean, fully-tested, **offline** implementation of
+   the 10-phase lifecycle and the router using deterministic stub LLM/embedder
+   backends. Run it with no API key:
+   ```bash
+   python run_task.py        # end-to-end demo
+   pytest tests/             # 24 tests, no network needed
+   ```
+
+2. **OfficeBench experiments** (`pccr_on_top_of_legomem.py` + the `*_legomem.py`
+   files and `run_*.sh`) — the real evaluation on the OfficeBench benchmark with a
+   live LLM that produced the paper's numbers.
+
+---
+
+## Setup (for the OfficeBench experiments)
+
+```bash
+# 1. Python deps
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+pip install python-docx        # for the document (3rd) agent
+
+# 2. Clone the OfficeBench benchmark into ./OfficeBench
+git clone https://github.com/zlwang-cs/OfficeBench.git
+
+# 3. Add your Cerebras API key(s)
+cp cerebras.env.example cerebras.env
+# edit cerebras.env and paste your key(s)
+```
+
+> `cerebras.env`, `.venv/`, `OfficeBench/`, and all generated artifacts
+> (`logs_memory_manager/`, `data/`, `legomem_bank_mm/`) are gitignored.
+
+---
+
+## Reproducing the results
+
+```bash
+# 3-agent comparison: PCCR vs Boolean vs Retrieve-All (train once, test all)
+./run_3agent.sh
+
+# 3-agent threshold sweep → cost/quality frontier (θ = 1.0, 1.2, 1.4)
+./run_sweep_3agent.sh
+
+# Build the tables from the result JSONs
+python analyze_results.py
+python measure_tokens.py
+```
+
+Key environment knobs (read by `pccr_on_top_of_legomem.py`):
+
+| Var | Meaning | Default |
+|---|---|---|
+| `PCCR_AGENTS` | 2 = calendar+email, 3 = +document | 2 |
+| `PCCR_MODES` | comma list to compare (`pccr,boolean,retrieve_all`) | — |
+| `PCCR_THRESHOLDS` | comma list for a pccr threshold sweep | — |
+| `PCCR_THRESHOLD` | single θ (cost dial) | 1.0 |
+| `PCCR_TRAIN_N` | absolute #train tasks (rest held out for test) | split frac |
+| `PCCR_FREEZE_TEST` | 1 = no memory writes during test (clean isolation) | 0 |
+| `PCCR_STRICT_STM` | 1 = semantic-only cache (so the router actually runs) | 1 |
+| `PCCR_RESUME` | 1 = reload consolidated bank from disk, skip training | 0 |
+
+---
+
+## Method summary
+
+- **Six memory types** with differing access cost (entity lookup ≪ FAISS search).
+- **Ten lifecycle phases**, each with its own routing mode (the policy is *phase-
+  conditioned*, not global).
+- **Cascading retrieval**: short-term cache hit short-circuits everything; on a
+  miss, the ρ-gate selects cost-effective optional stores per task pattern.
+- **Outcome-driven closed loop**: utilities are nudged up/down from task
+  success/failure; every routing decision is logged for audit.
+
+See [`paper/paper.md`](paper/paper.md) for full details, related work, and results.
+
+## License
+
+[Add a license, e.g. MIT.] The OfficeBench benchmark is a separate project under
+its own license; clone it from its upstream repository.

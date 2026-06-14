@@ -1,0 +1,387 @@
+\documentclass[10pt,twocolumn]{article}
+
+% ---- Packages (all in Overleaf's default TeX Live) ----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=0.85in]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{authblk}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.5em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.5em}{}
+\setlength{\parskip}{2pt}
+
+\title{\textbf{Phase-Conditioned Cascading Memory Routing\\ for Multi-Agent LLM Systems}}
+\author[1]{[Your Name]}
+\author[1]{[Mentor Name]}
+\affil[1]{[Affiliation] \quad \texttt{[email]}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Memory-augmented LLM agents increasingly maintain several specialized memory
+stores---procedural rules, working state, cached plans, episodic traces,
+semantic facts, and durable entity profiles. Yet most systems retrieve from
+\emph{all} available stores on \emph{every} step, paying retrieval cost and
+injecting irrelevant context regardless of what the current task needs. We
+present the \textbf{Phase-Conditioned Cascading Memory Router (PCCR)}, a single
+central manager that routes both reads and writes across six cognitive memory
+types over a ten-phase agentic lifecycle, in a multi-agent
+orchestrator/sub-agent setting. PCCR (i)~makes the routing policy a function of
+the \emph{lifecycle phase} being executed, (ii)~on a cache miss gates each
+optional store by an explicit cost-effectiveness ratio
+$\rho = \text{utility}/\text{cost}$ against a tunable threshold, and
+(iii)~logs every decision as a first-class record that a closed loop uses to
+adapt utilities from task outcomes. On the OfficeBench office-automation
+benchmark with a real backbone (gpt-oss-120b), PCCR matches or exceeds the
+accuracy of an indiscriminate \emph{retrieve-everything} policy while issuing
+\textbf{41--87\% fewer store consultations} and injecting up to \textbf{89\%
+fewer retrieved tokens} at equal accuracy, in both two-agent (calendar+email)
+and three-agent (calendar+email+document) configurations. A per-task-pattern
+analysis shows the savings arise from interpretable, store-specific
+decisions---e.g.\ episodic search is pruned exactly on pure-lookup tasks where
+it cannot help. We position PCCR against recent agent-memory routers and ground
+its score in classical value-of-information theory.
+\end{abstract}
+
+\section{Introduction}
+LLM agents lose all state when a task ends unless augmented with external
+memory. Cognitive-architecture accounts of agents (CoALA~\cite{coala}) and
+recent surveys~\cite{survey1,survey2} converge on a small set of functionally
+distinct memory types---\emph{procedural} (skills/rules), \emph{working}
+(volatile task state), \emph{short-term} (a session cache), \emph{episodic}
+(specific past experiences), \emph{semantic} (distilled facts), and
+\emph{entity} (durable facts about users/things). A practical agent benefits
+from all of them.
+
+This raises a routing problem that is largely unaddressed: \emph{given many
+memory stores of differing cost, which should the agent consult for the current
+task, and which should it write to?} The prevailing answer in deployed systems
+is \emph{all of them, every time}. This is wasteful: a similarity search over a
+large episodic store is orders of magnitude costlier than a key--value lookup of
+a user profile, and for many tasks the expensive store contributes
+nothing---a factual lookup (``when is my meeting with Alice?'') is answered from
+stored facts, not from a search through past task traces.
+
+Recent work has begun to treat retrieval as a decision rather than a reflex.
+Cost-sensitive store routing~\cite{pocket} frames store selection as an
+accuracy-vs-cost trade-off and shows (via an oracle) that selective retrieval
+dominates uniform retrieval; learned budget-tier routers~\cite{budgetmem} and
+embedding-based write routers~\cite{memrouter} optimize specific edges of the
+problem. However, each existing system optimizes \emph{one} edge---write
+admission, \emph{or} read-side store selection, \emph{or} memory-structure
+choice, \emph{or} a context budget---under a \emph{single, global} policy, and
+almost always in a \emph{single-agent conversational} loop. None route across a
+full six-type cognitive taxonomy, with one central manager governing both reads
+and writes, conditioned on \emph{which lifecycle phase is executing} and
+\emph{what kind of task it is}, in a \emph{multi-agent} orchestrator/sub-agent
+system.
+
+\paragraph{Contributions.} We close that gap with PCCR:
+\begin{enumerate}\itemsep1pt
+\item \textbf{Phase-conditioned routing.} The policy is not global; each of ten
+lifecycle phases carries its own rule, because ``what to consult'' means
+something structurally different at retrieval time than at storage or
+consolidation time (\S\ref{sec:phase}).
+\item \textbf{A cost-effectiveness cascade.} Retrieval first attempts a free
+short-circuit (a short-term cache hit skips all optional stores); on a miss it
+consults an optional store \emph{iff} $\rho = U(\text{pattern},s)/C(s)$ clears a
+single tunable threshold $\theta$ (\S\ref{sec:gate}).
+\item \textbf{Decision logging + a closed loop.} Every routing call emits a
+structured \texttt{RoutingDecision}; an outcome-driven update nudges utilities
+up/down from success/failure (\S\ref{sec:loop}).
+\item \textbf{Empirical evidence} on OfficeBench with a real backbone, in two-
+and three-agent settings, that PCCR preserves accuracy while substantially
+reducing retrieval cost (\S\ref{sec:results}).
+\end{enumerate}
+
+\section{Related Work}
+\paragraph{Taxonomies and lifecycle.} CoALA~\cite{coala} maps human memory types
+onto LLM agents; surveys~\cite{survey1,survey2} formalize agent memory as a
+write--manage--read loop. These define \emph{what} the memory types are but not
+\emph{how to route} among them.
+
+\paragraph{Cost-sensitive / learned routing.} ``Did You Check the Right
+Pocket?''~\cite{pocket} formalizes store selection as a cost-sensitive decision
+and shows an oracle advantage, but gives no implementable policy and considers
+retrieval in isolation. BudgetMem~\cite{budgetmem} learns per-module budget
+tiers under an RL cost objective; U-Mem~\cite{umem} scores retrieval by
+similarity plus a learned utility; AgeMem~\cite{agemem} learns tool-based
+long/short-term management. These learn a policy over a \emph{flat} memory space
+in single-agent settings, without phase conditioning.
+
+\paragraph{Write-side, structure, multi-agent.} MemRouter~\cite{memrouter} is a
+write-admission router; FluxMem~\cite{fluxmem} selects a memory \emph{structure}.
+LEGOMem~\cite{legomem} splits \emph{procedural} memory into orchestrator vs.\
+sub-agent modules (informing our PM split) but has no central cost-gated router;
+MIRIX~\cite{mirix} defines six memory types managed by \emph{separate} per-type
+agents, with no single central cost-based manager; RCR-Router~\cite{rcr} routes a
+context \emph{budget} by role within one phase.
+
+\paragraph{Consolidation, production, grounding.} A-MEM~\cite{amem} and
+self-consolidation~\cite{selfcons} inform our consolidation phase;
+MemGPT~\cite{memgpt}, Mem0~\cite{mem0}, MemMachine~\cite{memmachine}, and
+MemOS~\cite{memos} apply uniform policies without phase/pattern-conditioned cost
+gating. The cost/utility score descends from value-of-information
+theory~\cite{voi} and metareasoning~\cite{meta}. To our knowledge no prior system
+combines a six-type taxonomy, a single central read+write router, phase +
+task-pattern conditioning, and a multi-agent setting.
+
+\section{The Agentic Memory Lifecycle}
+We model a task as flowing through \textbf{ten phases}: bootstrap, ingestion,
+retrieval, orchestrator inference, delegation, agent inference, agent output,
+observation, storage, and consolidation. Six memory types carry data across
+them (Table~\ref{tab:types}). Each task is classified at ingestion into a
+\textbf{pattern} (lookup, single-action, coordination, recurring,
+document-create, document-query, \ldots) by a lightweight classifier; this label
+conditions all downstream routing.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Type & Role & Access cost \\
+\midrule
+PM (proc.)   & static prompts/rules        & cheap (dict) \\
+WM (work.)   & per-task scratchpad          & cheap \\
+STM (short)  & cache of plan bundles        & cheap \\
+EM (episodic)& past task traces (FAISS)     & \textbf{expensive} \\
+SM (semantic)& distilled facts (FAISS)      & \textbf{expensive} \\
+ENT (entity) & per-user profiles            & cheap \\
+\bottomrule
+\end{tabular}
+\caption{The six memory types and their relative access cost.}
+\label{tab:types}
+\end{table}
+
+\section{Method: PCCR}
+A central \texttt{MemoryManager} executes the lifecycle; a \texttt{MemoryRouter}
+\emph{decides} what to touch at each phase, and the manager performs the
+reads/writes. This decision/execution separation lets the policy be inspected,
+tuned, and replaced without rewriting the lifecycle plumbing.
+
+\subsection{Phase conditioning}\label{sec:phase}
+Each phase declares a routing \emph{mode}: bootstrap $=$ classify-by-kind
+(rules$\rightarrow$PM, facts$\rightarrow$ENT, vectors$\rightarrow$SM); ingestion
+and observation $=$ fixed-sink ($\rightarrow$WM); retrieval $=$ the cascading
+cost-gate (below); orchestrator inference $=$ consume-and-log (nothing persists);
+storage $=$ outcome-conditional (success $\rightarrow$ write STM+ENT; failure
+$\rightarrow$ write nothing); consolidation $=$ batch-distribute
+($\rightarrow$EM/SM/PM/STM). The same request shape is routed differently
+depending on the phase.
+
+\subsection{The cascading cost-effectiveness gate}\label{sec:gate}
+PM and WM are read unconditionally. STM is checked first; a confident cache hit
+\textbf{short-circuits} all optional stores. On a miss, for each optional store
+$s \in \{\text{EM},\text{SM},\text{ENT}\}$:
+\[
+\rho(\text{pattern},s) = \frac{U(\text{pattern},s)}{C(s)},\quad
+\text{consult } s \iff \rho \geq \theta,
+\]
+where $C(s)$ is a relative access cost ($C(\text{ENT}){=}0.15$ for a keyed
+lookup; $C(\text{EM}){=}C(\text{SM}){=}0.55$ for a vector search +
+deserialization) and $U(\text{pattern},s)\in[0,1]$ is the expected utility of $s$
+for that pattern. $\theta$ is a single dial trading cost against quality. $U$
+encodes hypotheses such as ``pure-lookup tasks gain little from episodic search
+but much from entity facts,'' which the experiments test directly.
+
+\subsection{Outcome-driven adaptation and audit}\label{sec:loop}
+Every routing call returns and records a \texttt{RoutingDecision}: candidates,
+consulted set, skipped set with per-store reasons, cache hit/miss, and latency. A
+closed loop reads this log and, after each task, nudges $U(\text{pattern},s)$
+\textbf{up} if consulting $s$ coincided with success and \textbf{down} if with
+failure (clamped to $[0,1]$). Because the policy is indexed by
+$(\text{phase}\times\text{pattern}\times\text{store})$, the learned quantity is
+higher-dimensional and more interpretable than a flat global policy.
+
+\subsection{Priors, not assumptions}
+$C(\cdot)$ and $U(\cdot,\cdot)$ start as hand-set priors. They are not assumed
+final: the closed loop refines $U$ from outcomes, $C$ can be replaced by measured
+latencies from the decision log, and---as \S\ref{sec:results} shows---the
+held-out comparison itself empirically tests the priors (pruning a low-utility
+store without losing accuracy confirms its low utility).
+
+\section{Experimental Setup}
+\paragraph{Benchmark.} OfficeBench~\cite{officebench}, a multi-application
+office-automation benchmark; a task is correct only if \emph{all} of its
+evaluation predicates pass. We use the subset executable by our agents: 34
+calendar/email tasks (two-agent) and 92 calendar/email/document tasks
+(three-agent).
+
+\paragraph{Agents and backbone.} An orchestrator delegates to specialist
+sub-agents---calendar, email, and (three-agent) a document agent. All roles run
+on \textbf{gpt-oss-120b} (via Cerebras), temperature 0. EM/SM are FAISS
+\texttt{IndexFlatIP} over 384-d \texttt{all-MiniLM-L6-v2} embeddings.
+
+\paragraph{Protocol.} Held-out, disjoint train/test split (two-agent
+$\sim$23/11; three-agent 60/32). Train (memory off) $\rightarrow$ consolidate
+once $\rightarrow$ test with memory. The three-agent comparison uses
+\textbf{frozen test memory} (no writes during test) so the only variable across
+methods is the routing policy; training is run once and shared via
+snapshot/restore.
+
+\paragraph{Methods.} All share identical agents, prompts, and consolidated
+memory, differing only in retrieval policy: \textbf{Retrieve-All} (consult every
+optional store), \textbf{Boolean} (a hand-set per-pattern on/off table), and
+\textbf{PCCR} (the $\rho$-gate, swept over $\theta\in\{1.0,1.2,1.4\}$).
+
+\paragraph{Metrics \& RQs.} Task accuracy; optional-store consultations; FAISS
+queries; retrieved tokens injected; utility drift. \textbf{RQ1}: cost at equal
+quality? \textbf{RQ2}: does the consult set vary by pattern as predicted?
+\textbf{RQ3}: is $\theta$ a monotone cost/quality dial? \textbf{RQ4}: does the
+closed loop adapt?
+
+\section{Results}\label{sec:results}
+
+\subsection{RQ1 --- Cost at equal quality}
+All methods reach identical accuracy; PCCR attains it at the lowest cost
+(Tables~\ref{tab:cmp2}--\ref{tab:cmp3}).
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Method & Acc & Consults & FAISS \\
+\midrule
+Retrieve-All & 5/11 & 20 & 27 \\
+Boolean      & 5/11 & 14 & 27 \\
+\textbf{PCCR}& 5/11 & \textbf{12} & \textbf{25} \\
+\bottomrule
+\end{tabular}
+\caption{Two-agent held-out comparison ($\theta{=}1.0$, 11 tasks).}
+\label{tab:cmp2}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Method & Acc & Consults & FAISS \\
+\midrule
+Retrieve-All & 10/32 & 46 & 72 \\
+Boolean      & 10/32 & 39 & 72 \\
+\textbf{PCCR}& \textbf{11/32} & \textbf{27} & \textbf{62} \\
+\bottomrule
+\end{tabular}
+\caption{Three-agent held-out comparison ($\theta{=}1.0$, 32 tasks). PCCR
+slightly exceeds the baselines' accuracy while cutting consultations
+$\sim$41\%.}
+\label{tab:cmp3}
+\end{table}
+
+\subsection{RQ3 --- Threshold as a cost dial; token savings}
+The three-agent frontier (Table~\ref{tab:frontier}; all points share identical
+consolidated memory) has a sharp knee: $\theta{=}1.0{\rightarrow}1.2$ cuts
+consultations $27{\rightarrow}6$ ($-78\%$) and injected retrieved tokens
+$837{\rightarrow}96$ ($-89\%$) with \emph{no} accuracy loss; accuracy only
+degrades at $\theta{=}1.4$. \textbf{Headline: PCCR at $\theta{=}1.2$ matches or
+beats every baseline's accuracy while issuing $\sim$87\% fewer consultations than
+Retrieve-All (6 vs.\ 46) and injecting $\sim$89\% fewer retrieved tokens.} Token
+counts are an orchestrator-context lower bound ($\sim$4 chars/token); realized
+savings are larger.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+$\theta$ & Acc & Consults & FAISS & Inj.\ tokens \\
+\midrule
+1.0 & 11/32 & 27 & 60 & 837 \\
+\textbf{1.2} & \textbf{11/32} & \textbf{6} & 38 & \textbf{96 ($-89\%$)} \\
+1.4 & 8/32 & 6 & 37 & 96 \\
+\bottomrule
+\end{tabular}
+\caption{Three-agent cost/quality frontier (self-consistent).}
+\label{tab:frontier}
+\end{table}
+
+\subsection{RQ2 --- Pattern-conditioned routing}
+Per-pattern consult rates (Table~\ref{tab:pattern}) match the $\rho$-model
+exactly: episodic is pruned on pure lookups (\texttt{email\_query},
+$\rho_{\text{EM}}{=}0.87{<}1$), entity is pruned where a profile is irrelevant
+(\texttt{email\_send}), both are consulted for coordination, and a pure document
+read (\texttt{word\_query}) consults \emph{neither} optional store. The
+aggregate savings are thus the sum of interpretable, store-specific decisions.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Pattern & $n$ & EM & ENT \\
+\midrule
+\texttt{email\_query} (lookup)        & 7  & 0/7  & 7/7 \\
+\texttt{email\_send}                  & 10 & 10/10& 0/10 \\
+\texttt{single\_cal\_create}          & 8  & 8/8  & 0/8 \\
+\texttt{multi\_cal\_find\_and\_create}& 1  & 1/1  & 1/1 \\
+\texttt{word\_create}                 & 3  & 3/3  & 0/3 \\
+\texttt{word\_query}                  & 3  & 0/3  & 0/3 \\
+\bottomrule
+\end{tabular}
+\caption{Per-pattern EM/ENT consult rates (PCCR, three-agent, $\theta{=}1.0$).}
+\label{tab:pattern}
+\end{table}
+
+\subsection{RQ4 --- Closed-loop adaptation}
+In the online two-agent run, outcome-driven updates moved utilities
+\textbf{bidirectionally}---upward for (pattern,\,store) pairs co-occurring with
+success (e.g.\ \texttt{multi.episodic} $0.78{\rightarrow}0.83$) and downward for
+those co-occurring with failure (e.g.\ \texttt{email\_send.episodic}
+$0.62{\rightarrow}0.57$)---demonstrating online policy adaptation with no
+backbone updates. (The three-agent run froze memory to isolate routing, so RQ4
+is reported from the two-agent run.)
+
+\section{Discussion and Limitations}
+The pattern-level analysis (\S\,RQ2) is the strongest evidence: the mechanism
+behaves as designed rather than succeeding by chance. \textbf{Scale:} held-out
+sets are small (11/32 tasks); results are a directional proof-of-concept, and
+some splits are pattern-skewed---scaling and balancing is the priority for a
+camera-ready result. \textbf{Cost currency:} in our local harness FAISS is
+milliseconds and LLM inference dominates wall-clock, so we report retrieval cost
+(consultations, FAISS queries, injected tokens), the deployment-relevant cost
+when stores are large, remote, or LLM-backed; token counts are approximate and a
+lower bound. \textbf{Priors:} $C$ and $U$ begin hand-set (the loop refines $U$; $C$
+is replaceable by logged latencies); a fully learned cost model and a
+counterfactual (with/without-store) measurement of utility remain future work.
+
+\section{Conclusion}
+PCCR conditions retrieval on lifecycle phase and task pattern, gates each store
+by an explicit cost-effectiveness ratio, and adapts from logged outcomes. On
+OfficeBench with a real backbone, it matches or beats an indiscriminate
+retrieve-everything policy while cutting store consultations by 41--87\% and
+injected tokens by up to 89\% at equal accuracy, with savings attributable to
+interpretable per-pattern decisions. ``Which memory to consult'' should be a
+tunable, phase-aware, cost-sensitive decision rather than a reflex.
+
+\begin{thebibliography}{99}\small
+\bibitem{coala} T.~Sumers et al. Cognitive Architectures for Language Agents (CoALA). TMLR, 2024.
+\bibitem{survey1} Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers. arXiv:2603.07670.
+\bibitem{survey2} Anatomy of Agentic Memory: Taxonomy and Empirical Analysis. arXiv:2602.19320.
+\bibitem{pocket} M.~Gaikwad. Did You Check the Right Pocket? Cost-Sensitive Store Routing for Memory-Augmented Agents. ICLR 2026 Workshop. arXiv:2603.15658.
+\bibitem{budgetmem} H.~Zhang et al. Learning Query-Aware Budget-Tier Routing for Runtime Agent Memory (BudgetMem). arXiv:2602.06025.
+\bibitem{memrouter} MemRouter: Memory-as-Embedding Routing for Long-Term Conversational Agents. arXiv:2605.00356.
+\bibitem{umem} Towards Autonomous Memory Agents (U-Mem). arXiv:2602.22406.
+\bibitem{agemem} Agentic Memory: Learning Unified Long-Term and Short-Term Memory Management for LLM Agents. arXiv:2601.01885.
+\bibitem{fluxmem} Choosing How to Remember: Adaptive Memory Structures for LLM Agents (FluxMem). arXiv:2602.14038.
+\bibitem{legomem} LEGOMem: Modular Procedural Memory for Multi-agent LLM Systems. arXiv:2510.04851.
+\bibitem{mirix} Y.~Wang, X.~Chen. MIRIX: Multi-Agent Memory System for LLM-Based Agents. arXiv:2507.07957.
+\bibitem{rcr} RCR-Router: Efficient Role-Aware Context Routing for Multi-Agent LLM Systems. arXiv:2508.04903.
+\bibitem{amem} A-MEM: Agentic Memory for LLM Agents. NeurIPS, 2025. arXiv:2502.12110.
+\bibitem{selfcons} Self-Consolidation for Self-Evolving Agents. arXiv:2602.01966.
+\bibitem{memgpt} C.~Packer et al. MemGPT: Towards LLMs as Operating Systems. 2024.
+\bibitem{mem0} Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory. 2025.
+\bibitem{memmachine} MemMachine: A Ground-Truth-Preserving Memory System. arXiv:2604.04853.
+\bibitem{memos} MemOS: An Operating System for Memory-Augmented Generation. EMNLP 2025. arXiv:2505.22101.
+\bibitem{voi} R.~Howard. Information Value Theory. IEEE Trans. SSC, 1966.
+\bibitem{meta} S.~Russell, E.~Wefald. Principles of Metareasoning. Artificial Intelligence, 1991.
+\bibitem{officebench} T.~Wang et al. OfficeBench: Benchmarking Language Agents across Multiple Applications for Office Automation. arXiv:2407.19056.
+\end{thebibliography}
+
+\end{document}

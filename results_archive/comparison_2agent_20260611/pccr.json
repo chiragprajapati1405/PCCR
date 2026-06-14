@@ -1,0 +1,662 @@
+{
+  "config": {
+    "mode": "pccr",
+    "threshold": 1.0,
+    "pool_n": 34,
+    "strict_stm": true,
+    "heldout": true,
+    "split_frac": 0.7
+  },
+  "results": {
+    "mode": "pccr",
+    "threshold": 1.0,
+    "strict_stm": true,
+    "heldout": true,
+    "training": {
+      "passed": 17,
+      "total": 23
+    },
+    "testing": {
+      "passed": 5,
+      "total": 11
+    }
+  },
+  "pccr_summary": "mode=pccr thr=1.0 | tasks=34 success=22/34 | FAISS=25 optional-consults=12 | STM-hits=0 | avg-consults/task=0.35",
+  "cost_log": [
+    {
+      "task": "Add a meeting to Bob's calendar at 5/17/2024 10:30 a.m to 11",
+      "pattern": "single_cal_create",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "remind Bob that he has a dinner at 5/18/2024 7:00 p.m",
+      "pattern": "remind_notify",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "I have to workout at 5/16/2024 5:00 p.m to 6:00 p.m, notify ",
+      "pattern": "remind_notify",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "at 5/15/2024 4:00 p.m to 6:00 p.m at Mathematic Science 4000",
+      "pattern": "single_cal_create",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Bob has a travelling from 6/19/2024 to 6/23/2024 at Florida,",
+      "pattern": "single_cal_create",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Find a common time for Bob and Tom to have an one hour zoom ",
+      "pattern": "multi_cal_find_and_create",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 5
+    },
+    {
+      "task": "Can Bob and Tom have dinner together at 5/1/2024? Add a comm",
+      "pattern": "multi_cal_find_and_create",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 5
+    },
+    {
+      "task": "Bob and Tom need to shopping, help they find one hour at 5/1",
+      "pattern": "multi_cal_find_and_create",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 5
+    },
+    {
+      "task": "What are Bob's emails for last three months? List the conten",
+      "pattern": "unknown",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "What is the earliest email to Bob about? Read the contents a",
+      "pattern": "email_query",
+      "success": false,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 6
+    },
+    {
+      "task": "What is the latest email to Bob about? Read the contents as ",
+      "pattern": "email_query",
+      "success": false,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 7
+    },
+    {
+      "task": "does Bob receive emails in last month? if does, how many? An",
+      "pattern": "email_query",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "In which season does Bob receive most emails?",
+      "pattern": "email_query",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "what is the subject of the latest email that send to Bob?",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "what is the subject of the earliest email that send to Bob?",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 7
+    },
+    {
+      "task": "does Bob receive emails in last month? Answer yes or no.",
+      "pattern": "email_query",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "what is the subject of the email I sent to Bob?",
+      "pattern": "email_query",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "who sent the most email to Bob?",
+      "pattern": "email_query",
+      "success": false,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "Check the emails, and let me know if my rent is due. Yes or ",
+      "pattern": "unknown",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Check the emails, and let me know if my scholarship applicat",
+      "pattern": "unknown",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Scan handwritten notes from a meeting agenda, convert them t",
+      "pattern": "single_cal_create",
+      "success": false,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "for calendar data, which event has longest total time?",
+      "pattern": "cal_query",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "What are conflicts in my calendar events? Tell me the confli",
+      "pattern": "cal_query",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Bob was invited to party hold by Jane Doe, send an email par",
+      "pattern": "remind_notify",
+      "success": false,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "read Bob's calendar event and send email using event names t",
+      "pattern": "email_send",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "read Bob's calendar event and send email using event names t",
+      "pattern": "email_send",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "read Bob's calendar event and send email to Bob using event ",
+      "pattern": "email_send",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "read Bob's and Tom's calendars, find their common events and",
+      "pattern": "multi_cal_find_and_create",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 5
+    },
+    {
+      "task": "read my email, assign tasks mentioned in the multi-task emai",
+      "pattern": "email_query",
+      "success": false,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 0,
+      "stm_layer": "MISS",
+      "steps": 8
+    },
+    {
+      "task": "read company revenues and send a email revenues.eml containi",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "read company revenues, send a email revenues.eml to Bob cont",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "read notification, send email to people mentioned in post, c",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "What is the maximum prices of the cars sold in March, send i",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Compare income and expenditure based on company trading reco",
+      "pattern": "email_query",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 1.0,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    }
+  ],
+  "decision_log": [
+    {
+      "task": "Bob was invited to party hold by Jane Do",
+      "pattern": "remind_notify",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {
+        "episodic": 1.2,
+        "entity": 3.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 55416.167
+    },
+    {
+      "task": "read Bob's calendar event and send email",
+      "pattern": "email_send",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "rho 0.67 < threshold 1.00 (u=0.10, cost=0.15)"
+      },
+      "rho": {
+        "episodic": 1.13,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 80751.208
+    },
+    {
+      "task": "read Bob's calendar event and send email",
+      "pattern": "email_send",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "rho 0.67 < threshold 1.00 (u=0.10, cost=0.15)"
+      },
+      "rho": {
+        "episodic": 1.22,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 54219.625
+    },
+    {
+      "task": "read Bob's calendar event and send email",
+      "pattern": "email_send",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "rho 0.67 < threshold 1.00 (u=0.10, cost=0.15)"
+      },
+      "rho": {
+        "episodic": 1.31,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 56695.0
+    },
+    {
+      "task": "read Bob's and Tom's calendars, find the",
+      "pattern": "multi_cal_find_and_create",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {
+        "episodic": 1.42,
+        "entity": 4.8
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 77382.666
+    },
+    {
+      "task": "read my email, assign tasks mentioned in",
+      "pattern": "email_query",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "entity"
+      ],
+      "skipped": {
+        "episodic": "rho 0.87 < threshold 1.00 (u=0.48, cost=0.55)"
+      },
+      "rho": {
+        "episodic": 0.87,
+        "entity": 4.4
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 46111.375
+    },
+    {
+      "task": "read company revenues and send a email r",
+      "pattern": "email_send",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "rho 0.67 < threshold 1.00 (u=0.10, cost=0.15)"
+      },
+      "rho": {
+        "episodic": 1.4,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 79836.875
+    },
+    {
+      "task": "read company revenues, send a email reve",
+      "pattern": "email_send",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "rho 0.67 < threshold 1.00 (u=0.10, cost=0.15)"
+      },
+      "rho": {
+        "episodic": 1.31,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 202539.958
+    },
+    {
+      "task": "read notification, send email to people ",
+      "pattern": "email_send",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "rho 0.67 < threshold 1.00 (u=0.10, cost=0.15)"
+      },
+      "rho": {
+        "episodic": 1.22,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 85285.458
+    },
+    {
+      "task": "What is the maximum prices of the cars s",
+      "pattern": "email_send",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "rho 0.67 < threshold 1.00 (u=0.10, cost=0.15)"
+      },
+      "rho": {
+        "episodic": 1.13,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 82234.084
+    },
+    {
+      "task": "Compare income and expenditure based on ",
+      "pattern": "email_query",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "entity"
+      ],
+      "skipped": {
+        "episodic": "rho 0.87 < threshold 1.00 (u=0.48, cost=0.55)"
+      },
+      "rho": {
+        "episodic": 0.87,
+        "entity": 4.4
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 42532.791
+    }
+  ],
+  "final_utility_table": {
+    "single_cal_create": {
+      "episodic": 0.6,
+      "entity": 0.1
+    },
+    "multi_cal_find_and_create": {
+      "episodic": 0.8300000000000001,
+      "entity": 0.77
+    },
+    "remind_notify": {
+      "episodic": 0.61,
+      "entity": 0.5
+    },
+    "email_query": {
+      "episodic": 0.48,
+      "entity": 0.7100000000000001
+    },
+    "email_send": {
+      "episodic": 0.57,
+      "entity": 0.1
+    },
+    "cal_query": {
+      "episodic": 0.58,
+      "entity": 0.1
+    },
+    "unknown": {
+      "episodic": 0.7,
+      "entity": 0.6
+    }
+  }
+}

@@ -1,0 +1,982 @@
+{
+  "config": {
+    "mode": "boolean",
+    "threshold": 1.0,
+    "n_agents": 3,
+    "strict_stm": true,
+    "heldout": true,
+    "multimode": true
+  },
+  "results": {
+    "mode": "boolean",
+    "threshold": 1.0,
+    "n_agents": 3,
+    "strict_stm": true,
+    "heldout": true,
+    "training": {
+      "passed": 29,
+      "total": 60
+    },
+    "testing": {
+      "passed": 10,
+      "total": 32
+    }
+  },
+  "pccr_summary": "mode=boolean thr=1.0 | tasks=32 success=10/32 | FAISS=72 optional-consults=39 | STM-hits=0 | avg-consults/task=1.22",
+  "cost_log": [
+    {
+      "task": "read notification word file and send email notification.eml ",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "find Bob's latest email, save it in latest.docx",
+      "pattern": "email_query",
+      "success": true,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "find Bob's earliest email, save it in earliest.docx",
+      "pattern": "email_query",
+      "success": true,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "find all Bob's emails in this year, save them in emails.docx",
+      "pattern": "word_create",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "read Bob's calendar event and send email using event names t",
+      "pattern": "email_send",
+      "success": true,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "read Bob's calendar event and send email using event names t",
+      "pattern": "email_send",
+      "success": true,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "read Bob's calendar event and send email to Bob using event ",
+      "pattern": "email_send",
+      "success": true,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "read Bob's and Tom's calendars, find their common events and",
+      "pattern": "multi_cal_find_and_create",
+      "success": true,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 5
+    },
+    {
+      "task": "read work overtime email, save as recipient's calendar event",
+      "pattern": "single_cal_create",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 5
+    },
+    {
+      "task": "read my body test email, save as recipients' calendar event ",
+      "pattern": "single_cal_create",
+      "success": true,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 8
+    },
+    {
+      "task": "read my email, assign tasks mentioned in the multi-task emai",
+      "pattern": "email_query",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 8
+    },
+    {
+      "task": "read company revenues and send a email revenues.eml containi",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 6
+    },
+    {
+      "task": "read company revenues, send a email revenues.eml to Bob cont",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "read company revenues, calculate the revenue difference of t",
+      "pattern": "word_query",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 5
+    },
+    {
+      "task": "read company revenues, calculate the revenue difference of t",
+      "pattern": "word_query",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 8
+    },
+    {
+      "task": "read score for midterm1 and midterm2, which students made pr",
+      "pattern": "email_query",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "read score for midterm1 and midterm2, find number of student",
+      "pattern": "word_query",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 8
+    },
+    {
+      "task": "schedule a reward meeting to the top-three students in midte",
+      "pattern": "single_cal_create",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "schedule a helping section, pair one student whose score is ",
+      "pattern": "single_cal_create",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "Write a statement in reward.docx to the student who got the ",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 5
+    },
+    {
+      "task": "assign homework \"read book and write essay\" in hw1.docx for ",
+      "pattern": "single_cal_create",
+      "success": true,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "assign homework \"read book and write essay\" in hw1.docx for ",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "write all shopping item in shopping.docx from shopping list",
+      "pattern": "single_cal_create",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "give some instruction and prediction in file house_price.doc",
+      "pattern": "email_query",
+      "success": true,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 5
+    },
+    {
+      "task": "What is the maximum prices of the cars sold in March, send i",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "Identify whether the reimbursement amount exceeds the compan",
+      "pattern": "word_create",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "Identify whether the reimbursement amount exceeds the compan",
+      "pattern": "single_cal_create",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 6
+    },
+    {
+      "task": "Compare income and expenditure based on company trading reco",
+      "pattern": "email_query",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "Analyze relationship between sleeping hours and age, weight,",
+      "pattern": "word_create",
+      "success": true,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "if Dean's list requires term average gpa to be higher than 3",
+      "pattern": "email_query",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Do these calendar events have time conflicts? write conflict",
+      "pattern": "single_cal_create",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "read company revenues and send a email revenues.eml containi",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "boolean",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 6
+    }
+  ],
+  "decision_log": [
+    {
+      "task": "read notification word file and send ema",
+      "pattern": "email_send",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'email_send' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 91730.792
+    },
+    {
+      "task": "find Bob's latest email, save it in late",
+      "pattern": "email_query",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 82226.417
+    },
+    {
+      "task": "find Bob's earliest email, save it in ea",
+      "pattern": "email_query",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 81581.208
+    },
+    {
+      "task": "find all Bob's emails in this year, save",
+      "pattern": "word_create",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 92799.083
+    },
+    {
+      "task": "read Bob's calendar event and send email",
+      "pattern": "email_send",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'email_send' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 227987.625
+    },
+    {
+      "task": "read Bob's calendar event and send email",
+      "pattern": "email_send",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'email_send' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 106603.541
+    },
+    {
+      "task": "read Bob's calendar event and send email",
+      "pattern": "email_send",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'email_send' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 107033.417
+    },
+    {
+      "task": "read Bob's and Tom's calendars, find the",
+      "pattern": "multi_cal_find_and_create",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 97116.208
+    },
+    {
+      "task": "read work overtime email, save as recipi",
+      "pattern": "single_cal_create",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'single_cal_create' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 85754.875
+    },
+    {
+      "task": "read my body test email, save as recipie",
+      "pattern": "single_cal_create",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'single_cal_create' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 84242.375
+    },
+    {
+      "task": "read my email, assign tasks mentioned in",
+      "pattern": "email_query",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 245353.542
+    },
+    {
+      "task": "read company revenues and send a email r",
+      "pattern": "email_send",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'email_send' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 135994.417
+    },
+    {
+      "task": "read company revenues, send a email reve",
+      "pattern": "email_send",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'email_send' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 86986.375
+    },
+    {
+      "task": "read company revenues, calculate the rev",
+      "pattern": "word_query",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 88957.25
+    },
+    {
+      "task": "read company revenues, calculate the rev",
+      "pattern": "word_query",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 86678.042
+    },
+    {
+      "task": "read score for midterm1 and midterm2, wh",
+      "pattern": "email_query",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 95812.083
+    },
+    {
+      "task": "read score for midterm1 and midterm2, fi",
+      "pattern": "word_query",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 94723.541
+    },
+    {
+      "task": "schedule a reward meeting to the top-thr",
+      "pattern": "single_cal_create",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'single_cal_create' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 115926.583
+    },
+    {
+      "task": "schedule a helping section, pair one stu",
+      "pattern": "single_cal_create",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'single_cal_create' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 88004.041
+    },
+    {
+      "task": "Write a statement in reward.docx to the ",
+      "pattern": "email_send",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'email_send' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 87719.875
+    },
+    {
+      "task": "assign homework \"read book and write ess",
+      "pattern": "single_cal_create",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'single_cal_create' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 81611.708
+    },
+    {
+      "task": "assign homework \"read book and write ess",
+      "pattern": "email_send",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'email_send' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 82739.625
+    },
+    {
+      "task": "write all shopping item in shopping.docx",
+      "pattern": "single_cal_create",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'single_cal_create' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 84606.666
+    },
+    {
+      "task": "give some instruction and prediction in ",
+      "pattern": "email_query",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 89307.625
+    },
+    {
+      "task": "What is the maximum prices of the cars s",
+      "pattern": "email_send",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'email_send' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 82164.875
+    },
+    {
+      "task": "Identify whether the reimbursement amoun",
+      "pattern": "word_create",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 82748.459
+    },
+    {
+      "task": "Identify whether the reimbursement amoun",
+      "pattern": "single_cal_create",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'single_cal_create' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 86215.875
+    },
+    {
+      "task": "Compare income and expenditure based on ",
+      "pattern": "email_query",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 88064.166
+    },
+    {
+      "task": "Analyze relationship between sleeping ho",
+      "pattern": "word_create",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 104194.167
+    },
+    {
+      "task": "if Dean's list requires term average gpa",
+      "pattern": "email_query",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 85920.708
+    },
+    {
+      "task": "Do these calendar events have time confl",
+      "pattern": "single_cal_create",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'single_cal_create' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 83527.792
+    },
+    {
+      "task": "read company revenues and send a email r",
+      "pattern": "email_send",
+      "mode": "boolean",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic"
+      ],
+      "skipped": {
+        "entity": "boolean policy: pattern 'email_send' \u2192 entity=False"
+      },
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 88205.958
+    }
+  ],
+  "final_utility_table": {
+    "single_cal_create": {
+      "episodic": 0.6,
+      "entity": 0.1
+    },
+    "multi_cal_find_and_create": {
+      "episodic": 0.78,
+      "entity": 0.72
+    },
+    "remind_notify": {
+      "episodic": 0.66,
+      "entity": 0.55
+    },
+    "email_query": {
+      "episodic": 0.48,
+      "entity": 0.66
+    },
+    "email_send": {
+      "episodic": 0.62,
+      "entity": 0.1
+    },
+    "cal_query": {
+      "episodic": 0.58,
+      "entity": 0.1
+    },
+    "word_create": {
+      "episodic": 0.62,
+      "entity": 0.1
+    },
+    "word_query": {
+      "episodic": 0.45,
+      "entity": 0.1
+    },
+    "unknown": {
+      "episodic": 0.7,
+      "entity": 0.6
+    }
+  }
+}
