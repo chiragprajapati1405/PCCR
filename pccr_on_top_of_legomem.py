@@ -819,7 +819,7 @@ def main():
 
     embedder = LocalEmbedder()
     keys = [os.environ.get(f"CEREBRAS_KEY_{i}", "") for i in range(1, 5)]
-    llm = MultiLLM(keys, model="gpt-oss-120b")
+    llm = MultiLLM(keys, model=os.environ.get("PCCR_MODEL", "gpt-oss-120b"))
     # Add a socket timeout so a dead connection (e.g. after the Mac sleeps)
     # fails fast and the key round-robin recovers, instead of hanging forever.
     for c in llm.clients:

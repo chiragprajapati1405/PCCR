@@ -93,7 +93,7 @@ def measure_utilities(n_calib=None):
     from mm_on_top_of_legomem import MultiLLM
     emb = LocalEmbedder()
     keys = [os.environ.get(f"CEREBRAS_KEY_{i}", "") for i in range(1, 5)]
-    llm = MultiLLM(keys, model="gpt-oss-120b")
+    llm = MultiLLM(keys, model=os.environ.get("PCCR_MODEL", "gpt-oss-120b"))
     for c in llm.clients:
         try:
             c["client"] = c["client"].with_options(timeout=60.0)
@@ -109,7 +109,14 @@ def measure_utilities(n_calib=None):
     _rebuild_stm_from_bank(mm)
     mm.freeze_writes = True   # don't mutate memory during measurement
 
-    calib = pool[60:] if len(pool) > 60 else pool          # held-out calibration tasks
+    ent_critical = os.environ.get("PCCR_ENT_CRITICAL", "0") == "1"   # A10 set
+    if ent_critical:
+        import synthetic_ent_tasks as set_mod
+        set_mod.generate()
+        set_mod.seed_entity(mm)
+        calib = set_mod.filter_ent_tasks(runner.get_all_task_ids())
+    else:
+        calib = pool[60:] if len(pool) > 60 else pool      # held-out calibration tasks
     if n_calib:
         calib = calib[:n_calib]
     print(f"counterfactual utility over {len(calib)} held-out tasks × {len(OPTIONAL)} stores × 2 (on/off)")
