@@ -1,0 +1,152 @@
+Complete Memory Schemas
+
+  1. PM — Procedural Memory
+
+  Static rules & prompts. Written once at bootstrap, read every call, appended at consolidation.
+  
+  ProceduralStore:
+
+      orchestrator_prompt:        str                    # the orchestrator's system prompt
+      agent_prompts:              dict[str, str]         # agent_name -> its prompt
+      task_type_rules:            dict[str, str]         # pattern code (A-E) -> rule text
+      agent_capability_profiles:  dict[str, dict]        # agent_name -> {capabilities}
+      learned_rules:              list[dict]             # filled by consolidation
+  learned_rule schema (each entry):
+  { "pattern": "C",
+    "rule": "For tasks like '...', prefer plan: search -> calendar -> email",
+    "support": 3 }                                       # how many episodes backed it
+  Lifetime: Permanent. Persistence: In-memory (rebuilt from bootstrap each run).
+  
+  ---
+  2. WM — Working Memory
+
+  Volatile per-task scratchpad. Created at ingestion, wiped at storage ("WM: DIES NOW").
+
+  TaskContext: 
+      task_id:             str
+      description:         str
+      username:            str
+      date:                str
+      pattern:             Optional[Pattern]             # A-E, set at ingestion
+      step_history:        list[StepRecord]              # every agent action+observation
+      shared_context:      dict[str, Any]                # cross-agent handoff data
+      last_action:         Optional[dict]
+      forced_finish:       Optional[dict]                # loop-detection trip
+      success:             Optional[bool]
+      pending_delegation:  Optional[dict]                # {thought, agent, subtask}
+      detected_agents:     set[str]                      # for EM-preload trigger
+      loop_detected:       bool
+  StepRecord (one row of step_history):
+  { "step": int, "agent": str, "action": str,
+    "observation": str, "timestamp": float }
+  Lifetime: One task. Persistence: None — clear() nulls everything at Phase 9.
+  
+  ---
+  3. STM — Short-Term Memory
+
+  Session cache of distilled plan bundles. The cascade short-circuit lives here.
+
+  MemoryBundle:                                          # one cache entry
+      signature:          str                            # "search -> calendar -> email"
+      plan:               list[str]
+      subtask_memories:   list[SubtaskMemory]
+      embedding:          float32[384]                   # for similarity lookup
+      pattern:            Optional[Pattern]
+      hits:               int                            # cache-hit counter
+  Store internals:
+  ShortTermStore:
+      _bundles:     dict[str, MemoryBundle]              # signature -> bundle
+      _embeddings:  list[float32[384]]                   # one per occurrence
+      _signatures:  list[str]                            # parallel to _embeddings
+      _threshold:   float                                # 0.92 cache-hit cutoff
+  Lifetime: Session. Persistence: In-memory.
+
+  ---
+  4. EM — Episodic Memory
+
+  Specific past task experiences. FAISS-indexed, disk-backed. Written only at consolidation.
+
+  FullTaskMemory:                                        # one episode
+      task_id:           str
+      description:       str
+      pattern:           Pattern
+      plan:              list[str]
+      step_signature:    str                             # "email:read -> calendar:create"
+      subtask_memories:  list[SubtaskMemory]
+      embedding:         float32[384]
+      outcome:           str                             # "success"|"failure"|"partial"
+      timestamp:         float
+  SubtaskMemory (nested inside, one per agent action):
+  { "agent": str, "subtask": str, "action": str,
+    "observation_summary": str, "outcome": str }
+  Lifetime: Permanent. Persistence: FAISS IndexFlatIP + episodic.faiss / episodic.json on disk.
+
+  ---
+  5. SM — Semantic Memory
+
+  Distilled factual statements. FAISS-indexed, disk-backed. Written at consolidation.
+
+  SemanticStore:                                         # facts stored as text + vectors
+      facts:    list[str]                                # the distilled fact strings
+      index:    PersistentVectorIndex                    # FAISS over fact embeddings
+  Fact schema (each is a generated sentence):
+  "When search_agent does 'search: Alice contact', a typical result is: alice@acme.com"
+  Lifetime: Permanent. Persistence: FAISS + semantic.faiss / semantic.json on disk.
+ 
+  ---
+  6. ENT — Entity Memory
+  
+  Durable facts about users/things. Seeded at bootstrap, merged on successful tasks.
+
+  EntityProfile:                                         # one per user/entity
+      username:   str
+      facts:      dict[str, Any]                          # arbitrary key -> value
+  Example:
+  { "username": "bob",
+    "facts": { "role": "engineer", "timezone": "PST",
+               "last_scheduled_with": "alice" } }
+  Lifetime: Session-persistent. Persistence: In-memory (merged across tasks within a run).
+
+  ---
+  Plus: the routing audit record (not a memory store, but flows through all phases)
+
+  RoutingDecision:
+      phase:                   Phase
+      task_id:                 str
+      pattern:                 Optional[Pattern]
+      candidate_stores:        list[MemoryType]
+      consulted_stores:        list[MemoryType]
+      skipped_stores:          dict[MemoryType, str]      # store -> why skipped
+      cache_hit:               bool
+      latency_s:               float
+      timestamp:               float
+      contributed_to_success:  Optional[dict[str, bool]]  # filled by phase-2 closed loop
+
+  ---
+  Summary table
+
+  ┌──────┬─────────────────┬────────────────────────────────────────────┬─────────┬───────────┬──────────┐
+  │ Type │  Schema object  │                 Key fields                 │ Vector? │ Lifetime  │ On disk? │
+      cache_hit:               bool
+      latency_s:               float
+      timestamp:               float
+      contributed_to_success:  Optional[dict[str, bool]]  # filled by phase-2 closed loop
+
+  ---
+  Summary table
+
+  ┌──────┬─────────────────┬────────────────────────────────────────────┬─────────┬───────────┬──────────┐
+  │ Type │  Schema object  │                 Key fields                 │ Vector? │ Lifetime  │ On disk? │
+  ├──────┼─────────────────┼────────────────────────────────────────────┼─────────┼───────────┼──────────┤
+  │ PM   │ ProceduralStore │ prompts, rules, learned_rules              │    ✗    │ Permanent │    ✗     │
+  ├──────┼─────────────────┼────────────────────────────────────────────┼─────────┼───────────┼──────────┤
+  │ WM   │ TaskContext     │ step_history, shared_context, pattern      │    ✗    │ One task  │    ✗     │
+  ├──────┼─────────────────┼────────────────────────────────────────────┼─────────┼───────────┼──────────┤
+  │ STM  │ MemoryBundle    │ signature, plan, embedding, hits           │ ✓ 384d  │ Session   │    ✗     │
+  ├──────┼─────────────────┼────────────────────────────────────────────┼─────────┼───────────┼──────────┤
+  │ EM   │ FullTaskMemory  │ plan, subtask_memories, embedding, outcome │ ✓ 384d  │ Permanent │ ✓ FAISS  │
+  ├──────┼─────────────────┼────────────────────────────────────────────┼─────────┼───────────┼──────────┤
+  │ SM   │ fact strings    │ fact text + embedding                      │ ✓ 384d  │ Permanent │ ✓ FAISS  │
+  ├──────┼─────────────────┼────────────────────────────────────────────┼─────────┼───────────┼──────────┤
+  │ ENT  │ EntityProfile   │ username, facts dict                       │    ✗    │ Session   │    ✗     │
+  └──────┴─────────────────┴────────────────────────────────────────────┴─────────┴───────────┴──────────┘

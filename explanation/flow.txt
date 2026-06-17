@@ -1,0 +1,75 @@
+ Usecase: Bob needs to schedule a meeting with Tom and send him a mail invite (testing side, memory ON, frozen)
+
+  step 0 — bootstrap: PM stores orch + agent system prompts + tool/action formats;
+           ENT seeded with agent profiles (calendar/email capabilities);
+           WM empty; routing_strategy + cost/utility tables loaded; embedding
+           model + FAISS bank loaded from disk (EM/SM already built in training).
+
+  step 1 — task ingestion: task enters WM (task, user=Bob, date); classifier
+           (PatternSTM.classify, keyword-based) tags the pattern — here "schedule"
+           + "meeting" → a calendar-creation pattern; step_history=[],
+           shared_context={}, memories_read_this_task={}.
+
+  step 2 — memory retrieval (route_query): read PM (orch prompt) + WM (always);
+           check STM first → MISS (held-out, unseen task); compute ρ=utility/cost
+           per optional store; consult those clearing θ (e.g. EM ρ≥θ → FAISS search
+           top-3 + relevance filter ≥0.5; ENT below θ → skipped); log RoutingDecision.
+
+  step 3 — orch inference (call #1): assemble prompt = PM orch prompt + WM context
+           + retrieved episodes; LLM plans and picks the FIRST subtask →
+           {agent: calendar, subtask: "create event 'Meeting with Tom' for Bob ..."}.
+
+  step 4 — orch output (delegate #1): delegation written to WM; loop-detection
+           check; plan-driven EM pre-load for the calendar agent (one batched FAISS
+           read of calendar-specific episodes).
+  
+  step 5 — agent inference (calendar): calendar agent reads its OWN PM prompt +
+           pre-loaded EM + the WM instruction → emits ONE action:
+           {app: calendar, action: create_event, user: Bob, summary: ..., time_start, time_end}.
+
+  step 6 — agent output: action JSON → WM; execute_fs_action writes Bob.ics to the
+           testbed → this file is EXT (external), not memory.
+
+  step 7 — environment observation: "Successfully created event ..." → written to
+           WM step_history AND shared_context['calendar'] (so the email agent can
+           see what was scheduled).
+
+           ── loop back to the orchestrator ──
+
+  step 8 — orch inference (call #2): orch re-reads WM step_history, sees the event
+           is created → plans next subtask → {agent: email, subtask: "send Tom an
+           invite for the meeting on <date/time>"}.
+  
+  step 9 — orch output (delegate #2): delegation → WM (email agent).
+  
+  step 10 — agent inference (email): email agent reads its PM prompt + WM +
+            shared_context['calendar'] (the date/time the calendar agent set) →
+            {app: email, action: send_email, sender: Bob, recipient: Tom,
+             subject: ..., content: ...}.   (Tom's address = tom@example.com,
+             synthesized from the name in the task — not an ENT lookup.)
+
+  step 11 — agent output: send_email → execute_fs_action writes the .eml file → EXT.
+
+  step 12 — environment observation: "Email sent from Bob to Tom ..." → WM
+            step_history + shared_context['email'].
+
+           ── loop back to the orchestrator ──
+
+  step 13 — orch inference (call #3): orch sees both subtasks done in WM →
+            {agent: system, action: finish_task, answer: "Meeting scheduled and
+            invite sent to Tom."}.
+  
+  step 14 — evaluation: runner.evaluate_task runs the task's predicates against the
+            testbed — Bob.ics contains the right DTSTART/SUMMARY AND the .eml exists
+            with the right recipient/subject → pass only if ALL checks pass.
+
+  step 15 — memory storage (Phase 9): WM is read for success flag.
+            • Normal mode: on success → W2 plan bundle → STM, W3 Bob's profile → ENT,
+              closed loop nudges consulted stores' utility ↑; WM cleared.
+            • FROZEN test mode (what you ran for the clean comparison): record cost
+              metrics (consults, FAISS, tokens), write NOTHING, clear WM — so every
+              test task faces the identical consolidated memory.
+
+  step 16 — consolidation (Phase 10): NOT per-task. It's the batch step that ran
+            ONCE after the training phase (LLM curator distilled successful
+            trajectories → EM/SM, prefilled STM). During testing it does not run.

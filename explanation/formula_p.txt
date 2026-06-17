@@ -1,0 +1,107 @@
+1. The formula and the decision rule
+ 
+  For each optional store s (episodic, entity), on a cache miss:
+  ρ(pattern, s) = U(pattern, s) / C(s)
+  consult s  ⟺  ρ ≥ θ
+  - U = expected usefulness of that store for that task pattern, in [0, 1]
+  - C = relative access cost of the store
+  - θ = the threshold (your one tunable dial)
+
+  Code (_pccr_gate):
+  u   = pattern_utility[pattern][store]      # the utility table
+  c   = store_cost[store]                    # the cost model
+  rho = u / c
+  consult = (rho >= self.consult_threshold)  # θ
+
+  2. The cost numbers C(s) — how they're fixed
+
+  STORE_COST = {"entity": 0.15, "episodic": 0.55}   # (semantic rides inside episodic)
+  These are relative priors set by operation type, not measured times:
+  - Entity = 0.15 → a dictionary lookup by username (instant).
+  - Episodic/Semantic = 0.55 → a FAISS vector search + deserializing past task traces (much costlier).
+
+  The ratio (≈3.7×) is what matters, not the absolute values. Honest framing: these are hand-set, but the router logs the real per-call latency
+  (RoutingDecision.latency), so they can be replaced with measured median latencies later. PM/WM aren't in this table — they're always-read (cost
+  ~0), so they're never gated.
+
+  3. The utility numbers U(pattern, s) — how they're fixed
+  
+  PATTERN_UTILITY = {
+    "single_cal_create":         {"episodic": 0.60, "entity": 0.10},
+    "multi_cal_find_and_create": {"episodic": 0.78, "entity": 0.72},
+    "remind_notify":             {"episodic": 0.66, "entity": 0.55},
+    "email_query":               {"episodic": 0.48, "entity": 0.66},
+    "email_send":                {"episodic": 0.62, "entity": 0.10},
+    "cal_query":                 {"episodic": 0.58, "entity": 0.10},
+    "word_create":               {"episodic": 0.62, "entity": 0.10},
+    "word_query":                {"episodic": 0.45, "entity": 0.10},
+    "unknown":                   {"episodic": 0.70, "entity": 0.60},
+  }
+  These encode hypotheses about which store helps which task type, set by reasoning:
+  - email_query (a lookup) → episodic low (0.48) — a past task trace won't answer "what's in my email"; entity high (0.66) — user facts might.
+  - email_send → episodic moderate (0.62, past send examples help format); entity low (0.10) — you don't need a profile to send.
+  - multi_cal_find_and_create (coordination) → both high (0.78/0.72) — past multi-step plans help, and you need both users.
+  - word_query (doc read) → both low — a pure read needs nothing optional.
+
+  How I "fixed" them (the calibration trick): I chose the values so that at θ = 1.0 they roughly reproduce the expert hand-set boolean baseline's
+  on/off decisions — with two deliberate prunes (episodic off for pure lookups). That makes PCCR a faithful drop-in at θ=1.0, and the novelty shows 
+  when you sweep θ. Honest: these are priors, not measured — refined by the closed loop (§5) and testable by counterfactual ablation.
+
+  4. The key insight: the threshold rearranges to a utility bar
+  
+  Rewrite the rule. "consult iff U/C ≥ θ" is the same as:
+  consult s  ⟺  U(pattern, s) ≥ C(s) · θ
+  So θ sets a utility bar, scaled by each store's cost:
+
+  ┌───────────────────┬──────────────┬──────────┬──────────┐
+  │       Store       │ bar at θ=1.0 │  θ=1.2   │  θ=1.4   │
+  ├───────────────────┼──────────────┼──────────┼──────────┤
+  │ Episodic (C=0.55) │ U ≥ 0.55     │ U ≥ 0.66 │ U ≥ 0.77 │
+  ├───────────────────┼──────────────┼──────────┼──────────┤
+  │ Entity (C=0.15)   │ U ≥ 0.15     │ U ≥ 0.18 │ U ≥ 0.21 │
+  └───────────────────┴──────────────┴──────────┴──────────┘
+
+  This is the thing to show her, because it explains your whole frontier:
+  
+  - Episodic's bar rises fast (0.55 → 0.66 → 0.77) because its cost is high. So as θ goes up, episodic gets pruned aggressively:
+    - θ=1.0 (bar 0.55): almost every pattern consults EM (utilities 0.58–0.78).
+    - θ=1.2 (bar 0.66): only multi (0.78), remind (0.66), unknown (0.70) survive → EM consults collapse.
+    - θ=1.4 (bar 0.77): only multi (0.78) → EM nearly off.
+  - Entity's bar barely moves (0.15 → 0.21) and there's a wide gap (utilities are either ~0.10 or ≥0.55), so entity consults stay constant across θ.
+
+  That's exactly what your data showed: from θ=1.0→1.2, consults dropped 27→6 because episodic got pruned while entity held steady — and accuracy
+  stayed at 11/32 because the pruned episodic consultations weren't helping anyway. The cost ratio (3.7×) is why the dial bites episodic first.
+
+  5. How utility increases (the closed loop)
+
+  After each task, for every store that was actually consulted (adjust_utility):
+  delta = +0.05  if task succeeded  else  -0.05      # utility_lr = 0.05
+  U[pattern][store] = clamp(U[pattern][store] + delta, 0.0, 1.0)
+  So:
+
+  5. How utility increases (the closed loop)
+
+  After each task, for every store that was actually consulted (adjust_utility):
+  delta = +0.05  if task succeeded  else  -0.05      # utility_lr = 0.05
+  U[pattern][store] = clamp(U[pattern][store] + delta, 0.0, 1.0)
+  So:
+  - Store consulted and task succeeded → its utility for that pattern goes up by 0.05.
+  - Store consulted and task failed → utility goes down by 0.05.
+  - Clamped to [0, 1].
+
+  Over many tasks, U[pattern][store] converges toward that store's empirical success track record for that pattern — it stops being a guess and
+  becomes learned-from-outcomes. Real drift we observed (2-agent online run):
+  multi.episodic   0.78 → 0.83   (helped → ↑)
+  multi.entity     0.72 → 0.77   (helped → ↑)
+  email_send.episodic 0.62 → 0.57 (didn't help → ↓)
+  Why this matters: as email_send.episodic drifts down toward 0.55, it eventually crosses the θ=1.0 bar and the router stops consulting episodic for
+  email-send tasks — the policy self-prunes a low-value consultation without anyone hand-editing the table.
+
+
+  ▎ "ρ is usefulness over cost. Cost is a relative prior by operation type — entity lookup 0.15, vector search 0.55. Utility is a per-(pattern,
+  ▎ store) prior in [0,1] encoding which store helps which task. The threshold θ rearranges to 'consult store s iff its utility clears cost·θ' — so
+  ▎ raising θ raises the bar, and because episodic costs ~4× more than entity, its bar rises ~4× faster, which is why the dial prunes episodic first
+  ▎ and explains the frontier. The numbers start hand-set but a closed loop nudges each utility ±0.05 by task outcome, so they converge to the
+  ▎ store's real track record."
+
+ 
