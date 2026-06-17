@@ -849,6 +849,14 @@ def main():
     if ent_critical:
         import synthetic_ent_tasks as set_mod
         set_mod.seed_entity(mem_mgr)          # A10: relations live ONLY in ENT
+    # A5: a seed shuffles the pool before the split -> different train/test
+    # partitions across seeds, so we can report mean ± std (variance), not a
+    # single anecdotal run.
+    seed = os.environ.get("PCCR_SEED", "")
+    if seed:
+        import random as _random
+        _random.Random(int(seed)).shuffle(pool)
+        print(f"  A5: shuffled pool with seed={seed}")
     print(f"  task pool: {len(pool)} ({'cal+email+word' if enable_word else 'cal+email'})  "
           f"freeze_test={freeze_test}")
 
