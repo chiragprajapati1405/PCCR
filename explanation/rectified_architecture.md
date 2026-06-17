@@ -31,6 +31,32 @@ approved.**
 
 ---
 
+## 1b. Rectification status (branch `rectified-architecture`)
+
+| # | Item | Status | How |
+|---|------|--------|-----|
+| A1 | Store cost hand-set | ✅ **RECTIFIED** | `calibrate.py costs` measures it (token-injection ratio); router auto-loads `calibration/store_cost.json`. Measured ratio 30× (was 3.7×). |
+| A2 | Utility hand-set | 🔧 **HARNESS READY** | `calibrate.py utilities` (counterfactual with/without store) → `calibration/pattern_utility.json`, auto-loaded. **Run needs API.** |
+| A3 | Keyword classifier | 📝 **JUSTIFIED** | kept as a deterministic, zero-cost baseline; LLM classifier is a noted upgrade (needs llm plumbing). Not a hand-set *number*. |
+| A4 | Taxonomy hand-designed | 📝 **JUSTIFIED** | derived from OfficeBench task types; data-driven discovery = future work. |
+| A5 | Scale (11/32) | 🔧 **INFRA / needs runs** | knobs exist (`PCCR_NTASKS`, `PCCR_TRAIN_N`); needs a ≥100-task, multi-seed API run + mean±std. |
+| A6 | Latency conflated; no tokens | ✅ **RECTIFIED** | `RoutingDecision` now has `decision_us` vs `retrieval_us` (verified: ~15µs vs ~17ms); token cost measured. |
+| A7 | `learned_rules` empty | ✅ **RECTIFIED** | rule-distillation wired into consolidation; PM learned-rules now populated + injected. |
+| A8 | Single backbone | 📝 **CONFIGURABLE** | `model=` param; cross-model check = needs a 2nd-model run. |
+| A9 | Frozen vs online | 📝 **DOCUMENTED** | named protocols; comparison=frozen, adaptation=online. |
+| A10 | ENT not load-bearing | ⚖️ **REVIEWER DECISION** | add an ENT-critical task type, or accept as benchmark limitation. |
+| A11 | SM not separate | 📝 **JUSTIFIED** | SM = the FAISS meaning-vector index over EM (co-located by design); documented. |
+| A12 | STM strict-semantic | 📝 **DOCUMENTED** | principled near-duplicate cache; coarse pattern-cache trivially short-circuits. |
+| A13 | Missing baselines | ✅ **RECTIFIED** | added `similarity` baseline mode (RAG-style threshold); learned-router = future. |
+| A14 | Sequential single-task | ⚖️ **REVIEWER DECISION** | keep sequential, or spec parallel multi-task. |
+
+**Summary:** the two real hand-set *numbers* (cost A1, utility A2) are now
+measured/measurable; A6/A7/A13 rectified in code; A3/A4/A9/A11/A12 are justified
+design choices (not unjustified numbers); A5/A8 are evidence gaps needing API
+runs; A10/A14 need the reviewer's decision.
+
+---
+
 ## 2. Target (rectified) architecture
 
 ```

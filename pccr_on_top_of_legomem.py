@@ -214,7 +214,9 @@ class RoutingDecision:
     rho: dict = field(default_factory=dict)            # store -> rho value
     cache_hit: bool = False
     cache_layer: str = "MISS"
-    latency_us: float = 0.0
+    latency_us: float = 0.0           # total retrieval-phase time
+    decision_us: float = 0.0          # A6: routing DECISION only (the rho gate)
+    retrieval_us: float = 0.0         # A6: actual store reads (FAISS/ENT)
 
     def explain(self) -> str:
         head = f"[PCCR/{self.mode}] pattern='{self.pattern}' cache={self.cache_layer}"
@@ -394,6 +396,7 @@ class PCCRMemoryManager(MemoryManager):
                 f"L3: STM confidence {confidence:.0%} → HINT only, run cost-gate")
 
         # ── Cascade body: decide consult set by mode ──
+        t_decide = time.perf_counter_ns()                  # A6: time the DECISION only
         gate = self._pccr_gate(pattern)
         consult = {}
         skipped = {}
@@ -410,6 +413,28 @@ class PCCRMemoryManager(MemoryManager):
                     skipped[s] = f"boolean policy: pattern '{pattern}' → {s}=False"
             result["routing_log"].append(
                 f"L2: mode=boolean pattern='{pattern}' → EM={consult['episodic']} ENT={consult['entity']}")
+        elif self.routing_mode == "similarity":
+            # A13 baseline: consult a store iff its top retrieved item clears a
+            # similarity threshold (no cost, no pattern) — the common RAG-style policy.
+            sim_thr = getattr(self, "similarity_threshold_baseline", 0.5)
+            for s in OPTIONAL_STORES:
+                if s == "episodic":
+                    raw = self.episodic.retrieve_for_orchestrator(self.working_memory["current_task"], k=1)
+                    best = 0.0
+                    if raw and raw[0].embedding:
+                        qe = self.episodic.embed_fn(self.working_memory["current_task"]).reshape(-1).astype("float32")
+                        qe = qe / (np.linalg.norm(qe) + 1e-9)
+                        me = np.array(raw[0].embedding).reshape(-1).astype("float32")
+                        me = me / (np.linalg.norm(me) + 1e-9)
+                        best = float(np.dot(qe, me))
+                    consult[s] = best >= sim_thr
+                    if not consult[s]:
+                        skipped[s] = f"similarity {best:.2f} < {sim_thr}"
+                else:  # entity: consult iff the task names a known user
+                    consult[s] = bool(self._extract_entities(self.working_memory["current_task"]))
+                    if not consult[s]:
+                        skipped[s] = "similarity baseline: no known user"
+            result["routing_log"].append(f"L2: mode=similarity thr={sim_thr}")
         else:  # pccr
             for s in OPTIONAL_STORES:
                 ok, rho, u, c = gate[s]
@@ -420,6 +445,8 @@ class PCCRMemoryManager(MemoryManager):
                                   f"(u={u:.2f}, cost={c:.2f})")
             result["routing_log"].append(
                 f"L2: mode=pccr pattern='{pattern}' rho={rho_map} thr={self.consult_threshold}")
+        decision_us = (time.perf_counter_ns() - t_decide) / 1000   # A6: decision-only latency
+        t_retrieve = time.perf_counter_ns()
 
         # ── Counterfactual override (for utility calibration) ──
         # Force a store on/off regardless of the gate, so measure_utilities can
@@ -483,7 +510,9 @@ class PCCRMemoryManager(MemoryManager):
             task=task_desc[:40], pattern=pattern, mode=self.routing_mode,
             consulted=["PM", "WM", "STM"] + [s for s in OPTIONAL_STORES if consult.get(s)],
             skipped=skipped, rho=rho_map, cache_hit=result["stm_hit"] is not None,
-            cache_layer=result["stm_layer"], latency_us=(time.perf_counter_ns() - t0) / 1000)
+            cache_layer=result["stm_layer"], latency_us=(time.perf_counter_ns() - t0) / 1000,
+            decision_us=decision_us,                                  # A6: pure routing-decision time
+            retrieval_us=(time.perf_counter_ns() - t_retrieve) / 1000)  # A6: store-read time
         self.pccr_decision_log.append(dec)
         print(f"      🧭 {dec.explain()}")
         self.last_optional_consults = result["stores_consulted"]
@@ -591,6 +620,23 @@ def _train_and_consolidate(mem_mgr, llm, runner, train_tasks, results):
                                           for s in traj.get("steps", [])),
                       "agent_memories": {}, "agents_used": traj.get("agents_used", []), "final_answer": ""}
             mem_mgr.stm.store_bundle(td, bundle, steps=traj.get("steps", []))
+        # A7: distill learned RULES into PM (was wired but empty). Per task
+        # pattern, take the most common plan signature among successes → a rule
+        # the orchestrator prompt injects ("LEARNED FROM EXPERIENCE").
+        from collections import Counter, defaultdict
+        by_pat = defaultdict(list)
+        for traj in successful:
+            pat, _ = mem_mgr.stm.classify(traj.get("task_description", ""))
+            sig = " → ".join(s.get("agent", "?") for s in traj.get("steps", []))
+            if sig:
+                by_pat[pat].append(sig)
+        for pat, sigs in by_pat.items():
+            if len(sigs) >= 2:                      # only rules with support
+                common = Counter(sigs).most_common(1)[0][0]
+                mem_mgr.procedural["learned_rules"].append(
+                    {"pattern": pat, "lesson": f"prefer plan: {common}", "support": len(sigs)})
+        if mem_mgr.procedural["learned_rules"]:
+            print(f"  📘 [PM] distilled {len(mem_mgr.procedural['learned_rules'])} learned rules")
         print(f"  Memory: {mem_mgr.summary()}")
     return successful
 
