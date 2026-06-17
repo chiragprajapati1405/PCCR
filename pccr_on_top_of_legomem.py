@@ -835,7 +835,11 @@ def main():
     if ent_critical:
         import synthetic_ent_tasks as set_mod
         set_mod.generate()
-        pool = set_mod.filter_ent_tasks(runner.get_all_task_ids())
+        ent_pool = set_mod.filter_ent_tasks(runner.get_all_task_ids())
+        # A5: combine with the cal/email/word pool for the full ~100-task scale run
+        base = (filter_cal_email_word(runner.get_all_task_ids(), REPO_PATH) if enable_word
+                else filter_cal_email(runner.get_all_task_ids(), REPO_PATH))
+        pool = base + ent_pool
     elif enable_word:
         pool = filter_cal_email_word(runner.get_all_task_ids(), REPO_PATH)
     else:
