@@ -1,0 +1,16 @@
+{
+  "store_cost": {
+    "episodic": 4.543,
+    "entity": 0.15
+  },
+  "_method": "avg injected tokens per consultation, anchored cheapest=0.15",
+  "_avg_tokens": {
+    "episodic": 212,
+    "entity": 7
+  },
+  "_latency_us": {
+    "episodic": 7886.6,
+    "entity": 0.09
+  },
+  "_measured_ratio_EM_over_ENT": 30.29
+}

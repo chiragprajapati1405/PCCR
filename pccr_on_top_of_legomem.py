@@ -252,6 +252,15 @@ class PCCRMemoryManager(MemoryManager):
         # Mutable per-(pattern x store) utility table the closed loop tunes.
         self.pattern_utility = {p: dict(v) for p, v in PATTERN_UTILITY.items()}
         self.store_cost = dict(STORE_COST)
+        # ASSUMPTION RECTIFICATION: if calibrated (measured) tables exist on disk,
+        # load them so cost/utility are DATA-DERIVED, not hand-set priors. The
+        # priors above are only a fallback for an uncalibrated system.
+        self.cost_source = "prior (hand-set)"
+        self.utility_source = "prior (hand-set)"
+        self._load_calibration()
+        # Counterfactual override hook: {store: True/False} forces consult/skip
+        # (used by calibrate.measure_utilities to run with vs without a store).
+        self.force_stores = {}
         self.pccr_decision_log = []
         # Per-task cost accounting for the cost/quality frontier.
         self.cost_log = []
@@ -260,6 +269,21 @@ class PCCRMemoryManager(MemoryManager):
         self.last_optional_consults = 0
         print(f"  📋 [PCCR] router mode='{routing_mode}' "
               f"threshold={consult_threshold} (cost dial), lr={utility_lr}")
+
+    # -- load measured cost/utility (rectified, data-derived) --------------
+    def _load_calibration(self, path="calibration"):
+        cpath, upath = f"{path}/store_cost.json", f"{path}/pattern_utility.json"
+        if os.path.exists(cpath):
+            with open(cpath) as f:
+                self.store_cost.update(json.load(f).get("store_cost", {}))
+            self.cost_source = "measured (tokens)"
+        if os.path.exists(upath):
+            measured = json.load(open(upath)).get("pattern_utility", {})
+            for p, stores in measured.items():
+                self.pattern_utility.setdefault(p, {}).update(stores)
+            self.utility_source = "measured (counterfactual)"
+        if self.cost_source.startswith("measured") or self.utility_source.startswith("measured"):
+            print(f"  📐 [CALIBRATION] cost={self.cost_source}  utility={self.utility_source}")
 
     # -- 3rd agent: WORD ---------------------------------------------------
     def _register_word_agent(self):
@@ -396,6 +420,15 @@ class PCCRMemoryManager(MemoryManager):
                                   f"(u={u:.2f}, cost={c:.2f})")
             result["routing_log"].append(
                 f"L2: mode=pccr pattern='{pattern}' rho={rho_map} thr={self.consult_threshold}")
+
+        # ── Counterfactual override (for utility calibration) ──
+        # Force a store on/off regardless of the gate, so measure_utilities can
+        # run the SAME task with vs without a store and measure the accuracy gain.
+        if self.force_stores:
+            for s, v in self.force_stores.items():
+                if v is not None:
+                    consult[s] = v
+                    skipped.pop(s, None) if v else skipped.setdefault(s, "counterfactual: forced off")
 
         # ── EM read (gated) ── (SM rides inside EM's FAISS)
         if consult.get("episodic"):
