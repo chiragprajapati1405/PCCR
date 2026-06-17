@@ -96,6 +96,11 @@ class StrictSemanticSTM(PatternSTM):
         so cal/email tasks keep their original labels and pure-document tasks get
         word-specific routing."""
         pat, users = super().classify(task_desc)
+        t0 = task_desc.lower()
+        # A10: a task referencing a RELATION ("X's manager/assistant") needs ENT
+        # to resolve the recipient -> its own pattern (ENT-critical).
+        if "manager" in t0 or "assistant" in t0:
+            return "relation_email", users
         if pat != "unknown":
             return pat, users
         t = task_desc.lower()
@@ -164,6 +169,9 @@ PATTERN_UTILITY = {
     # neither -- cheapest path).
     "word_create":               {"episodic": 0.62, "entity": 0.10},
     "word_query":                {"episodic": 0.45, "entity": 0.10},
+    # A10: relation-email is ENT-critical (recipient resolvable only via entity
+    # memory). Prior reflects that; the A2 counterfactual measures the true value.
+    "relation_email":            {"episodic": 0.10, "entity": 0.90},
     "unknown":                   {"episodic": 0.70, "entity": 0.60},
 }
 
@@ -822,8 +830,13 @@ def main():
     runner = LocalOfficeBenchRunner(REPO_PATH)
     resume = os.environ.get("PCCR_RESUME", "0") == "1"
 
+    ent_critical = os.environ.get("PCCR_ENT_CRITICAL", "0") == "1"   # A10
     enable_word = (n_agents >= 3)
-    if enable_word:
+    if ent_critical:
+        import synthetic_ent_tasks as set_mod
+        set_mod.generate()
+        pool = set_mod.filter_ent_tasks(runner.get_all_task_ids())
+    elif enable_word:
         pool = filter_cal_email_word(runner.get_all_task_ids(), REPO_PATH)
     else:
         pool = filter_cal_email(runner.get_all_task_ids(), REPO_PATH)
@@ -833,6 +846,9 @@ def main():
                                 routing_mode=mode, consult_threshold=threshold,
                                 strict_stm=strict_stm, enable_word_agent=enable_word,
                                 freeze_test=freeze_test)
+    if ent_critical:
+        import synthetic_ent_tasks as set_mod
+        set_mod.seed_entity(mem_mgr)          # A10: relations live ONLY in ENT
     print(f"  task pool: {len(pool)} ({'cal+email+word' if enable_word else 'cal+email'})  "
           f"freeze_test={freeze_test}")
 

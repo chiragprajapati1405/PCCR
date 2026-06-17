@@ -949,7 +949,15 @@ def execute_task(task_desc, username, llm, runner, mem_mgr,
     if mem_context["entities"]:
         for name, profile in mem_context["entities"].items():
             if profile:
-                orch_context += f"\nUser {name}: tasks={profile.get('task_count',0)}, rate={profile.get('success_rate','?')}\n"
+                # A10: surface ALL durable facts (e.g. manager/assistant), not just
+                # usage stats, so entity memory can be task-critical when a task
+                # references a relation ("Bob's manager") only ENT can resolve.
+                _stats = ("task_count", "success_rate", "last_agents", "last_success",
+                          "agent_frequency", "complaint_history", "last_task")
+                facts = {k: v for k, v in profile.items() if k not in _stats}
+                extra = ("; " + ", ".join(f"{k}={v}" for k, v in facts.items())) if facts else ""
+                orch_context += (f"\nUser {name}: tasks={profile.get('task_count',0)}, "
+                                 f"rate={profile.get('success_rate','?')}{extra}\n")
 
     # Phase 4+5+6+7+8 loop
     orch_prompt = mem_mgr.read_procedural("orchestrator")
