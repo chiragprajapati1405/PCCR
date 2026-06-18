@@ -163,3 +163,59 @@ def test_one_failing_task_does_not_kill_the_batch():
     assert len(results) == 3
     assert sum(1 for r in results if r.get("success")) == 2
     assert any(r.get("error") for r in results)
+
+
+# -- MANAGER async integration (stub backends, no API) -----------------------
+
+def _stub_manager():
+    from memory_manager import config
+    from memory_manager.manager import MemoryManager
+    return MemoryManager(config.Settings(embedding_backend="stub", llm_backend="stub"))
+
+def test_manager_parallel_agents_run_in_waves_and_merge_into_wm():
+    from memory_manager.parallel import Delegation, AgentResult
+    mm = _stub_manager()
+    mm.wm.start_task("t1", "schedule with Tom and email invite", "Bob", "2024-05-01")
+
+    async def runner(agent_type, subtask, snap):
+        # agents read the FROZEN snapshot, never live WM
+        assert snap is not mm.wm.current
+        return AgentResult(agent_type, subtask, observation=f"{agent_type}:{subtask[:10]} ok")
+
+    dels = [Delegation("calendar", "list events for Bob"),
+            Delegation("calendar", "list events for Tom"),
+            Delegation("calendar", "create event for Bob"),
+            Delegation("email", "send invite to Tom")]
+    waves, results = asyncio.run(mm.run_parallel_agents(dels, runner))
+    # 3 waves: read | create | send
+    assert [len(w) for w in waves] == [2, 1, 1]
+    # all results merged into live WM step history, deterministic order
+    assert len(mm.wm.current.step_history) == 4
+    assert "email" in mm.wm.current.shared_context
+
+def test_manager_async_phase9_writes_under_locks():
+    mm = _stub_manager()
+    mm.wm.start_task("t2", "send the weekly update", "Bob", "2024-05-01")
+    mm.wm.set_pattern(__import__("memory_manager.types", fromlist=["Pattern"]).Pattern.RECURRING)
+    metrics = asyncio.run(mm.complete_task_async(
+        success=True, plan=["email:send"], subtask_memories=[], profile_updates={"x": 1}))
+    assert metrics.success is True
+    assert len(mm.stm) >= 1                 # STM written (success)
+    with pytest.raises(RuntimeError):
+        _ = mm.wm.current                   # WM cleared
+
+def test_consolidation_window_flag_toggles():
+    mm = _stub_manager()
+    # seed one successful trace so consolidate has something to do
+    mm.wm.start_task("t3", "add a meeting", "Bob", "2024-05-01")
+    mm.wm.set_pattern(__import__("memory_manager.types", fromlist=["Pattern"]).Pattern.SINGLE_ACTION)
+    asyncio.run(mm.complete_task_async(True, ["calendar:create"], [], None))
+    assert mm.is_consolidating() is False
+    async def run():
+        # flag must be False before, True during (can't easily observe mid-await),
+        # and False after — verify it ends cleanly and bank grew
+        out = await mm.consolidate_async(min_cluster_size=1)
+        return out
+    out = asyncio.run(run())
+    assert mm.is_consolidating() is False    # window closed
+    assert isinstance(out, dict)

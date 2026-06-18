@@ -8,6 +8,7 @@ later without rewriting the lifecycle plumbing.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 import uuid
@@ -88,6 +89,18 @@ class MemoryManager:
         self._metrics_log: list[TaskMetrics] = []
         self._task_start_time: float = 0.0
         self._orchestrator_calls: int = 0
+
+        # Parallelism (see memory_manager/parallel.py). The sync lifecycle is
+        # unchanged; these power the OPTIONAL async path (parallel agents +
+        # parallel tasks). The rho-gate router is untouched.
+        from .parallel import MemoryLockManager
+        self.lock_mgr = MemoryLockManager()
+        self._consolidation_active = False   # Phase-10 exclusivity flag (Layer 7)
+
+    def is_consolidating(self) -> bool:
+        """Task queue checks this before entering Phase 3 (FAISS read) so no
+        task reads vectors while Phase 10 is rewriting them."""
+        return self._consolidation_active
 
     # =====================================================================
     # Phase 1 -- System Bootstrap
@@ -361,6 +374,81 @@ class MemoryManager:
         return " -> ".join(plan) if plan else "noop"
 
     # =====================================================================
+    # Phase 6-8 (PARALLEL sub-agents) + Phase 9 (parallel lock-guarded writes)
+    # Optional async path; the sync methods above are unchanged.
+    # =====================================================================
+
+    async def run_agent_wave(self, delegations, agent_runner):
+        """One parallel wave (Phase 6-8): snapshot WM (copy-on-read), run the
+        wave's agents concurrently against the frozen snapshot, then merge the
+        staged results into live WM in deterministic order. `agent_runner` is
+        async (agent_type, subtask, wm_snapshot) -> parallel.AgentResult."""
+        from .parallel import ParallelExecutor
+        executor = ParallelExecutor(agent_runner)
+        snap = self.wm.snapshot()                       # frozen WM for the whole wave
+        results = await executor.execute_group(delegations, snap)
+        self.wm.merge_staging([(r.agent_type, r.subtask, r.observation) for r in results])
+        return results
+
+    async def run_parallel_agents(self, delegations, agent_runner):
+        """Phase 6-8 for a full plan: build the dependency DAG, then run each
+        wave in order — independent subtasks in a wave run concurrently, and a
+        later wave only starts after the previous wave's results are merged."""
+        from .parallel import DependencyAnalyzer
+        waves = DependencyAnalyzer().analyze(list(delegations))
+        results = []
+        for wave in waves:
+            results += await self.run_agent_wave(wave, agent_runner)
+        return waves, results
+
+    async def complete_task_async(self, success: bool, plan: list[str],
+                                  subtask_memories: list[SubtaskMemory],
+                                  profile_updates: Optional[dict] = None) -> TaskMetrics:
+        """Async Phase 9: the success-only STM/ENT writes run concurrently via
+        asyncio.gather, each acquiring its own per-resource lock (no lost
+        updates across parallel tasks). Same semantics as complete_task."""
+        ctx = self.wm.current
+        self.wm.mark_outcome(success)
+        pattern = ctx.pattern or Pattern.SINGLE_ACTION
+        signature = self._step_signature(plan)
+        embedding = self.embedder.encode([ctx.description])[0]
+        username = ctx.username
+        decision = self.router.plan_storage(ctx.task_id, pattern, success)
+
+        writes = []
+        if MemoryType.STM in decision.consulted_stores:
+            writes.append(self._write_stm_async(pattern, signature, plan, subtask_memories, embedding))
+        if MemoryType.ENT in decision.consulted_stores and profile_updates:
+            writes.append(self._write_entity_async(username, profile_updates))
+        if writes:
+            await asyncio.gather(*writes)               # Layer 6: parallel writes
+
+        self._task_log.append(FullTaskMemory(
+            task_id=ctx.task_id, description=ctx.description, pattern=pattern, plan=list(plan),
+            step_signature=signature, subtask_memories=list(subtask_memories), embedding=embedding,
+            outcome="success" if success else "failure",
+        ))
+        metrics = TaskMetrics(
+            task_id=ctx.task_id, success=success, steps=len(ctx.step_history),
+            orchestrator_calls=self._orchestrator_calls,
+            routing_decisions=len(self.router.decision_log),
+            consulted_total=sum(len(d.consulted_stores) for d in self.router.decision_log),
+            skipped_total=sum(len(d.skipped_stores) for d in self.router.decision_log),
+            duration_s=time.perf_counter() - self._task_start_time,
+        )
+        self._metrics_log.append(metrics)
+        self.wm.clear()
+        return metrics
+
+    async def _write_stm_async(self, pattern, signature, plan, subtask_memories, embedding):
+        async with self.lock_mgr.stm(pattern.value):    # per-pattern lock
+            self.stm.put(signature, plan, subtask_memories, embedding, pattern)
+
+    async def _write_entity_async(self, username, profile_updates):
+        async with self.lock_mgr.ent(username):         # per-user lock
+            self.ent.merge(username, profile_updates)
+
+    # =====================================================================
     # Phase 10 -- Memory Consolidation (after training; batch, not per-task)
     # =====================================================================
 
@@ -410,6 +498,18 @@ class MemoryManager:
         self.em.save()
         self.sm.save()
         return {"em_added": em_added, "sm_facts": sm_facts, "pm_rules": pm_rules, "stm_prefilled": stm_prefilled}
+
+    async def consolidate_async(self, **kwargs) -> dict[str, int]:
+        """Phase 10 as an EXCLUSIVE window (Layer 7): raises the consolidation
+        flag (so AsyncTaskQueue stops admitting new tasks into Phase-3 FAISS
+        reads) and holds the global faiss_lock while it rewrites EM/SM/PM/STM.
+        Reuses the synchronous consolidate() body."""
+        self._consolidation_active = True
+        try:
+            async with self.lock_mgr.faiss_lock:
+                return self.consolidate(**kwargs)
+        finally:
+            self._consolidation_active = False
 
     @staticmethod
     def _cluster_by_similarity(memories: list[FullTaskMemory], threshold: float) -> list[list[FullTaskMemory]]:
