@@ -1,0 +1,32 @@
+{
+  "pattern_utility": {
+    "relation_email": {
+      "episodic": 0.125,
+      "entity": 0.875
+    }
+  },
+  "_method": "U = clamp(P(success|store on) - P(success|store off), 0, 1)",
+  "_n_calibration_tasks": 8,
+  "_raw_success_counts": {
+    "relation_email|episodic": {
+      "on": [
+        8,
+        8
+      ],
+      "off": [
+        7,
+        8
+      ]
+    },
+    "relation_email|entity": {
+      "on": [
+        7,
+        8
+      ],
+      "off": [
+        0,
+        8
+      ]
+    }
+  }
+}
