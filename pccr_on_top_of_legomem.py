@@ -650,7 +650,10 @@ def _train_and_consolidate(mem_mgr, llm, runner, train_tasks, results):
 
 
 def _test_loop(mem_mgr, llm, runner, test_tasks, results):
-    """Phase 2-9 with memory ON, under the manager's current routing mode."""
+    """Phase 2-9 under the manager's current routing mode. The 'no_memory' mode
+    runs with memory OFF (consult nothing) — the baseline that tests whether
+    memory is load-bearing at all on these tasks."""
+    use_mem = (mem_mgr.routing_mode != "no_memory")
     for tid, si in test_tasks:
         try:
             cfg = runner.setup_task(tid, si)
@@ -660,7 +663,7 @@ def _test_loop(mem_mgr, llm, runner, test_tasks, results):
             twd = cfg["task"] + (f"\n(Today's date: {cfg['date']})" if cfg.get("date") else "")
             t0 = time.time()
             ex = execute_task(twd, cfg["username"], llm, runner, mem_mgr,
-                              use_memory=True, task_date=cfg.get("date"))
+                              use_memory=use_mem, task_date=cfg.get("date"))
             ev = runner.evaluate_task(tid, si)
             print(f"    Eval: {'✅' if ev['success'] else '❌'} ({ev['passed']}/{ev['total']}) "
                   f"STM={ex.get('stm_layer_hit','?')} FAISS={ex.get('faiss_queries',0)} in {time.time()-t0:.1f}s")
