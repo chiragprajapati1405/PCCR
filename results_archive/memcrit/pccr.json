@@ -1,0 +1,612 @@
+{
+  "config": {
+    "mode": "pccr",
+    "threshold": 0.18,
+    "n_agents": 3,
+    "strict_stm": true,
+    "heldout": true,
+    "multimode": true
+  },
+  "results": {
+    "mode": "pccr",
+    "threshold": 0.18,
+    "n_agents": 3,
+    "strict_stm": true,
+    "heldout": true,
+    "training": {
+      "passed": 0,
+      "total": 0
+    },
+    "testing": {
+      "passed": 16,
+      "total": 16
+    }
+  },
+  "pccr_summary": "mode=pccr thr=0.18 | tasks=16 success=16/16 | FAISS=24 optional-consults=24 | STM-hits=0 | avg-consults/task=1.50",
+  "cost_log": [
+    {
+      "task": "Send an email to Bob's manager with the subject 'ENTCRIT001'",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Bob's assistant with the subject 'ENTCRIT00",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Tom's manager with the subject 'ENTCRIT003'",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Tom's assistant with the subject 'ENTCRIT00",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Alice's manager with the subject 'ENTCRIT00",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Alice's assistant with the subject 'ENTCRIT",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Mary's manager with the subject 'ENTCRIT007",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Mary's assistant with the subject 'ENTCRIT0",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Schedule Bob's project review meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Schedule Tom's team standup meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Schedule Alice's design sync meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "Schedule Mary's budget review meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Schedule Bob's 1:1 with mentor meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "Schedule Tom's sprint planning meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Schedule Alice's client check-in meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "Schedule Mary's retro meeting meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "pccr",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    }
+  ],
+  "decision_log": [
+    {
+      "task": "Send an email to Bob's manager with the ",
+      "pattern": "relation_email",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "entity"
+      ],
+      "skipped": {
+        "episodic": "rho 0.03 < threshold 0.18 (u=0.12, cost=4.54)"
+      },
+      "rho": {
+        "episodic": 0.03,
+        "entity": 5.83
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 133252.459,
+      "decision_us": 9.375,
+      "retrieval_us": 24.917
+    },
+    {
+      "task": "Send an email to Bob's assistant with th",
+      "pattern": "relation_email",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "entity"
+      ],
+      "skipped": {
+        "episodic": "rho 0.03 < threshold 0.18 (u=0.12, cost=4.54)"
+      },
+      "rho": {
+        "episodic": 0.03,
+        "entity": 5.83
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 38793.334,
+      "decision_us": 20.542,
+      "retrieval_us": 49.834
+    },
+    {
+      "task": "Send an email to Tom's manager with the ",
+      "pattern": "relation_email",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "entity"
+      ],
+      "skipped": {
+        "episodic": "rho 0.03 < threshold 0.18 (u=0.12, cost=4.54)"
+      },
+      "rho": {
+        "episodic": 0.03,
+        "entity": 5.83
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 42151.458,
+      "decision_us": 19.834,
+      "retrieval_us": 52.083
+    },
+    {
+      "task": "Send an email to Tom's assistant with th",
+      "pattern": "relation_email",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "entity"
+      ],
+      "skipped": {
+        "episodic": "rho 0.03 < threshold 0.18 (u=0.12, cost=4.54)"
+      },
+      "rho": {
+        "episodic": 0.03,
+        "entity": 5.83
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 54226.666,
+      "decision_us": 18.416,
+      "retrieval_us": 48.75
+    },
+    {
+      "task": "Send an email to Alice's manager with th",
+      "pattern": "relation_email",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "entity"
+      ],
+      "skipped": {
+        "episodic": "rho 0.03 < threshold 0.18 (u=0.12, cost=4.54)"
+      },
+      "rho": {
+        "episodic": 0.03,
+        "entity": 5.83
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 41938.334,
+      "decision_us": 19.125,
+      "retrieval_us": 45.916
+    },
+    {
+      "task": "Send an email to Alice's assistant with ",
+      "pattern": "relation_email",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "entity"
+      ],
+      "skipped": {
+        "episodic": "rho 0.03 < threshold 0.18 (u=0.12, cost=4.54)"
+      },
+      "rho": {
+        "episodic": 0.03,
+        "entity": 5.83
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 45269.459,
+      "decision_us": 15.75,
+      "retrieval_us": 47.292
+    },
+    {
+      "task": "Send an email to Mary's manager with the",
+      "pattern": "relation_email",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "entity"
+      ],
+      "skipped": {
+        "episodic": "rho 0.03 < threshold 0.18 (u=0.12, cost=4.54)"
+      },
+      "rho": {
+        "episodic": 0.03,
+        "entity": 5.83
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 48474.209,
+      "decision_us": 19.083,
+      "retrieval_us": 48.625
+    },
+    {
+      "task": "Send an email to Mary's assistant with t",
+      "pattern": "relation_email",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "entity"
+      ],
+      "skipped": {
+        "episodic": "rho 0.03 < threshold 0.18 (u=0.12, cost=4.54)"
+      },
+      "rho": {
+        "episodic": 0.03,
+        "entity": 5.83
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 38969.584,
+      "decision_us": 18.583,
+      "retrieval_us": 48.625
+    },
+    {
+      "task": "Schedule Bob's project review meeting, s",
+      "pattern": "recurring_em",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {
+        "episodic": 0.2,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 71733.542,
+      "decision_us": 16.334,
+      "retrieval_us": 35472.958
+    },
+    {
+      "task": "Schedule Tom's team standup meeting, sam",
+      "pattern": "recurring_em",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {
+        "episodic": 0.2,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 81800.208,
+      "decision_us": 16.417,
+      "retrieval_us": 36479.292
+    },
+    {
+      "task": "Schedule Alice's design sync meeting, sa",
+      "pattern": "recurring_em",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {
+        "episodic": 0.2,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 62420.916,
+      "decision_us": 8.916,
+      "retrieval_us": 28089.167
+    },
+    {
+      "task": "Schedule Mary's budget review meeting, s",
+      "pattern": "recurring_em",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {
+        "episodic": 0.2,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 72459.125,
+      "decision_us": 20.458,
+      "retrieval_us": 34966.75
+    },
+    {
+      "task": "Schedule Bob's 1:1 with mentor meeting, ",
+      "pattern": "recurring_em",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {
+        "episodic": 0.2,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 78468.583,
+      "decision_us": 9.042,
+      "retrieval_us": 29214.25
+    },
+    {
+      "task": "Schedule Tom's sprint planning meeting, ",
+      "pattern": "recurring_em",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {
+        "episodic": 0.2,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 61328.333,
+      "decision_us": 8.25,
+      "retrieval_us": 27467.917
+    },
+    {
+      "task": "Schedule Alice's client check-in meeting",
+      "pattern": "recurring_em",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {
+        "episodic": 0.2,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 75955.083,
+      "decision_us": 16.542,
+      "retrieval_us": 35911.042
+    },
+    {
+      "task": "Schedule Mary's retro meeting meeting, s",
+      "pattern": "recurring_em",
+      "mode": "pccr",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {
+        "episodic": 0.2,
+        "entity": 0.67
+      },
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 78363.458,
+      "decision_us": 18.917,
+      "retrieval_us": 37410.333
+    }
+  ],
+  "final_utility_table": {
+    "single_cal_create": {
+      "episodic": 0.6,
+      "entity": 0.1
+    },
+    "multi_cal_find_and_create": {
+      "episodic": 0.78,
+      "entity": 0.72
+    },
+    "remind_notify": {
+      "episodic": 0.66,
+      "entity": 0.55
+    },
+    "email_query": {
+      "episodic": 0.48,
+      "entity": 0.66
+    },
+    "email_send": {
+      "episodic": 0.62,
+      "entity": 0.1
+    },
+    "cal_query": {
+      "episodic": 0.58,
+      "entity": 0.1
+    },
+    "word_create": {
+      "episodic": 0.62,
+      "entity": 0.1
+    },
+    "word_query": {
+      "episodic": 0.45,
+      "entity": 0.1
+    },
+    "relation_email": {
+      "episodic": 0.125,
+      "entity": 0.875
+    },
+    "recurring_em": {
+      "episodic": 0.9,
+      "entity": 0.1
+    },
+    "unknown": {
+      "episodic": 0.7,
+      "entity": 0.6
+    }
+  }
+}

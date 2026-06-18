@@ -1,0 +1,973 @@
+{
+  "config": {
+    "mode": "retrieve_all",
+    "threshold": 1.0,
+    "n_agents": 3,
+    "strict_stm": true,
+    "heldout": true,
+    "multimode": true
+  },
+  "results": {
+    "mode": "retrieve_all",
+    "threshold": 1.0,
+    "n_agents": 3,
+    "strict_stm": true,
+    "heldout": true,
+    "training": {
+      "passed": 0,
+      "total": 0
+    },
+    "testing": {
+      "passed": 15,
+      "total": 30
+    }
+  },
+  "pccr_summary": "mode=retrieve_all thr=1.0 | tasks=30 success=15/30 | FAISS=55 optional-consults=41 | STM-hits=5 | avg-consults/task=1.37",
+  "cost_log": [
+    {
+      "task": "remind Bob that he has a dinner at 5/18/2024 7:00 p.m",
+      "pattern": "remind_notify",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "read my body test email, save as recipients' calendar event ",
+      "pattern": "single_cal_create",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 8
+    },
+    {
+      "task": "read company revenues, calculate the revenue difference of t",
+      "pattern": "word_query",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 5
+    },
+    {
+      "task": "I have to workout at 5/16/2024 5:00 p.m to 6:00 p.m, notify ",
+      "pattern": "remind_notify",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Identify whether the reimbursement amount exceeds the compan",
+      "pattern": "relation_email",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "Find all students who are taking CS161 and put the name and ",
+      "pattern": "word_create",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 1
+    },
+    {
+      "task": "how many students in CS161 class got 60 or more in final",
+      "pattern": "cal_query",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "read score for midterm1 and midterm2, which students made pr",
+      "pattern": "email_query",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "what is the subject of the email I sent to Bob?",
+      "pattern": "email_query",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 0,
+      "optional_stores_consulted": 0,
+      "stm_layer": "STM-L2",
+      "steps": 2
+    },
+    {
+      "task": "what is total hw score of Cixarim? Add his hw1, hw2, and hw3",
+      "pattern": "unknown",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "Send an email to Bob's manager with the subject 'ENTCRIT001'",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Add a meeting to Bob's calendar at 5/17/2024 10:30 a.m to 11",
+      "pattern": "single_cal_create",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "schedule a reward meeting to the top-three students in midte",
+      "pattern": "single_cal_create",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "what the maximum sales revenue entry from sales report",
+      "pattern": "word_query",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "Which class has the least student?",
+      "pattern": "cal_query",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "at 5/15/2024 4:00 p.m to 6:00 p.m at Mathematic Science 4000",
+      "pattern": "single_cal_create",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "find Bob's earliest email, save it in earliest.docx",
+      "pattern": "email_query",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "what is total number of students in class CS161, and how man",
+      "pattern": "cal_query",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 3,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "what is the subject of the latest email that send to Bob?",
+      "pattern": "email_send",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 2,
+      "stm_layer": "STM-L2",
+      "steps": 2
+    },
+    {
+      "task": "Print the top 3 students in midterm1 into a file named top3.",
+      "pattern": "unknown",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 6
+    },
+    {
+      "task": "give some instruction and prediction in file house_price.doc",
+      "pattern": "email_query",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "read notification word file and send email notification.eml ",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "What are conflicts in my calendar events? Tell me the confli",
+      "pattern": "cal_query",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "STM-L2",
+      "steps": 2
+    },
+    {
+      "task": "find all Bob's emails in this year, save them in emails.docx",
+      "pattern": "word_create",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 4
+    },
+    {
+      "task": "Add the sentence \"This is a test sentence for task 1-15-0.\" ",
+      "pattern": "word_create",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "STM-L2",
+      "steps": 2
+    },
+    {
+      "task": "Check the emails, and let me know if my scholarship applicat",
+      "pattern": "unknown",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "STM-L2",
+      "steps": 2
+    },
+    {
+      "task": "Who gets up earlier? Bob or Tom",
+      "pattern": "unknown",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "Send an email to Alice's assistant with the subject 'ENTCRIT",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "read company revenues, send a email revenues.eml to Bob cont",
+      "pattern": "email_send",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 8
+    },
+    {
+      "task": "Retrieve reference text from reference.txt and add it to the",
+      "pattern": "word_create",
+      "success": false,
+      "mode": "retrieve_all",
+      "threshold": 1.0,
+      "faiss_queries": 1,
+      "optional_stores_consulted": 1,
+      "stm_layer": "MISS",
+      "steps": 2
+    }
+  ],
+  "decision_log": [
+    {
+      "task": "remind Bob that he has a dinner at 5/18/",
+      "pattern": "remind_notify",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 79571.833,
+      "decision_us": 6.208,
+      "retrieval_us": 34479.542
+    },
+    {
+      "task": "read my body test email, save as recipie",
+      "pattern": "single_cal_create",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 75507.0,
+      "decision_us": 6.416,
+      "retrieval_us": 34195.458
+    },
+    {
+      "task": "read company revenues, calculate the rev",
+      "pattern": "word_query",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 124566.417,
+      "decision_us": 3.125,
+      "retrieval_us": 34206.75
+    },
+    {
+      "task": "I have to workout at 5/16/2024 5:00 p.m ",
+      "pattern": "remind_notify",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 166450.958,
+      "decision_us": 6.0,
+      "retrieval_us": 33967.417
+    },
+    {
+      "task": "Identify whether the reimbursement amoun",
+      "pattern": "relation_email",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 106541.791,
+      "decision_us": 5.75,
+      "retrieval_us": 32095.917
+    },
+    {
+      "task": "Find all students who are taking CS161 a",
+      "pattern": "word_create",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 83338.875,
+      "decision_us": 6.208,
+      "retrieval_us": 39471.917
+    },
+    {
+      "task": "how many students in CS161 class got 60 ",
+      "pattern": "cal_query",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 86357.042,
+      "decision_us": 6.542,
+      "retrieval_us": 36235.75
+    },
+    {
+      "task": "read score for midterm1 and midterm2, wh",
+      "pattern": "email_query",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 97013.084,
+      "decision_us": 3.917,
+      "retrieval_us": 30416.916
+    },
+    {
+      "task": "what is the subject of the email I sent ",
+      "pattern": "email_query",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM"
+      ],
+      "skipped": {
+        "episodic": "stm_cache_hit: cascade short-circuited",
+        "entity": "stm_cache_hit: cascade short-circuited"
+      },
+      "rho": {},
+      "cache_hit": true,
+      "cache_layer": "STM-L2",
+      "latency_us": 46136.167,
+      "decision_us": 0.0,
+      "retrieval_us": 0.0
+    },
+    {
+      "task": "what is total hw score of Cixarim? Add h",
+      "pattern": "unknown",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 86479.25,
+      "decision_us": 6.625,
+      "retrieval_us": 36744.375
+    },
+    {
+      "task": "Send an email to Bob's manager with the ",
+      "pattern": "relation_email",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 90827.667,
+      "decision_us": 3.625,
+      "retrieval_us": 30500.75
+    },
+    {
+      "task": "Add a meeting to Bob's calendar at 5/17/",
+      "pattern": "single_cal_create",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 91116.667,
+      "decision_us": 6.25,
+      "retrieval_us": 36144.375
+    },
+    {
+      "task": "schedule a reward meeting to the top-thr",
+      "pattern": "single_cal_create",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 83117.083,
+      "decision_us": 6.875,
+      "retrieval_us": 37985.041
+    },
+    {
+      "task": "what the maximum sales revenue entry fro",
+      "pattern": "word_query",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 85078.916,
+      "decision_us": 3.791,
+      "retrieval_us": 32015.708
+    },
+    {
+      "task": "Which class has the least student?\n(Toda",
+      "pattern": "cal_query",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 86513.0,
+      "decision_us": 7.125,
+      "retrieval_us": 38668.917
+    },
+    {
+      "task": "at 5/15/2024 4:00 p.m to 6:00 p.m at Mat",
+      "pattern": "single_cal_create",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 75972.5,
+      "decision_us": 5.666,
+      "retrieval_us": 34927.125
+    },
+    {
+      "task": "find Bob's earliest email, save it in ea",
+      "pattern": "email_query",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 85228.708,
+      "decision_us": 7.667,
+      "retrieval_us": 35401.75
+    },
+    {
+      "task": "what is total number of students in clas",
+      "pattern": "cal_query",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 89375.25,
+      "decision_us": 3.667,
+      "retrieval_us": 30155.666
+    },
+    {
+      "task": "what is the subject of the latest email ",
+      "pattern": "email_send",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": true,
+      "cache_layer": "STM-L2",
+      "latency_us": 74952.084,
+      "decision_us": 5.875,
+      "retrieval_us": 35206.292
+    },
+    {
+      "task": "Print the top 3 students in midterm1 int",
+      "pattern": "unknown",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 82041.625,
+      "decision_us": 5.75,
+      "retrieval_us": 34466.75
+    },
+    {
+      "task": "give some instruction and prediction in ",
+      "pattern": "email_query",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 99609.667,
+      "decision_us": 9.0,
+      "retrieval_us": 39712.042
+    },
+    {
+      "task": "read notification word file and send ema",
+      "pattern": "email_send",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 81253.5,
+      "decision_us": 6.5,
+      "retrieval_us": 34621.875
+    },
+    {
+      "task": "What are conflicts in my calendar events",
+      "pattern": "cal_query",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": true,
+      "cache_layer": "STM-L2",
+      "latency_us": 72773.0,
+      "decision_us": 7.083,
+      "retrieval_us": 35828.917
+    },
+    {
+      "task": "find all Bob's emails in this year, save",
+      "pattern": "word_create",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 90335.042,
+      "decision_us": 4.708,
+      "retrieval_us": 36397.458
+    },
+    {
+      "task": "Add the sentence \"This is a test sentenc",
+      "pattern": "word_create",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": true,
+      "cache_layer": "STM-L2",
+      "latency_us": 72993.75,
+      "decision_us": 3.375,
+      "retrieval_us": 32623.667
+    },
+    {
+      "task": "Check the emails, and let me know if my ",
+      "pattern": "unknown",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": true,
+      "cache_layer": "STM-L2",
+      "latency_us": 65355.25,
+      "decision_us": 3.542,
+      "retrieval_us": 30230.084
+    },
+    {
+      "task": "Who gets up earlier? Bob or Tom\n(Today's",
+      "pattern": "unknown",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 85744.584,
+      "decision_us": 5.708,
+      "retrieval_us": 37464.0
+    },
+    {
+      "task": "Send an email to Alice's assistant with ",
+      "pattern": "relation_email",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 87775.542,
+      "decision_us": 6.125,
+      "retrieval_us": 35288.208
+    },
+    {
+      "task": "read company revenues, send a email reve",
+      "pattern": "email_send",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 70863.791,
+      "decision_us": 7.084,
+      "retrieval_us": 35410.083
+    },
+    {
+      "task": "Retrieve reference text from reference.t",
+      "pattern": "word_create",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 100991.667,
+      "decision_us": 3.25,
+      "retrieval_us": 30595.667
+    }
+  ],
+  "final_utility_table": {
+    "single_cal_create": {
+      "episodic": 0.6,
+      "entity": 0.1
+    },
+    "multi_cal_find_and_create": {
+      "episodic": 0.78,
+      "entity": 0.72
+    },
+    "remind_notify": {
+      "episodic": 0.66,
+      "entity": 0.55
+    },
+    "email_query": {
+      "episodic": 0.48,
+      "entity": 0.66
+    },
+    "email_send": {
+      "episodic": 0.62,
+      "entity": 0.1
+    },
+    "cal_query": {
+      "episodic": 0.58,
+      "entity": 0.1
+    },
+    "word_create": {
+      "episodic": 0.62,
+      "entity": 0.1
+    },
+    "word_query": {
+      "episodic": 0.45,
+      "entity": 0.1
+    },
+    "relation_email": {
+      "episodic": 0.125,
+      "entity": 0.875
+    },
+    "unknown": {
+      "episodic": 0.7,
+      "entity": 0.6
+    }
+  }
+}

@@ -1,0 +1,556 @@
+{
+  "config": {
+    "mode": "retrieve_all",
+    "threshold": 0.18,
+    "n_agents": 3,
+    "strict_stm": true,
+    "heldout": true,
+    "multimode": true
+  },
+  "results": {
+    "mode": "retrieve_all",
+    "threshold": 0.18,
+    "n_agents": 3,
+    "strict_stm": true,
+    "heldout": true,
+    "training": {
+      "passed": 0,
+      "total": 0
+    },
+    "testing": {
+      "passed": 16,
+      "total": 16
+    }
+  },
+  "pccr_summary": "mode=retrieve_all thr=0.18 | tasks=16 success=16/16 | FAISS=32 optional-consults=32 | STM-hits=0 | avg-consults/task=2.00",
+  "cost_log": [
+    {
+      "task": "Send an email to Bob's manager with the subject 'ENTCRIT001'",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Bob's assistant with the subject 'ENTCRIT00",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Tom's manager with the subject 'ENTCRIT003'",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Tom's assistant with the subject 'ENTCRIT00",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Alice's manager with the subject 'ENTCRIT00",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Alice's assistant with the subject 'ENTCRIT",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Mary's manager with the subject 'ENTCRIT007",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Send an email to Mary's assistant with the subject 'ENTCRIT0",
+      "pattern": "relation_email",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Schedule Bob's project review meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Schedule Tom's team standup meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Schedule Alice's design sync meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 6
+    },
+    {
+      "task": "Schedule Mary's budget review meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Schedule Bob's 1:1 with mentor meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "Schedule Tom's sprint planning meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    },
+    {
+      "task": "Schedule Alice's client check-in meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 3
+    },
+    {
+      "task": "Schedule Mary's retro meeting meeting, same as usual.",
+      "pattern": "recurring_em",
+      "success": true,
+      "mode": "retrieve_all",
+      "threshold": 0.18,
+      "faiss_queries": 2,
+      "optional_stores_consulted": 2,
+      "stm_layer": "MISS",
+      "steps": 2
+    }
+  ],
+  "decision_log": [
+    {
+      "task": "Send an email to Bob's manager with the ",
+      "pattern": "relation_email",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 67543.167,
+      "decision_us": 7.0,
+      "retrieval_us": 35155.833
+    },
+    {
+      "task": "Send an email to Bob's assistant with th",
+      "pattern": "relation_email",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 79099.625,
+      "decision_us": 7.458,
+      "retrieval_us": 37399.0
+    },
+    {
+      "task": "Send an email to Tom's manager with the ",
+      "pattern": "relation_email",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 78656.917,
+      "decision_us": 7.875,
+      "retrieval_us": 36076.458
+    },
+    {
+      "task": "Send an email to Tom's assistant with th",
+      "pattern": "relation_email",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 85699.625,
+      "decision_us": 7.334,
+      "retrieval_us": 38575.666
+    },
+    {
+      "task": "Send an email to Alice's manager with th",
+      "pattern": "relation_email",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 64912.333,
+      "decision_us": 3.916,
+      "retrieval_us": 30344.041
+    },
+    {
+      "task": "Send an email to Alice's assistant with ",
+      "pattern": "relation_email",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 70459.916,
+      "decision_us": 5.333,
+      "retrieval_us": 36732.75
+    },
+    {
+      "task": "Send an email to Mary's manager with the",
+      "pattern": "relation_email",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 84529.792,
+      "decision_us": 6.75,
+      "retrieval_us": 37922.167
+    },
+    {
+      "task": "Send an email to Mary's assistant with t",
+      "pattern": "relation_email",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 74741.375,
+      "decision_us": 7.125,
+      "retrieval_us": 38055.625
+    },
+    {
+      "task": "Schedule Bob's project review meeting, s",
+      "pattern": "recurring_em",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 82143.334,
+      "decision_us": 7.084,
+      "retrieval_us": 36294.667
+    },
+    {
+      "task": "Schedule Tom's team standup meeting, sam",
+      "pattern": "recurring_em",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 76817.833,
+      "decision_us": 7.166,
+      "retrieval_us": 35680.958
+    },
+    {
+      "task": "Schedule Alice's design sync meeting, sa",
+      "pattern": "recurring_em",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 73671.25,
+      "decision_us": 7.458,
+      "retrieval_us": 34162.667
+    },
+    {
+      "task": "Schedule Mary's budget review meeting, s",
+      "pattern": "recurring_em",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 72292.0,
+      "decision_us": 5.042,
+      "retrieval_us": 31140.375
+    },
+    {
+      "task": "Schedule Bob's 1:1 with mentor meeting, ",
+      "pattern": "recurring_em",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 71631.542,
+      "decision_us": 7.833,
+      "retrieval_us": 34229.375
+    },
+    {
+      "task": "Schedule Tom's sprint planning meeting, ",
+      "pattern": "recurring_em",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 77983.583,
+      "decision_us": 6.542,
+      "retrieval_us": 34021.083
+    },
+    {
+      "task": "Schedule Alice's client check-in meeting",
+      "pattern": "recurring_em",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 68533.209,
+      "decision_us": 4.125,
+      "retrieval_us": 29611.042
+    },
+    {
+      "task": "Schedule Mary's retro meeting meeting, s",
+      "pattern": "recurring_em",
+      "mode": "retrieve_all",
+      "consulted": [
+        "PM",
+        "WM",
+        "STM",
+        "episodic",
+        "entity"
+      ],
+      "skipped": {},
+      "rho": {},
+      "cache_hit": false,
+      "cache_layer": "MISS",
+      "latency_us": 81915.792,
+      "decision_us": 7.875,
+      "retrieval_us": 34706.458
+    }
+  ],
+  "final_utility_table": {
+    "single_cal_create": {
+      "episodic": 0.6,
+      "entity": 0.1
+    },
+    "multi_cal_find_and_create": {
+      "episodic": 0.78,
+      "entity": 0.72
+    },
+    "remind_notify": {
+      "episodic": 0.66,
+      "entity": 0.55
+    },
+    "email_query": {
+      "episodic": 0.48,
+      "entity": 0.66
+    },
+    "email_send": {
+      "episodic": 0.62,
+      "entity": 0.1
+    },
+    "cal_query": {
+      "episodic": 0.58,
+      "entity": 0.1
+    },
+    "word_create": {
+      "episodic": 0.62,
+      "entity": 0.1
+    },
+    "word_query": {
+      "episodic": 0.45,
+      "entity": 0.1
+    },
+    "relation_email": {
+      "episodic": 0.125,
+      "entity": 0.875
+    },
+    "recurring_em": {
+      "episodic": 0.9,
+      "entity": 0.1
+    },
+    "unknown": {
+      "episodic": 0.7,
+      "entity": 0.6
+    }
+  }
+}
