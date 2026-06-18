@@ -63,3 +63,48 @@ overlap a secondary benefit.
   real framework's.
 
 Reproduce: `.venv/bin/python bench_parallel.py --tasks 100 --concurrency 4 --latency 0.516`
+
+---
+
+# Accuracy is preserved — parallel ≡ sequential
+
+`verify_equivalence.py` runs the **same task set** through both schedules and
+compares, per task, the outcome `(success, plan, sorted normalised
+observations)` plus the **final shared-memory state** (STM/EM/SM/PM sizes + ENT
+facts — what carries forward to future-task retrieval).
+
+**Result (60 tasks, per-task isolated environments, C=4):**
+- per-task outcomes **IDENTICAL: 60/60** (byte-for-byte)
+- final shared-memory state **IDENTICAL**
+- → parallelism changes only *latency*, not *accuracy*.
+
+### Why this holds (and the one caveat it exposed)
+- **Parallel agents within a task:** independent subtasks share a wave; a
+  dependent subtask is in a later wave. Independent subtasks read external state
+  (calendar/email/search), not each other, so their results don't depend on
+  sibling order; the staging→merge is deterministic (sorted), so completion
+  order can't change the result. (Unit-tested: deterministic-merge,
+  dependency-waves, snapshot-isolation.)
+- **Parallel tasks:** each held-out task is scored independently and writes go
+  through per-resource locks (no lost updates — unit-tested). Concurrent tasks
+  may observe a different *cache* state (a recurring task could miss a
+  not-yet-written STM entry), but a cache miss only triggers a recompute that
+  yields the **same plan** → same answer. Cross-task concurrency changes
+  cache-hit *timing* (efficiency), not correctness.
+- **Caveat surfaced during the check:** with a *shared* external World, 2/60
+  coordination tasks diverged on an incidental observation (a calendar-event
+  *count* read by the search agent), because concurrent tasks were creating
+  events in the same filesystem. Success and plan were still identical, and
+  memory state was identical. Giving each task its own environment (the standard
+  held-out eval model — analogous to per-task WM isolation) makes it 60/60. The
+  takeaway: the memory architecture never diverges; only a *shared mutable
+  external resource* can, and benchmark isolation already handles that.
+
+### Bearing on the reported OfficeBench held-out numbers
+The parallel code lives in the standalone `memory_manager/` package; the
+OfficeBench harness that produced the held-out accuracies (retrieve-all 15/30,
+boolean 14/30, PCCR 15/30) was **not modified**, so those numbers stand exactly.
+The equivalence check above shows that *had* those tasks run on the parallel
+schedule (with per-task env isolation), the outcomes would be identical.
+
+Reproduce: `.venv/bin/python verify_equivalence.py`
