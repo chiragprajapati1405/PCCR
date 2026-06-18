@@ -97,6 +97,10 @@ class StrictSemanticSTM(PatternSTM):
         word-specific routing."""
         pat, users = super().classify(task_desc)
         t0 = task_desc.lower()
+        # EM-critical: "as usual / same as / like last" needs a PAST EPISODE to
+        # recover the omitted detail -> its own pattern.
+        if "as usual" in t0 or "same as" in t0 or "like last" in t0 or "like before" in t0:
+            return "recurring_em", users
         # A10: a task referencing a RELATION ("X's manager/assistant") needs ENT
         # to resolve the recipient -> its own pattern (ENT-critical).
         if "manager" in t0 or "assistant" in t0:
@@ -172,6 +176,8 @@ PATTERN_UTILITY = {
     # A10: relation-email is ENT-critical (recipient resolvable only via entity
     # memory). Prior reflects that; the A2 counterfactual measures the true value.
     "relation_email":            {"episodic": 0.10, "entity": 0.90},
+    # EM-critical: "as usual" tasks need a past EPISODE to recover the detail.
+    "recurring_em":              {"episodic": 0.90, "entity": 0.10},
     "unknown":                   {"episodic": 0.70, "entity": 0.60},
 }
 
@@ -834,16 +840,22 @@ def main():
     resume = os.environ.get("PCCR_RESUME", "0") == "1"
 
     ent_critical = os.environ.get("PCCR_ENT_CRITICAL", "0") == "1"   # A10
+    em_critical = os.environ.get("PCCR_EM_CRITICAL", "0") == "1"     # EM analog
     enable_word = (n_agents >= 3)
-    if ent_critical:
-        import synthetic_ent_tasks as set_mod
-        set_mod.generate()
-        ent_pool = set_mod.filter_ent_tasks(runner.get_all_task_ids())
-        # A5: combine with the cal/email/word pool for the full ~100-task scale run
-        base = (filter_cal_email_word(runner.get_all_task_ids(), REPO_PATH) if enable_word
-                else filter_cal_email(runner.get_all_task_ids(), REPO_PATH))
-        # ENT tasks also match the email filter; dedupe (order-preserving) -> 100 unique
-        pool = list(dict.fromkeys(base + ent_pool))
+    if ent_critical or em_critical:
+        extra = []
+        if ent_critical:
+            import synthetic_ent_tasks as set_mod
+            set_mod.generate(); extra += set_mod.filter_ent_tasks(runner.get_all_task_ids())
+        if em_critical:
+            import synthetic_em_tasks as sem_mod
+            sem_mod.generate(); extra += sem_mod.filter_em_tasks(runner.get_all_task_ids())
+        if os.environ.get("PCCR_MEMCRIT_ONLY", "0") == "1":
+            pool = list(dict.fromkeys(extra))      # ONLY the memory-critical tasks
+        else:
+            base = (filter_cal_email_word(runner.get_all_task_ids(), REPO_PATH) if enable_word
+                    else filter_cal_email(runner.get_all_task_ids(), REPO_PATH))
+            pool = list(dict.fromkeys(base + extra))   # dedupe (synthetic also match filters)
     elif enable_word:
         pool = filter_cal_email_word(runner.get_all_task_ids(), REPO_PATH)
     else:
@@ -898,6 +910,10 @@ def main():
             pretrained = True
             print(f"  ♻️  RESUMED: reloaded {n} episodes from disk + rebuilt STM "
                   f"(training skipped). ENT/history start fresh.")
+        # Seed EM episodes AFTER any reload (reload wipes the bank).
+        if em_critical:
+            import synthetic_em_tasks as sem_mod
+            sem_mod.seed_episodes(mem_mgr)
         run_multimode(mem_mgr, llm, runner, train_tasks, test_tasks, configs, n_agents,
                       pretrained=pretrained)
         print(f"\n{'━'*70}\n  Complete — per-config JSONs saved.\n{'━'*70}")
