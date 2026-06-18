@@ -419,6 +419,31 @@ class MemoryManager:
             results += await self.run_agent_wave(wave, agent_runner)
         return waves, results
 
+    async def run_planned_task(self, planner, agent_runner, *, max_rounds: int = 8):
+        """Iterative Phase 4-8 loop — the diagram's 'More groups? -> back to
+        orchestrator'. Each round:
+
+          1. the orchestrator (`planner`) inspects LIVE WM and returns the next
+             group of delegations (or an empty list / None to FINISH);
+          2. that group is split into a dependency DAG and its waves run
+             concurrently (run_parallel_agents);
+          3. results are merged into WM (Phase 8);
+          4. control returns to the orchestrator for the next round, which now
+             sees the merged results of every prior group.
+
+        `planner` is async: (wm_task_context) -> list[Delegation] | None. This
+        keeps the orchestrator in the loop (re-planning between groups) rather
+        than decomposing the whole plan up front."""
+        all_waves, all_results = [], []
+        for _round in range(max_rounds):
+            group = await planner(self.wm.current)        # Phase 4-5: orchestrator
+            if not group:
+                break                                     # orchestrator said FINISH
+            waves, results = await self.run_parallel_agents(group, agent_runner)
+            all_waves += waves
+            all_results += results
+        return all_waves, all_results
+
     async def complete_task_async(self, success: bool, plan: list[str],
                                   subtask_memories: list[SubtaskMemory],
                                   profile_updates: Optional[dict] = None) -> TaskMetrics:
@@ -431,7 +456,11 @@ class MemoryManager:
         signature = self._step_signature(plan)
         embedding = self.embedder.encode([ctx.description])[0]
         username = ctx.username
-        decision = self.router.plan_storage(ctx.task_id, pattern, success)
+        # W6: routing-history update. The router (and its decision_log) is SHARED
+        # across parallel tasks via fork_for_task, so the append is serialized
+        # under history_lock to keep routing history atomic (diagram Phase-9 W6).
+        async with self.lock_mgr.history_lock:
+            decision = self.router.plan_storage(ctx.task_id, pattern, success)
 
         writes = []
         if MemoryType.STM in decision.consulted_stores:

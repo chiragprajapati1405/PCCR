@@ -204,6 +204,56 @@ def test_manager_async_phase9_writes_under_locks():
     with pytest.raises(RuntimeError):
         _ = mm.wm.current                   # WM cleared
 
+def test_orchestrator_reloop_sees_prior_group_results_and_stops_at_finish():
+    """Diagram 'More groups? -> back to orchestrator': the planner is re-invoked
+    each round, sees the merged WM from prior groups, and ends by returning []."""
+    from memory_manager.parallel import Delegation, AgentResult
+    mm = _stub_manager()
+    mm.wm.start_task("t", "two-stage coordination", "Bob", "2024-05-01")
+
+    async def runner(agent_type, subtask, snap):
+        return AgentResult(agent_type, subtask, observation=f"{agent_type} did {subtask[:12]}")
+
+    seen_history_lengths = []
+
+    async def planner(wm_ctx):
+        # orchestrator inspects LIVE merged WM each round
+        seen_history_lengths.append(len(wm_ctx.step_history))
+        n = len(wm_ctx.step_history)
+        if n == 0:
+            return [Delegation("calendar", "list events"), Delegation("search", "find people")]
+        if n == 2:
+            return [Delegation("email", "send invite")]   # depends on round-1 results
+        return []                                           # FINISH
+
+    waves, results = asyncio.run(mm.run_planned_task(planner, runner))
+    # round 1 emitted a 2-agent group (1 wave), round 2 a 1-agent group (1 wave)
+    assert len(waves) == 2 and len(results) == 3
+    # planner was called 3 times and observed WM growing 0 -> 2 -> 3 (re-planning loop)
+    assert seen_history_lengths == [0, 2, 3]
+    assert len(mm.wm.current.step_history) == 3
+
+def test_w6_routing_history_append_is_serialized_under_history_lock():
+    """Two parallel tasks share one router; their Phase-9 routing-history
+    appends (W6) must all land — no lost decisions — under history_lock."""
+    mm = _stub_manager()
+    p = __import__("memory_manager.types", fromlist=["Pattern"]).Pattern
+
+    async def one_task(i):
+        m = mm.fork_for_task()                       # SHARED router + lock_mgr
+        m.wm.start_task(f"t{i}", f"task {i}", "Bob", "2024-05-01")
+        m.wm.set_pattern(p.SINGLE_ACTION)
+        await m.complete_task_async(True, [f"calendar:{i}"], [], None)
+
+    before = len(mm.router.decision_log)
+
+    async def run_all():
+        await asyncio.gather(*[one_task(i) for i in range(12)])
+
+    asyncio.run(run_all())
+    # every task's plan_storage decision was appended (none lost)
+    assert len(mm.router.decision_log) == before + 12
+
 def test_consolidation_window_flag_toggles():
     mm = _stub_manager()
     # seed one successful trace so consolidate has something to do

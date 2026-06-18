@@ -104,29 +104,41 @@ async def part_a(base: MemoryManager, world: World) -> None:
         "Schedule a sync with the team and email everyone the invite", USERNAME, date)
     base.retrieve()  # Phase 3 ρ-gate runs once for the task
 
-    delegations = [
-        Delegation("calendar", "list events for the team this week"),
-        Delegation("search", "find everyone on the project team"),
-        Delegation("email", "read recent thread about the sync"),
-        Delegation("calendar", "create the team sync event"),
-        Delegation("email", "send the invite to the team"),
+    # The orchestrator stays in the loop: it emits one GROUP at a time and is
+    # re-invoked after each group merges (diagram: 'More groups? -> back to
+    # orchestrator'). Each group is itself split into a dependency DAG.
+    rounds = [
+        [Delegation("calendar", "list events for the team this week"),   # round 1: gather
+         Delegation("search", "find everyone on the project team"),
+         Delegation("email", "read recent thread about the sync")],
+        [Delegation("calendar", "create the team sync event")],          # round 2: act
+        [Delegation("email", "send the invite to the team")],            # round 3: notify
     ]
-    waves = DependencyAnalyzer().analyze(list(delegations))
-    print("\nDependency DAG -> waves (independent subtasks run concurrently):")
-    for i, wave in enumerate(waves):
-        cat = wave[0].category
-        names = ", ".join(f"{d.agent_type}:{d.subtask[:28]}" for d in wave)
-        print(f"  wave {i} [{cat:6s}] ({len(wave)} parallel): {names}")
+
+    async def planner(wm_ctx):
+        # orchestrator inspects live (merged) WM, then emits the next group
+        done_groups = getattr(planner, "_i", 0)
+        print(f"\n  [orchestrator round {done_groups + 1}] WM has "
+              f"{len(wm_ctx.step_history)} merged step(s) so far")
+        if done_groups >= len(rounds):
+            return []                                  # FINISH
+        planner._i = done_groups + 1
+        group = rounds[done_groups]
+        for w in DependencyAnalyzer().analyze(list(group)):
+            print(f"      group->wave [{w[0].category:6s}] ({len(w)} parallel): "
+                  + ", ".join(f"{d.agent_type}:{d.subtask[:24]}" for d in w))
+        return group
 
     runner = build_runner(world, USERNAME, date)
-    waves, results = await base.run_parallel_agents(delegations, runner)
+    waves, results = await base.run_planned_task(planner, runner)
 
-    print(f"\nExecuted {len(results)} agents across {len(waves)} waves. WM step history "
+    print(f"\nExecuted {len(results)} agents across {len(waves)} waves "
+          f"({len(rounds)} orchestrator rounds). WM step history "
           f"(merged in deterministic order):")
     for rec in base.wm.current.step_history:
         print(f"  [{rec.agent:8s}] {rec.observation[:80]}")
-    await base.complete_task_async(True, [f"{d.agent_type}:{d.subtask[:20]}" for d in delegations],
-                                   [], {"last_demo": "part_a"})
+    plan = [f"{d.agent_type}:{d.subtask[:20]}" for grp in rounds for d in grp]
+    await base.complete_task_async(True, plan, [], {"last_demo": "part_a"})
     print(f"\nstores after Part A: {_stores(base)}")
 
 
