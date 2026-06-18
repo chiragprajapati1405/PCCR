@@ -102,6 +102,24 @@ class MemoryManager:
         task reads vectors while Phase 10 is rewriting them."""
         return self._consolidation_active
 
+    def fork_for_task(self) -> "MemoryManager":
+        """Per-task manager for PARALLEL TASKS: shares the cross-task stores
+        (PM/STM/EM/SM/ENT), the router, and the lock manager, but gets its OWN
+        Working Memory (per-task isolation). Bootstrap (Phase 1) is NOT redone.
+        Lock-guarded writes through the shared stores keep concurrent tasks
+        consistent (Layer 5/6)."""
+        m = MemoryManager.__new__(MemoryManager)
+        m.settings = self.settings
+        m.embedder, m.llm, m.classifier_llm = self.embedder, self.llm, self.classifier_llm
+        m.pm, m.stm, m.em, m.sm, m.ent = self.pm, self.stm, self.em, self.sm, self.ent  # SHARED
+        m.router, m.lock_mgr = self.router, self.lock_mgr                                # SHARED
+        m.wm = type(self.wm)()                       # OWN, isolated
+        m._preloaded_episodic = {}
+        m._task_log, m._metrics_log = self._task_log, self._metrics_log   # shared logs
+        m._task_start_time, m._orchestrator_calls = 0.0, 0
+        m._consolidation_active = False
+        return m
+
     # =====================================================================
     # Phase 1 -- System Bootstrap
     # =====================================================================
