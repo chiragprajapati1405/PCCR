@@ -59,6 +59,23 @@ class WorkingMemoryStore:
     def mark_outcome(self, success: bool) -> None:
         self.current.success = success
 
+    # -- Parallel agents: snapshot (copy-on-read) + staging merge -----------
+
+    def snapshot(self) -> TaskContext:
+        """Frozen deep copy of the current task context. All agents in a
+        parallel wave read from this snapshot, never from live WM, so they
+        cannot race on step_history / shared_context (CompArch copy-on-read)."""
+        import copy
+        return copy.deepcopy(self.current)
+
+    def merge_staging(self, staged: list) -> None:
+        """Merge a wave's staged results into LIVE WM, in deterministic sorted
+        order (by agent), after ALL agents in the wave have finished. Each
+        staged item is (agent, subtask, observation) (AISAC blackboard append)."""
+        for agent, subtask, observation in sorted(staged, key=lambda x: (x[0], x[1])):
+            self.record_step(agent=agent, action=subtask, observation=observation)
+            self.share_context(agent, {"last_subtask": subtask, "last_observation": observation})
+
     # -- Memory Storage: CLEAR ("WM: DIES NOW") -----------------------------
 
     def clear(self) -> None:
