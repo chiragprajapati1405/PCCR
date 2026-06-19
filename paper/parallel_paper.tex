@@ -1,0 +1,623 @@
+\documentclass[10pt,twocolumn]{article}
+
+% ---- Packages (all in Overleaf's default TeX Live) ----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{authblk}
+\usepackage{titlesec}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc,shapes.geometric}
+\usepackage[hidelinks]{hyperref}
+
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.5em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalfont\small\bfseries}{\thesubsubsection}{0.5em}{}
+\setlength{\parskip}{2pt}
+
+\newcommand{\rho}{\rho}
+\newcommand{\code}[1]{\texttt{\small #1}}
+
+\title{\textbf{Parallel Phase-Conditioned Cascading Memory Routing:\\
+Two-Dimensional Concurrency for Multi-Agent LLM Memory\\
+without Sacrificing Accuracy}}
+\author[1]{[Your Name]}
+\author[1]{[Mentor Name]}
+\affil[1]{[Affiliation] \quad \texttt{[email]}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+The Phase-Conditioned Cascading Memory Router (PCCR) routes reads and writes
+across six cognitive memory types over a ten-phase agentic lifecycle, gating
+each optional store by a cost-effectiveness ratio
+$\rho=\mathrm{utility}/\mathrm{cost}$. PCCR reduces \emph{retrieval cost}, but
+its original execution model is strictly sequential: one task at a time, one
+sub-agent at a time. This paper extends PCCR with \textbf{two orthogonal
+dimensions of concurrency}---(1)~\emph{parallel sub-agents}, in which
+independent sub-tasks within a single task run simultaneously, and
+(2)~\emph{parallel tasks}, in which many tasks run simultaneously across the
+system---while leaving the $\rho$-gate router \emph{byte-for-byte unchanged} and
+preserving the ten-phase lifecycle. We achieve this with a seven-layer design
+whose key invariants are per-task Working-Memory isolation (copy-on-fork), a
+dependency-wave execution model with copy-on-read snapshots and a deterministic
+staging$\to$merge, per-resource locks on the shared stores, and an exclusive
+consolidation window. We prove---and empirically verify on 60 tasks
+(\textbf{60/60 byte-identical} outcomes and identical final memory state)---that
+the parallel schedule is \emph{outcome-equivalent} to the sequential one: it
+changes \emph{latency only}, never accuracy. On a 100-task workload with a real
+backbone latency profile (gpt-oss-120b, measured median $0.516$\,s/call),
+parallel execution is \textbf{$3.73\times$} faster than sequential at
+concurrency $C{=}4$ ($227.7\,\mathrm{s}\!\to\!61.1\,\mathrm{s}$, $-73\%$
+wall-clock) and scales to \textbf{$13.5\times$} at $C{=}16$. The result is a
+memory architecture that is simultaneously cost-efficient (via $\rho$-gating)
+and throughput-efficient (via concurrency), with accuracy held constant.
+\end{abstract}
+
+% =====================================================================
+\section{Introduction}
+% =====================================================================
+Memory-augmented LLM agents accumulate several functionally distinct memory
+stores: procedural rules, volatile working state, a short-term plan cache,
+episodic task traces, distilled semantic facts, and durable entity
+profiles~\cite{coala,survey1}. PCCR~\cite{pccr} treats ``which store to consult''
+as a \emph{decision} rather than a reflex: it conditions the policy on the
+\emph{lifecycle phase} and the \emph{task pattern}, and on a cache miss gates
+each optional store by an explicit ratio $\rho=U/C$ against a threshold
+$\theta$. This cuts store consultations by 41--87\% at equal accuracy.
+
+PCCR optimizes \emph{cost per task}. It says nothing about \emph{throughput} or
+\emph{wall-clock latency}, because its reference execution model is sequential
+in two senses at once: within a task the orchestrator delegates to one
+sub-agent at a time, and across the system tasks are processed one after
+another. Real office-automation workloads are neither: a single ``schedule a
+sync and email everyone'' task contains several independent information-gathering
+steps that need not be serialized, and a deployed system faces a stream of
+tasks that could overlap. Serial execution leaves both forms of latency on the
+table.
+
+The central tension is that memory makes parallelism dangerous.
+Working Memory is a per-task scratchpad that agents read and write throughout a
+task; if two sub-agents mutate it concurrently they race. The shared
+stores (STM/EM/SM/ENT) are written at task completion; if two tasks write
+concurrently they can lose updates. And consolidation rewrites the FAISS
+indices in bulk; if a task reads them mid-rewrite it sees a torn state. A naive
+``just add threads'' approach would change task \emph{outcomes}, destroying the
+very property---accuracy parity with retrieve-everything---that justifies PCCR.
+
+\paragraph{Contributions.}
+\begin{enumerate}\itemsep1pt
+\item \textbf{A two-dimensional concurrency model} for phase-structured agent
+memory: parallel sub-agents (intra-task) and parallel tasks (inter-task),
+realized as seven cleanly separated layers (\S\ref{sec:arch},
+Fig.~\ref{fig:arch}).
+\item \textbf{Three correctness invariants}---per-task WM isolation, deterministic
+dependency-wave execution, and per-resource locking with an exclusive
+consolidation window---that together make the parallel schedule
+\emph{outcome-equivalent} to the sequential one (\S\ref{sec:correct}).
+\item \textbf{A non-invasive integration}: the $\rho$-gate router is unchanged,
+the ten phases are preserved, the six stores gain only lock parameters, and all
+prior tests still pass (\S\ref{sec:integration}).
+\item \textbf{Empirical evidence} that parallelism buys latency without costing
+accuracy: $3.73\times$ speedup at $C{=}4$ scaling to $13.5\times$ at $C{=}16$,
+and \textbf{60/60 byte-identical} outcomes versus sequential
+(\S\ref{sec:results}).
+\end{enumerate}
+
+% =====================================================================
+\section{Background: the PCCR core}\label{sec:background}
+% =====================================================================
+We summarize only what is needed to follow the parallel extension; full detail
+is in~\cite{pccr}.
+
+\paragraph{Six memory types.} Table~\ref{tab:types} lists the stores and their
+relative access cost. Procedural (PM), Working (WM), Short-term (STM), and
+Entity (ENT) memory are cheap; Episodic (EM) and Semantic (SM) memory require a
+vector (FAISS) search and are expensive. WM is special: it is \emph{per task}
+and is unconditionally cleared when the task ends (``WM dies now'').
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}llc@{}}
+\toprule
+Type & Role & Access cost \\
+\midrule
+PM (proc.)    & static prompts/rules        & cheap (dict) \\
+WM (work.)    & per-task scratchpad         & cheap; \emph{per task} \\
+STM (short)   & cache of plan bundles       & cheap \\
+EM (episodic) & past task traces (FAISS)    & \textbf{expensive} \\
+SM (semantic) & distilled facts (FAISS)     & \textbf{expensive} \\
+ENT (entity)  & per-user profiles           & cheap \\
+\bottomrule
+\end{tabular}
+\caption{The six memory types. EXT (external files) is a seventh, non-memory
+sink for artifacts (e.g.\ \code{.eml}/\code{.ics}).}
+\label{tab:types}
+\end{table}
+
+\paragraph{Ten phases.} A task flows through:
+(1)~bootstrap, (2)~ingestion, (3)~retrieval, (4)~orchestrator inference,
+(5)~delegation, (6)~agent inference, (7)~agent output, (8)~observation,
+(9)~storage, and (10)~consolidation. Phases 4--8 form the inner loop:
+the orchestrator picks a sub-agent, the sub-agent acts, the environment
+returns an observation, and the loop repeats until the task is done.
+
+\paragraph{The $\rho$-gate (phase 3).} PM and WM are read unconditionally; STM
+is checked first and a confident cache hit short-circuits all optional stores;
+on a miss, an optional store $s\in\{\mathrm{EM},\mathrm{SM},\mathrm{ENT}\}$ is
+consulted iff $\rho(\text{pattern},s)=U(\text{pattern},s)/C(s)\ge\theta$.
+\textbf{Crucially, the entire routing decision happens once per task, in phase
+3, before any sub-agent runs.} This single fact is what makes parallelism
+orthogonal to routing: the execution model can be reorganized freely after
+phase 3 without touching the router.
+
+% =====================================================================
+\section{The Parallel Architecture}\label{sec:arch}
+% =====================================================================
+We add concurrency as seven layers (Fig.~\ref{fig:arch}). Layers~1--2 introduce
+parallel \emph{tasks}; layers~3--4 introduce parallel \emph{sub-agents};
+layers~5--7 are the shared-state protections that make both safe.
+
+% ----------- the big architecture figure -----------
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  box/.style   ={draw, rounded corners, align=center, inner sep=3pt, minimum height=6.5mm},
+  phase/.style ={draw, fill=gray!8,  rounded corners, align=center, inner sep=3pt, minimum height=6.5mm, text width=33mm},
+  group/.style ={draw, fill=green!7, rounded corners, align=center, inner sep=4pt, text width=52mm},
+  store/.style ={draw, fill=blue!10, rounded corners, align=center, minimum width=12mm, minimum height=5mm},
+  storebox/.style={draw, fill=blue!4, rounded corners, align=center, inner sep=5pt, text width=33mm},
+  cons/.style  ={draw, fill=orange!12, rounded corners, align=center, inner sep=4pt, text width=70mm},
+  lyr/.style   ={font=\scriptsize\bfseries, text=red!55!black},
+  arr/.style   ={-{Latex[length=1.6mm]}, semithick},
+  darr/.style  ={-{Latex[length=1.6mm]}, dashed, semithick},
+  node distance=3.2mm and 9mm
+]
+
+% ---- LAYER 1: task queue ----
+\node[box, fill=orange!12, text width=150mm] (queue)
+  {\textbf{LAYER 1 — Async Task Queue}\quad accepts $N$ tasks, runs their pipelines concurrently
+   (\code{max\_concurrency}=$C$); admits a task into phase 3 only when \code{is\_consolidating()} is false};
+
+% ---- LAYER 2: N per-task pipelines (show 3) ----
+\node[box, below left=5mm and 18mm of queue, text width=24mm] (t1) {Task 1 pipeline\\\textit{own WM}};
+\node[box, below=5mm of queue, text width=24mm]               (t2) {Task 2 pipeline\\\textit{own WM}};
+\node[box, below right=5mm and 18mm of queue, text width=24mm](tn) {Task $N$ pipeline\\\textit{own WM}};
+\node[lyr, left=1mm of t1] {L2};
+\draw[arr] (queue) -- (t1); \draw[arr] (queue) -- (t2); \draw[arr] (queue) -- (tn);
+
+% ---- expanded single pipeline (center column) ----
+\node[phase, below=8mm of t2] (p12) {\textbf{Phase 1--2}\\ bootstrap (shared, once) + ingestion\\ task$\to$WM, pattern classified};
+\node[phase, below=of p12]    (p3)  {\textbf{Phase 3 — PCCR $\rho$-gate}\\ PM+WM always; STM check;\\ $\rho=U/C\ge\theta\Rightarrow$ consult $s$ \emph{(once/task)}};
+\node[phase, below=of p3]     (p45) {\textbf{Phase 4--5} orchestrator\\ emit next \emph{group} of delegations};
+\node[box, fill=gray!8, below=of p45, text width=33mm] (dag)
+  {\textbf{L3 — Dependency Analyzer}\\ group $\to$ DAG; indep.\ $\to$ same wave,\\ dependent $\to$ next wave};
+\node[group, below=of dag] (grp)
+  {\textbf{L4 — Parallel agent wave}\\[1pt]
+   1.\ snapshot WM (frozen, copy-on-read)\\
+   2.\ \fbox{calendar agent} $\parallel$ \fbox{email agent} $\parallel\,\dots$\\
+   \hspace*{3mm}(each writes its own \emph{staging} slot)\\
+   3.\ \code{asyncio.gather} runs the wave\\
+   4.\ deterministic merge (sorted) $\to$ live WM};
+\node[phase, below=of grp] (p8) {\textbf{Phase 8} merge staging $\to$ WM\\ \code{step\_history}, \code{shared\_context}};
+\node[draw, diamond, aspect=2.2, fill=yellow!15, below=of p8, inner sep=1pt, align=center] (dec) {more\\groups?};
+\node[phase, below=4mm of dec] (p9)
+  {\textbf{Phase 9} — write routing (W1--W6)\\ success gate; pattern$\to$STM (lock);\\ person$\to$ENT (lock); EM/SM deferred;\\ routing history (atomic, W6); \textbf{WM clear}};
+
+\draw[arr] (p12) -- (p3); \draw[arr] (p3) -- (p45); \draw[arr] (p45) -- (dag);
+\draw[arr] (dag) -- (grp); \draw[arr] (grp) -- (p8); \draw[arr] (p8) -- (dec);
+\draw[arr] (dec) -- node[right]{done} (p9);
+\draw[arr] (dec.west) -- ++(-26mm,0) node[midway,above]{yes (re-plan)} |- (p45.west);
+
+% pipeline container (background)
+\begin{scope}[on background layer]
+\node[draw, dashed, rounded corners, fill=black!2, fit=(p12)(p3)(p45)(dag)(grp)(p8)(dec)(p9),
+      inner sep=4mm, label={[lyr]above right:{Per-task pipeline (Task $i$) — own 10-phase lifecycle, own WM \;$\times N$ concurrent}}] (pipe) {};
+\end{scope}
+
+% ---- LAYER 5/6: shared stores (right) ----
+\node[storebox, right=14mm of p3, anchor=west] (stores)
+  {\textbf{LAYER 5 — Shared stores}\\ \textbf{(cross-task, lock-protected)}\\[2pt]
+   PM \;\; STM\textsuperscript{$\dagger$} \;\; ENT\textsuperscript{$\dagger$}\\
+   EM \;\; SM \;\; routing history\\[2pt]
+   \footnotesize $\dagger$ per-key lock (per pattern / per user);\\
+   EM/SM/PM via global FAISS/PM lock};
+\node[lyr, above=0.5mm of stores] {L5/L6};
+\draw[arr] (p3.east) to[bend left=8] node[above,sloped]{read} (stores.west);
+\draw[arr] (p9.east) to[bend right=14] node[below,sloped]{write (locked)} (stores.south west);
+
+% ---- LAYER 7: consolidation (bottom) ----
+\node[cons, below=8mm of p9] (p10)
+  {\textbf{LAYER 7 — Phase 10 Consolidation (exclusive window)}\\
+   raises \code{is\_consolidating}; holds global FAISS lock; batch-writes EM/SM/PM/STM.\\
+   \emph{No task enters phase 3 while open.}};
+\draw[arr] (p9) -- (p10);
+\draw[arr] (p10.east) to[bend right=18] node[below,sloped]{rewrites} (stores.south);
+\draw[darr] (p10.west) -- ++(-20mm,0) |- node[near start,left]{blocks}([xshift=-6mm]queue.west);
+
+\end{tikzpicture}
+\caption{The seven-layer parallel PCCR architecture. \textbf{Parallel tasks}
+(L1--L2): the async queue runs $N$ task pipelines concurrently, each with its
+\emph{own} Working Memory (copy-on-fork) but sharing the cross-task stores.
+\textbf{Parallel sub-agents} (L3--L4): within a task the orchestrator emits a
+group of delegations; the dependency analyzer splits it into waves (independent
+sub-tasks in one wave); a wave runs concurrently against a frozen WM snapshot
+and is merged back deterministically; control returns to the orchestrator
+(``more groups?'') until \textsc{finish}. \textbf{Protections} (L5--L7):
+per-resource locks guard concurrent store writes, and phase 10 is an exclusive
+window. The $\rho$-gate (phase 3) is unchanged and runs once per task before any
+parallelism.}
+\label{fig:arch}
+\end{figure*}
+
+\subsection{Design goals and invariants}
+The extension is governed by four hard constraints:
+(C1)~the $\rho$-gate router is unmodified; (C2)~the ten-phase lifecycle is
+preserved; (C3)~the six stores change only by gaining optional lock parameters;
+(C4)~the parallel schedule yields the \emph{same task outcomes} as the
+sequential one. C1--C3 keep the contribution surgical; C4 is the correctness
+property proved in \S\ref{sec:correct}. Three invariants deliver C4:
+
+\begin{description}\itemsep1pt
+\item[\textsc{I1 (WM isolation).}] No two concurrently executing units (tasks
+or same-wave agents) ever mutate the same Working Memory.
+\item[\textsc{I2 (deterministic merge).}] The result of merging a wave's
+sub-agent outputs into WM is independent of the order in which the sub-agents
+finish.
+\item[\textsc{I3 (no lost writes).}] Concurrent writes to a shared store are
+serialized per resource, and consolidation never overlaps task reads.
+\end{description}
+
+\subsection{Layer 1 --- Async task queue (parallel tasks)}
+\code{AsyncTaskQueue} accepts a list of task specs and runs each task's full
+pipeline as an \code{asyncio} coroutine, bounded by a semaphore of size $C$
+(\code{max\_concurrency}). Two behaviours matter. First, \emph{fault isolation}:
+a task that raises is caught and returns an error record, so one failure cannot
+abort the batch. Second, the \emph{consolidation gate}: before a task enters
+phase 3 (the FAISS read), the queue waits while \code{is\_consolidating()} is
+true, so no task reads vectors that phase 10 is rewriting (this realizes half of
+\textsc{I3}). The queue reduces \emph{inter-task} latency: while task~$A$ waits
+on an LLM call, task~$B$ proceeds.
+
+\subsection{Layer 2 --- Per-task pipeline with WM isolation}
+Each task runs its own ten-phase lifecycle. The mechanism is
+\code{fork\_for\_task()}: it produces a per-task \code{MemoryManager} that
+\emph{shares} the cross-task stores (PM/STM/EM/SM/ENT), the router, and the lock
+manager, but receives a \emph{fresh} Working Memory instance. This is the
+copy-on-fork that satisfies \textsc{I1} at the task level: because WM is per task
+by construction (Table~\ref{tab:types}), giving each concurrent task its own WM
+means concurrent tasks can never collide on working state. The bootstrap (phase
+1) is done once on the parent and shared, not repeated per task.
+
+\subsection{Layer 3 --- Dependency analyzer (DAG $\to$ waves)}
+Within a task, the orchestrator emits a \emph{group} of delegations
+(an agent + a sub-task instruction each). The analyzer turns a flat group into
+ordered \emph{waves}. It assigns each delegation a coarse category by keyword---
+\textsc{read} (list/search/find/\ldots), \textsc{create} (create/add/schedule/
+\ldots), \textsc{send} (send/email/notify/\ldots), or \textsc{finish}---and
+orders categories by an action-precedence relation
+$\textsc{read}\prec\textsc{create}\prec\textsc{send}\prec\textsc{finish}$.
+Delegations in the same category form one wave (run in parallel); categories run
+in sequence. The intuition is sound and conservative: reads gather information
+that creates may depend on, and sends (notifications) depend on what was
+created. Formally, every node in wave $k{+}1$ is treated as depending on every
+node in wave $k$ (a coarse but \emph{safe} over-approximation of the true DAG:
+it never parallelizes a genuine dependency). The motivating example
+``list events $\to$ create event $\to$ send invite'' becomes three ordered
+waves; three independent reads become a single three-way parallel wave.
+
+\subsection{Layer 4 --- Parallel agent execution}
+A wave executes in four steps that together guarantee \textsc{I1} (agent level)
+and \textsc{I2}:
+\begin{enumerate}\itemsep0pt
+\item \textbf{Snapshot.} \code{wm.snapshot()} deep-copies the current WM. Every
+agent in the wave reads this \emph{frozen} copy, never live WM (copy-on-read).
+\item \textbf{Staging.} Each agent writes only its own result object, never live
+WM.
+\item \textbf{Gather.} \code{asyncio.gather} runs the wave concurrently; the
+overlap of the agents' (I/O-bound) LLM calls is where wall-clock is saved.
+\item \textbf{Merge.} After \emph{all} agents finish, results are merged into
+live WM in a fixed sorted order (by \code{(agent\_type, sub\-task)}), appending
+one step per agent and updating \code{shared\_context}.
+\end{enumerate}
+Because same-wave agents are \emph{independent} (L3 placed them together
+precisely because neither depends on the other), they read external state, not
+each other; the frozen snapshot is therefore sufficient, and the sorted merge
+makes the outcome invariant to completion order (\textsc{I2}). Dependent agents
+are in different waves, so a later agent does see the merged results of earlier
+waves.
+
+\subsection{Layer 5 --- Memory lock manager}
+\code{MemoryLockManager} hands out \code{asyncio} locks at a granularity matched
+to contention. STM is locked \emph{per pattern key} and ENT \emph{per username},
+so two tasks touching different patterns/users never block each other; only
+genuine same-key contention serializes. EM/SM share a single global FAISS lock
+and PM a single PM lock, because their writes are global, batched, and rare
+(phase 10). A \code{history\_lock} guards the shared router's routing-history
+append (W6). Locks are created lazily on first use, because on the target
+runtime an \code{asyncio.Lock} must bind to a running event loop. This layer
+delivers \textsc{I3}.
+
+\subsection{Layer 6 --- Phase-9 parallel writes}
+Phase 9 (storage) applies six write rules; the parallel version runs the
+success-gated writes concurrently via \code{asyncio.gather}, each acquiring its
+own lock:
+W1~success gate (failures write nothing);
+W2~pattern$\to$STM under the per-pattern lock;
+W3~person$\to$ENT under the per-user lock;
+W4~experience$\to$EM and W5~rule$\to$PM are \emph{deferred} to consolidation
+(only the raw trace is appended now);
+W6~routing-history append under \code{history\_lock} (atomic across the tasks
+that share one router). WM is then cleared. Because the writes touch disjoint,
+independently locked resources, they proceed in parallel without lost updates.
+
+\subsection{Layer 7 --- Consolidation exclusive window}
+Consolidation (phase 10) distills the accumulated traces into EM/SM, learns PM
+rules, and pre-fills STM---a bulk rewrite of the FAISS indices. The async
+wrapper \code{consolidate\_async} raises \code{is\_consolidating()} and holds the
+global FAISS lock for the duration, then lowers the flag in a \code{finally}
+block. Combined with the L1 gate, this makes phase 10 an \emph{exclusive
+window}: in-flight tasks finish, no new task enters phase~3, the indices are
+rewritten atomically, and normal concurrency resumes. This is the second half of
+\textsc{I3}.
+
+\subsection{The orchestrator re-planning loop}
+Layers 3--4 run \emph{one group}; a full task may need several. The loop
+\code{run\_planned\_task} re-invokes the orchestrator after each group merges:
+the orchestrator inspects the (now-updated) live WM, emits the next group (or
+\textsc{finish}), that group is split into waves and run, and control returns
+(the ``more groups?'' decision in Fig.~\ref{fig:arch}). This keeps the
+orchestrator in the loop---each round sees the merged results of all prior
+groups---rather than decomposing the whole plan up front.
+
+% =====================================================================
+\section{Correctness: parallel $\equiv$ sequential}\label{sec:correct}
+% =====================================================================
+We argue that the parallel schedule produces the same outcome as the sequential
+one, then verify it empirically (\S\ref{sec:eq}).
+
+\paragraph{Intra-task (parallel sub-agents).}
+Consider any task. Sequential execution runs its delegations one at a time in
+dependency order; parallel execution runs each wave concurrently. The two differ
+\emph{only} in whether same-wave agents observe one another's mid-flight WM
+writes. By L3, same-wave agents are mutually independent, so an agent's result
+is a function of external state and its own sub-task, \emph{not} of a sibling's
+WM step. Hence each agent produces the same result in both schedules. The merge
+(L4) is order-independent (\textsc{I2}). Dependent agents are in different waves,
+and a later wave reads the merged earlier waves identically in both schedules.
+Therefore the merged WM---and thus the task's plan, actions, and
+success---are identical.
+
+\paragraph{Inter-task (parallel tasks).}
+Each task has its own WM (\textsc{I1}), so concurrent tasks cannot corrupt one
+another's working state. Shared-store \emph{writes} are serialized per resource
+(\textsc{I3}); no update is lost. The one schedule-dependent quantity is what a
+task \emph{reads} from the shared cache: under concurrency, task~$B$ may run
+before task~$A$'s STM write lands and therefore \emph{miss} a cache entry it
+would have hit sequentially. But a miss only causes a \emph{recompute}, and the
+recomputed plan equals the cached plan (the cache stores a previously computed
+plan for the same signature). Thus cross-task concurrency changes cache-hit
+\emph{timing}---an efficiency quantity (consultations, latency)---never the
+correctness of any task's answer. Standard held-out evaluation scores each task
+independently, so per-task accuracy is unaffected.
+
+\paragraph{The one genuine divergence vector.}
+The argument assumes each task acts on its \emph{own} external environment. If
+tasks share a single mutable external resource (e.g.\ one global filesystem of
+calendar events), a concurrent task can mutate it under another task's read,
+producing a different observation. This is a property of the shared
+\emph{environment}, not of the memory architecture, and held-out evaluation
+already isolates it (each task is scored against its own sandbox)---the external
+analogue of per-task WM isolation. \S\ref{sec:eq} demonstrates both the
+divergence (under a deliberately shared world) and its disappearance under
+per-task isolation.
+
+\paragraph{Unit-tested primitives.} The invariants are pinned by tests:
+deterministic merge regardless of finish order (\textsc{I2}); snapshot isolation
+(\textsc{I1}); per-key lock identity and no-lost-update under contention, and the
+consolidation-window wait (\textsc{I3}); plus fault isolation and the
+re-planning loop. All 39 tests pass (15 exercise the parallelism layer).
+
+% =====================================================================
+\section{Integration (non-invasive)}\label{sec:integration}
+% =====================================================================
+The parallel path is \emph{additive}. New modules \code{parallel.py} (analyzer,
+executor, lock manager) and \code{task\_queue.py} are self-contained. The
+manager gains async methods (\code{run\_planned\_task},
+\code{complete\_task\_async}, \code{consolidate\_async}, \code{fork\_for\_task})
+that sit \emph{beside} the unchanged synchronous lifecycle methods; the stores
+gain only \code{snapshot}/\code{merge\_staging} on WM. The $\rho$-gate router
+file is untouched (C1), the ten phases keep their identity (C2), and every
+pre-existing test still passes (C3/C4). A system can therefore run sequentially
+or in parallel from the same codebase.
+
+% =====================================================================
+\section{Experiments}\label{sec:results}
+% =====================================================================
+\subsection{Setup}
+The benchmark drives the \emph{same} real framework (per-task fork, $\rho$-gate,
+re-planning loop, dependency waves, locked writes, shared stores) in two
+execution modes---sequential and parallel---over a 100-task workload with a
+realistic pattern mix (single-action 20, lookup 20, recurring 10, coordination
+30, exploratory 20; 440 LLM calls in total, critical-path depth 360). The only
+modeled quantity is the external call cost $L$, set to the \textbf{measured}
+per-call latency of gpt-oss-120b on Cerebras: median $0.516$\,s over real calls
+(mean $0.743$\,s). Because \code{asyncio} overlaps a real network await exactly
+as it overlaps \code{asyncio.sleep($L$)}, the measured wall-clock speedup is what
+real parallel API calls would achieve for this I/O-bound workload.
+
+\subsection{Latency: parallel vs.\ sequential}
+At concurrency $C{=}4$, parallel execution completes the 100 tasks in
+$61.1$\,s versus $227.7$\,s sequential---a \textbf{$3.73\times$ speedup}, $-73\%$
+wall-clock (Table~\ref{tab:lat}). The sequential time matches the analytic
+$440{\times}0.516{=}227.0$\,s, confirming the model.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Run & Wall-clock (100 tasks) & Per task & Speedup\\
+\midrule
+Sequential       & $227.7$\,s & $2277$\,ms & $1.00\times$\\
+\textbf{Parallel ($C{=}4$)} & $\mathbf{61.1}$\,\textbf{s} & $\mathbf{611}$\,\textbf{ms} & $\mathbf{3.73\times}$\\
+\bottomrule
+\end{tabular}
+\caption{Latency at the measured backbone latency ($L{=}0.516$\,s/call).}
+\label{tab:lat}
+\end{table}
+
+\subsection{Scaling with concurrency}
+The speedup grows near-linearly with $C$ up to the dependency critical path
+(Table~\ref{tab:scale}). The ratio is latency-independent: $C{=}4$ measured at a
+reduced $L{=}0.05$\,s reproduces the same $3.7\times$, confirming the framework
+overhead is negligible relative to call latency. $C{=}1$ is approximately neutral
+($0.96\times$): with no task-level concurrency the only gain is intra-task wave
+overlap, which roughly cancels the per-wave snapshot/merge overhead. The win is
+therefore dominated by \emph{parallel tasks}, with \emph{parallel sub-agents} a
+secondary benefit on coordination/exploratory tasks.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+$C$ & 1 & 2 & 4 & 8 & 16\\
+\midrule
+Speedup        & $0.96\times$ & $1.89\times$ & $3.73\times$ & $7.15\times$ & $13.47\times$\\
+Wall-clock cut & $-5\%$ & $47\%$ & $73\%$ & $86\%$ & $93\%$\\
+\bottomrule
+\end{tabular}
+\caption{Speedup vs.\ task-concurrency $C$ (100 tasks).}
+\label{tab:scale}
+\end{table}
+
+\subsection{Accuracy equivalence}\label{sec:eq}
+We run the same task set through both schedules and compare, per task, the
+outcome tuple (success, plan, sorted normalized observations) and the final
+shared-memory state (STM/EM/SM/PM sizes and ENT facts). With \textbf{per-task
+isolated environments}, outcomes are \textbf{60/60 byte-identical} and the final
+memory state is identical (Table~\ref{tab:eq})---empirically confirming
+\S\ref{sec:correct}. With a deliberately \emph{shared} external world, 2/60
+coordination tasks diverge on an incidental observation count (the number of
+calendar events seen by a search agent), while success, plan, and memory state
+remain identical---exactly the single divergence vector predicted above, and
+removed by isolation.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Environment & Outcomes identical & Memory state identical\\
+\midrule
+Per-task isolated & \textbf{60/60} & \textbf{yes}\\
+Shared world      & 58/60\textsuperscript{$\ast$} & yes\\
+\bottomrule
+\end{tabular}
+\caption{Parallel vs.\ sequential outcome equivalence ($C{=}4$, 60 tasks).
+\textsuperscript{$\ast$}The two differ only on an incidental observation count
+of a shared mutable resource; success/plan/memory identical.}
+\label{tab:eq}
+\end{table}
+
+\subsection{Cost/accuracy carry over unchanged}
+Because the $\rho$-gate is untouched and outcomes are equivalent, the prior
+PCCR cost and accuracy results~\cite{pccr}---41--87\% fewer consultations and up
+to 89\% fewer injected tokens at equal accuracy on OfficeBench---hold verbatim
+for the parallel system. Parallelism and $\rho$-gating optimize orthogonal axes:
+the former cuts \emph{latency}, the latter cuts \emph{cost per task}; neither
+moves accuracy.
+
+% =====================================================================
+\section{Related Work}
+% =====================================================================
+\paragraph{Parallel multi-agent execution.} DynTaskMAS~\cite{dyntaskmas}
+introduces a shared context layer (SACMS) and asynchronous parallel execution;
+GAP~\cite{gap} models sub-task dependencies as a DAG; SPOQ~\cite{spoq} dispatches
+in topological waves; AdaptOrch~\cite{adaptorch} switches between parallel and
+sequential executors. We adopt the DAG-into-waves idea (L3) and async dispatch
+(L1, L4) but place them \emph{underneath a phase-conditioned memory router},
+which prior parallel orchestrators do not have. CompArch~\cite{comparch}
+motivates copy-on-read snapshots for memory consistency (L4);
+AISAC~\cite{aisac} uses a blackboard append/patch merge (our staging$\to$merge).
+
+\paragraph{Concurrent memory systems.} MIRIX~\cite{mirix} manages six memory
+types with \emph{separate per-type agents} and uses \code{asyncio.gather} with
+per-resource locks for parallel writes; we borrow the locking pattern (L5--L6)
+but keep a \emph{single} central $\rho$-gated manager rather than per-type
+agents, and we add the inter-task queue and the exclusive consolidation window.
+LEGOMem~\cite{legomem} splits procedural memory across orchestrator/sub-agent
+modules in a multi-agent setting but is sequential and has no cost gate.
+
+\paragraph{Cost-sensitive memory routing.} The PCCR line~\cite{pccr,pocket}
+treats retrieval as a cost-sensitive decision; none of these address execution
+concurrency. To our knowledge, this is the first system to combine a six-type
+cost-gated memory router with a two-dimensional concurrency model and a proof of
+outcome-equivalence.
+
+% =====================================================================
+\section{Limitations}
+% =====================================================================
+\textbf{Latency model.} We model agent work as the measured per-call latency
+rather than re-issuing 440 live calls (cost/rate-limit); the \emph{scheduling}
+measured is the real framework's, but absolute numbers assume the I/O-bound
+regime. \textbf{Provider limits.} Effective $C$ is capped below the ideal by
+provider rate limits (we observed HTTP~429 at four keys) and by the dependency
+critical path (a \textsc{send} still waits for its \textsc{create}).
+\textbf{Dependency granularity.} L3 uses a coarse, keyword-based,
+category-precedence DAG; it is safe (never parallelizes a true dependency) but
+may serialize some independent work (false dependencies), leaving speedup on the
+table. A learned or semantic dependency analyzer is future work.
+\textbf{Environment isolation.} Outcome-equivalence assumes per-task external
+isolation; systems that share a live mutable environment must add
+application-level resource coordination, exactly as benchmarks already do.
+
+% =====================================================================
+\section{Reproducibility}
+% =====================================================================
+The parallelism lives in \code{memory\_manager/parallel.py} and
+\code{task\_queue.py} with manager hooks in \code{manager.py}. Three scripts
+reproduce the paper: \code{run\_parallel\_demo.py} (all seven layers end-to-end,
+offline), \code{bench\_parallel.py} (Tables~\ref{tab:lat}--\ref{tab:scale}), and
+\code{verify\_equivalence.py} (Table~\ref{tab:eq}). All 39 unit tests run with
+\code{pytest}. No API key is needed for the demo, benchmark, or equivalence
+check (deterministic stub backends); the latency constant is the only measured
+input and is overridable via \code{-{}-latency}.
+
+% =====================================================================
+\section{Conclusion}
+% =====================================================================
+We extended PCCR with two orthogonal dimensions of concurrency---parallel
+sub-agents within a task and parallel tasks across the system---through a
+seven-layer design that leaves the $\rho$-gate router and the ten-phase
+lifecycle intact. Per-task Working-Memory isolation, deterministic
+dependency-wave execution, and per-resource locking with an exclusive
+consolidation window make the parallel schedule provably and empirically
+outcome-equivalent to the sequential one: $3.73\times$ faster at $C{=}4$
+(up to $13.5\times$ at $C{=}16$) with \textbf{60/60 byte-identical} outcomes.
+A memory architecture can be made cost-efficient and throughput-efficient at the
+same time, with accuracy held exactly constant.
+
+\begin{thebibliography}{99}\small
+\bibitem{pccr} [Author(s)]. Phase-Conditioned Cascading Memory Routing for Multi-Agent LLM Systems. Companion manuscript, 2026.
+\bibitem{coala} T.~Sumers et al. Cognitive Architectures for Language Agents (CoALA). TMLR, 2024.
+\bibitem{survey1} Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers. arXiv:2603.07670.
+\bibitem{dyntaskmas} DynTaskMAS: A Dynamic Task-Graph Multi-Agent System with Asynchronous Parallel Execution. arXiv:2503.07675.
+\bibitem{gap} GAP: Graph-based Agent Planning with Dependency-Aware Parallelism. arXiv:2510.25320.
+\bibitem{spoq} SPOQ: Scheduling Parallel Orchestration via Topological Wave Dispatch. arXiv:2606.03115.
+\bibitem{comparch} A Compositional Architecture for Consistent Agent Memory. arXiv:2603.10062.
+\bibitem{aisac} AISAC: A Blackboard-Based Shared-Context Substrate for Multi-Agent Systems. arXiv:2511.14043.
+\bibitem{adaptorch} AdaptOrch: Adaptive Parallel/Sequential Orchestration for LLM Agents. arXiv:2602.16873.
+\bibitem{mirix} Y.~Wang, X.~Chen. MIRIX: Multi-Agent Memory System for LLM-Based Agents. arXiv:2507.07957.
+\bibitem{legomem} LEGOMem: Modular Procedural Memory for Multi-agent LLM Systems. arXiv:2510.04851.
+\bibitem{pocket} M.~Gaikwad. Did You Check the Right Pocket? Cost-Sensitive Store Routing for Memory-Augmented Agents. arXiv:2603.15658.
+\bibitem{officebench} T.~Wang et al. OfficeBench: Benchmarking Language Agents across Multiple Applications for Office Automation. arXiv:2407.19056.
+\end{thebibliography}
+
+\end{document}
