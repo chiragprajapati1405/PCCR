@@ -23,6 +23,32 @@ accuracy**, PCCR issues **41–87% fewer store consultations** and injects up to
 See [`paper/`](paper/) for the write-up and [`results_archive/`](results_archive/)
 for the raw results.
 
+### Parallel execution (two dimensions of concurrency)
+
+PCCR also supports concurrency without touching the router or the lifecycle:
+
+1. **Parallel sub-agents** — independent sub-tasks *within* one task run
+   simultaneously (dependency-DAG → waves, copy-on-read WM snapshot,
+   deterministic staging→merge).
+2. **Parallel tasks** — many tasks run simultaneously *across* the system
+   (async queue, per-task Working-Memory isolation, per-resource store locks,
+   an exclusive consolidation window).
+
+The architecture is the 7-layer design in
+[`pccr_parallel_architecture.svg`](pccr_parallel_architecture.svg) (full write-up:
+[`paper/parallel_paper.tex`](paper/parallel_paper.tex)).
+
+**Headline results** — parallelism changes *latency only, never accuracy*:
+
+- **Latency**: 100 tasks at the measured gpt-oss-120b latency (0.516 s/call),
+  **3.73× faster** at concurrency `C=4` (227.7 s → 61.1 s, −73% wall-clock),
+  scaling to **13.5×** at `C=16`.
+- **Accuracy**: parallel outcomes are **60/60 byte-identical** to sequential
+  (and final memory state identical) — verified, not just claimed.
+
+The `ρ`-gate router (`router.py`) and the 10-phase lifecycle are **unchanged**;
+the parallel path is additive (async methods beside the sync ones).
+
 ---
 
 ## Repository layout
@@ -48,12 +74,22 @@ for the raw results.
 ├── run_full.sh / run_comparison.sh / run_sweep.sh   # 2-agent drivers
 │
 ├── memory_manager/             # standalone reference implementation of the
-├── agents/                     #   lifecycle + router (offline stub backends,
+│   ├── router.py               #   ★ the ρ-gate router (UNCHANGED by parallelism)
+│   ├── manager.py              #   10-phase lifecycle + async parallel methods
+│   ├── parallel.py             #   ★ DependencyAnalyzer, ParallelExecutor, LockManager
+│   ├── task_queue.py           #   ★ AsyncTaskQueue (parallel tasks)
+│   └── stores/                 #   the six memory stores
+├── agents/                     #   orchestrator + sub-agents (offline stub backends,
 ├── environment/                #   simulated email/calendar/search world)
-├── run_task.py                 #   demo entry point
-├── tests/                      #   unit + integration tests (pytest)
+├── run_task.py                 #   sequential end-to-end demo
+├── run_parallel_demo.py        # ★ all 7 parallel layers end-to-end (offline)
+├── bench_parallel.py           # ★ sequential vs parallel latency (3.73× @ C=4)
+├── verify_equivalence.py       # ★ proves parallel ≡ sequential (60/60 identical)
+├── tests/                      #   unit + integration tests (pytest, 39 tests)
 │
-├── paper/                      # paper.md, paper.tex (Overleaf-ready), experiments.md
+├── pccr_parallel_architecture.svg   # the 7-layer architecture diagram
+├── paper/                      # paper.tex (PCCR core) + parallel_paper.tex (parallel)
+├── explanation/               # parallel_latency.md, design tables, cheatsheet
 ├── results_archive/            # archived result JSONs (2-agent & 3-agent)
 └── docs/                       # lifecycle spec PDF, memory schema
 ```
@@ -65,8 +101,11 @@ There are **two** code paths:
    the 10-phase lifecycle and the router using deterministic stub LLM/embedder
    backends. Run it with no API key:
    ```bash
-   python run_task.py        # end-to-end demo
-   pytest tests/             # 24 tests, no network needed
+   python run_task.py            # sequential end-to-end demo
+   python run_parallel_demo.py   # all 7 parallel layers end-to-end
+   python bench_parallel.py      # sequential vs parallel latency (3.73× @ C=4)
+   python verify_equivalence.py  # parallel ≡ sequential (60/60 byte-identical)
+   pytest tests/                 # 39 tests (15 cover the parallelism layer)
    ```
 
 2. **OfficeBench experiments** (`pccr_on_top_of_legomem.py` + the `*_legomem.py`
@@ -134,8 +173,14 @@ Key environment knobs (read by `pccr_on_top_of_legomem.py`):
   miss, the ρ-gate selects cost-effective optional stores per task pattern.
 - **Outcome-driven closed loop**: utilities are nudged up/down from task
   success/failure; every routing decision is logged for audit.
+- **Two-dimensional parallelism** (additive, router unchanged): parallel
+  sub-agents within a task (dependency waves + snapshot/merge) and parallel
+  tasks across the system (async queue + per-task WM isolation + per-resource
+  locks + exclusive consolidation window). Outcome-equivalent to sequential.
 
-See [`paper/paper.md`](paper/paper.md) for full details, related work, and results.
+See [`paper/paper.tex`](paper/paper.tex) for the PCCR core and
+[`paper/parallel_paper.tex`](paper/parallel_paper.tex) for the parallel
+architecture (full details, related work, and results).
 
 ## License
 
