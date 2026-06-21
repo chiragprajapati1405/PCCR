@@ -59,18 +59,28 @@ class ProcedureMemory:
                                       "task_idx": i})
         self._sub_emb = _embed([s["text"] for s in self._sub]) if self._sub else None
 
-    def retrieve_orchestrator(self, task, k=5):
+    def retrieve_orchestrator(self, task, k=5, exclude_task=None):
         if self._task_emb is None:
             return []
         q = _embed([task])[0]
         with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
             sims = self._task_emb @ q
-        return [(float(sims[i]), self.records[i]) for i in np.argsort(-sims)[:k]]
+        out = []
+        for i in np.argsort(-sims):                       # leave-one-out: skip the task itself
+            if exclude_task is not None and self.records[i]["task"] == exclude_task:
+                continue
+            out.append((float(sims[i]), self.records[i]))
+            if len(out) >= k:
+                break
+        return out
 
-    def retrieve_agent(self, task, app, k=3):
+    def retrieve_agent(self, task, app, k=3, exclude_task=None):
         if self._sub_emb is None:
             return []
-        cand = [j for j, s in enumerate(self._sub) if s["app"] == (app or "").lower()]
+        cand = [j for j, s in enumerate(self._sub)
+                if s["app"] == (app or "").lower()
+                and not (exclude_task is not None
+                         and self.records[s["task_idx"]]["task"] == exclude_task)]
         if not cand:
             return []
         q = _embed([task])[0]

@@ -32,7 +32,8 @@ def _setup():
 
 
 def run_task(task_id, subtask_id, model="gpt-oss-120b", memory=None, method="no_memory",
-             stores=frozenset(), pattern=None, max_iter=20, container="ob-run"):
+             stores=frozenset(), pattern=None, max_iter=20, container="ob-run",
+             exclude_task=None):
     _setup()
     from utils.env import OfficeAgentEnv
     from utils.policies import LLMPolicy
@@ -44,7 +45,8 @@ def run_task(task_id, subtask_id, model="gpt-oss-120b", memory=None, method="no_
                          task=config["task"], verbose=False)
     env.reset()
     env.prepare_docker_env(testbed_dir=f"tasks/{task_id}/testbed/", app_dir="apps/")
-    policy = make_pccr_policy(LLMPolicy, model, env, config, memory, method, stores)
+    policy = make_pccr_policy(LLMPolicy, model, env, config, memory, method, stores,
+                              exclude_task=exclude_task)
 
     t0 = time.perf_counter()
     done, n, steps = False, 0, []

@@ -16,7 +16,7 @@ from .cerebras_llm import CerebrasLLM
 
 
 def make_pccr_policy(LLMPolicyCls, model, env, config, memory=None, method="no_memory",
-                     stores=frozenset(), k_orch=5, k_agent=3):
+                     stores=frozenset(), k_orch=5, k_agent=3, exclude_task=None):
 
     class PCCRPolicy(LLMPolicyCls):
         def __init__(self):
@@ -24,6 +24,7 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, memory=None, method="no_m
             self.llm = CerebrasLLM(model_name=model, system_message=self.system_message)
             self.memory, self.method, self.stores = memory, method, stores
             self.k_orch, self.k_agent = k_orch, k_agent
+            self.exclude_task = exclude_task           # leave-one-out for calibration
             self.task = config["task"]
             self.em_trace = {"method": method, "stores": sorted(stores),
                              "orchestrator_hits": [], "agent_hits": [], "injected_tokens": 0}
@@ -41,7 +42,8 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, memory=None, method="no_m
                 return ""
             blocks = []
             if "orchestrator" in self.stores:
-                hits = self.memory.retrieve_orchestrator(self.task, self.k_orch)
+                hits = self.memory.retrieve_orchestrator(self.task, self.k_orch,
+                                                         exclude_task=self.exclude_task)
                 if hits:
                     blocks.append("RELEVANT PAST TASK PLANS (reuse the steps if the task is similar):")
                     for sc, r in hits:
@@ -49,7 +51,8 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, memory=None, method="no_m
                                       f"plan: {' ; '.join(r['plan'][:8])}")
                     self.em_trace["orchestrator_hits"].append([r["task"][:60] for _, r in hits])
             if "agent" in self.stores and getattr(env, "current_app", None):
-                hits = self.memory.retrieve_agent(self.task, env.current_app, self.k_agent)
+                hits = self.memory.retrieve_agent(self.task, env.current_app, self.k_agent,
+                                                  exclude_task=self.exclude_task)
                 if hits:
                     blocks.append(f"RELEVANT PAST {env.current_app} ACTIONS:")
                     for sc, s in hits:
