@@ -30,3 +30,6 @@ legomem_bank_mm/
 .idea/
 .vscode/
 *.swp
+
+# LongMemEval data (large)
+longmemeval_data/
