@@ -33,3 +33,10 @@ legomem_bank_mm/
 
 # LongMemEval data (large)
 longmemeval_data/
+
+# OfficeBench eval generated artifacts (regenerable)
+officebench_eval/em_bank.json
+officebench_eval/t0_progress.json
+officebench_eval/traces/
+officebench_eval/calibration/
+officebench_eval/results/
