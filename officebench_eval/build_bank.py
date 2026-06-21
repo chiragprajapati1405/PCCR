@@ -16,7 +16,7 @@ import os
 import time
 
 from .memory import ProcedureMemory
-from .runner import run_task
+from .runner import run_task, cap_for_level
 
 # absolute paths (runner.run_task chdir's into OfficeBench/, so relative paths break)
 _PKG = os.path.dirname(os.path.abspath(__file__))
@@ -53,7 +53,7 @@ def main():
         pat = pats.get((it["task"], it["subtask"]), "multi_app")
         try:
             r = run_task(it["task"], it["subtask"], model=args.model, method="no_memory",
-                         pattern=pat, max_iter=args.max_iter, container="ob-train")
+                         pattern=pat, max_iter=cap_for_level(it['level']), container="ob-train")
         except Exception as e:
             print(f"  [{i+1}/{len(train)}] {key} ERROR {str(e)[:90]}", flush=True)
             done[key] = False

@@ -18,7 +18,7 @@ from collections import defaultdict
 
 from .gate import load_calibration, stores_for
 from .memory import ProcedureMemory
-from .runner import run_task
+from .runner import run_task, cap_for_level
 
 _PKG = os.path.dirname(os.path.abspath(__file__))
 BANK = os.path.join(_PKG, "em_bank.json")
@@ -62,7 +62,7 @@ def main():
             stores = stores_for(m, pat, args.theta, cost, util)
             try:
                 r = run_task(it["task"], it["subtask"], model=args.model, memory=mem,
-                             method=m, stores=stores, pattern=pat, max_iter=args.max_iter,
+                             method=m, stores=stores, pattern=pat, max_iter=cap_for_level(it['level']),
                              container="ob-test")
             except Exception as e:
                 print(f"  {key} ERR {str(e)[:80]}", flush=True)

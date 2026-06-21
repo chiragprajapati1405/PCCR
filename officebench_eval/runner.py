@@ -20,6 +20,14 @@ if not os.environ.get("DOCKER_HOST"):
     if os.path.exists(_sock):
         os.environ["DOCKER_HOST"] = f"unix://{_sock}"
 
+def cap_for_level(level):
+    """Step budget scaled to difficulty: L3 pipelines (explore -> 3-4 app
+    switches -> multi-file ops) legitimately need more steps than L1 edits.
+    Measured: L3 successes use up to 16 steps and ~half its failures were
+    budget-bound at a flat 20 cap."""
+    return {1: 15, 2: 22, 3: 30}.get(int(level), 22)
+
+
 def _parse_action(a):
     import ast
     a = (a or "").strip()
