@@ -97,7 +97,11 @@ class ProcedureMemory:
         json.dump(self.records, open(path, "w"), indent=2)
 
     def load(self, path):
-        self.records = json.load(open(path))
+        recs = json.load(open(path))
+        seen = {}                      # dedupe by task (re-queued re-runs can append dupes)
+        for r in recs:
+            seen[r["task"]] = r        # last wins
+        self.records = list(seen.values())
         self.build_index()
         return len(self.records)
 

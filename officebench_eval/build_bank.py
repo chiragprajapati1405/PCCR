@@ -43,7 +43,7 @@ def main():
     done = json.load(open(PROGRESS)) if os.path.exists(PROGRESS) else {}
     mem = ProcedureMemory()
     if os.path.exists(BANK):
-        mem.records = json.load(open(BANK))
+        mem.load(BANK)  # dedupe by task
 
     t0, ok = time.perf_counter(), sum(1 for v in done.values() if v)
     for i, it in enumerate(train):
