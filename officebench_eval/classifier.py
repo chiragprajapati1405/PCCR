@@ -10,14 +10,16 @@ from __future__ import annotations
 
 from .cerebras_llm import CerebrasLLM
 
+# 5-pattern enum (merged from an initial 7 after a 300-task distribution analysis:
+# file_ops folded into single_action; doc_create+doc_extract -> doc_process; the
+# sparse buckets were too thin to calibrate utility on). multi_app is kept coarse
+# on purpose -- split only if utility calibration (T0c) shows it is non-uniform.
 PATTERNS = [
-    "lookup",         # read/find/answer info, no side effects
-    "single_action",  # one app, one create/edit (add event, send email, set a cell)
-    "multi_app",      # multiple apps / multi-step coordination (read -> compute -> notify)
-    "doc_create",     # produce a document or file (word/excel/pdf/image)
-    "doc_extract",    # extract/convert content (pdf->text, OCR an image)
+    "lookup",         # read/find/answer info, no side effects        (low memory utility)
+    "single_action",  # one app: a single create/edit or file op
     "data_compute",   # spreadsheet calculation / aggregation
-    "file_ops",       # shell/system file manipulation
+    "doc_process",    # produce OR extract/convert a document/file (word/excel/pdf/image/ocr)
+    "multi_app",      # multi-step pipeline across apps                (high memory utility)
 ]
 
 _SYS = (
@@ -25,13 +27,17 @@ _SYS = (
     "Reply with ONLY the category word, nothing else.\n"
     "Categories:\n"
     "- lookup: read/find/answer information, no changes made\n"
-    "- single_action: one app, one create/edit (add a calendar event, send an email, set a cell)\n"
-    "- multi_app: several apps or multi-step coordination (read then compute then notify)\n"
-    "- doc_create: produce a document or file (Word/Excel/PDF/image)\n"
-    "- doc_extract: extract or convert content (PDF to text, OCR an image)\n"
+    "- single_action: one app, a single create/edit or file operation (add a calendar event, "
+    "send an email, set a cell, move/delete a file)\n"
     "- data_compute: spreadsheet calculation or aggregation\n"
-    "- file_ops: shell/system file manipulation"
+    "- doc_process: produce OR extract/convert a document or file (write a Word/PDF/Excel/image; "
+    "OCR an image; convert PDF to text)\n"
+    "- multi_app: a multi-step pipeline across several apps (e.g. extract from a file, produce a "
+    "document, then email or schedule)"
 )
+
+# remap from the original 7-label run -> the 5-pattern enum (free, deterministic)
+MERGE = {"file_ops": "single_action", "doc_create": "doc_process", "doc_extract": "doc_process"}
 
 
 class TaskClassifier:
