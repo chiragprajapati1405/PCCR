@@ -1,0 +1,90 @@
+[
+  {
+    "task": "1-11",
+    "subtask": "1",
+    "level": 1,
+    "steps": 20,
+    "pattern": "doc_process",
+    "task_text": "split midterm1 and midterm2 scores in score excel file into two excel files"
+  },
+  {
+    "task": "1-11",
+    "subtask": "0",
+    "level": 1,
+    "steps": 20,
+    "pattern": "doc_process",
+    "task_text": "sort students score descently by midterm1, save as a new excel file as sort"
+  },
+  {
+    "task": "1-14",
+    "subtask": "1",
+    "level": 1,
+    "steps": 20,
+    "pattern": "single_action",
+    "task_text": "swap column of midterm1 and midterm2 in score excel file"
+  },
+  {
+    "task": "1-14",
+    "subtask": "3",
+    "level": 1,
+    "steps": 20,
+    "pattern": "single_action",
+    "task_text": "swap the fewest and second fewest shopping item in shopping list excel file"
+  },
+  {
+    "task": "1-5",
+    "subtask": "1",
+    "level": 1,
+    "steps": 20,
+    "pattern": "single_action",
+    "task_text": "reduce half amount of apple in shopping list excel file"
+  },
+  {
+    "task": "1-6",
+    "subtask": "0",
+    "level": 1,
+    "steps": 16,
+    "pattern": "single_action",
+    "task_text": "add a new header Class, randomly assign each student to class 1 to class 5 "
+  },
+  {
+    "task": "1-6",
+    "subtask": "3",
+    "level": 1,
+    "steps": 15,
+    "pattern": "single_action",
+    "task_text": "company increases base by 5%/yr, stock by 10%/yr, bonus by 10%/yr, show thi"
+  },
+  {
+    "task": "1-8",
+    "subtask": "0",
+    "level": 1,
+    "steps": 20,
+    "pattern": "single_action",
+    "task_text": "delete all students' score and the header in score excel file"
+  },
+  {
+    "task": "3-100",
+    "subtask": "0",
+    "level": 3,
+    "steps": 30,
+    "pattern": "multi_app",
+    "task_text": "extract revenue numbers and save as a table in excel file revenues.xlsx, em"
+  },
+  {
+    "task": "3-6",
+    "subtask": "0",
+    "level": 3,
+    "steps": 30,
+    "pattern": "multi_app",
+    "task_text": "Schedule a team training as calendar event training.ics for next week and s"
+  },
+  {
+    "task": "3-99",
+    "subtask": "0",
+    "level": 3,
+    "steps": 30,
+    "pattern": "multi_app",
+    "task_text": "extract revenue data and save as a table in excel file revenues.xlsx, write"
+  }
+]
