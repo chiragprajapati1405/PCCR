@@ -29,6 +29,25 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, memory=None, method="no_m
             self.em_trace = {"method": method, "stores": sorted(stores),
                              "orchestrator_hits": [], "agent_hits": [], "injected_tokens": 0}
 
+        def proc_action(self, action):
+            """Robust action extraction: take the FIRST balanced {...} object.
+            gpt-oss often emits two JSON blocks at once; OfficeBench's default
+            (first '{' .. last '}') captures BOTH -> invalid JSON -> 'Malformed
+            action' and ~half the steps wasted. This fixes that for all methods."""
+            s = action or ""
+            i = s.find("{")
+            if i < 0:
+                return action
+            depth = 0
+            for j in range(i, len(s)):
+                if s[j] == "{":
+                    depth += 1
+                elif s[j] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        return s[i:j + 1]
+            return s[i:]
+
         def build_prompt(self, env):
             base = super().build_prompt(env)
             mem = self._memory_block(env)

@@ -59,7 +59,11 @@ def main():
             done[key] = False
             json.dump(done, open(PROGRESS, "w"))
             continue
-        json.dump(r, open(f"{TRACE_DIR}/{it['task']}_{it['subtask']}.json", "w"), indent=2)
+        base = f"{TRACE_DIR}/{it['task']}_{it['subtask']}"
+        json.dump(r, open(f"{base}.json", "w"), indent=2)
+        with open(f"{base}.txt", "w") as fh:                  # readable step-by-step
+            fh.write(f"TASK {it['task']}/{it['subtask']} [{pat}] no_memory  success={r['success']}\n"
+                     f"  {r['task_text']}\n" + "=" * 70 + "\n" + "\n".join(r["sequence"]) + "\n")
         if r["success"]:
             ok += 1
             mem.add(r["task_text"], pat, it["level"], r["trajectory"])

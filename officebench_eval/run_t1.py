@@ -69,7 +69,13 @@ def main():
                 prog[key] = {"success": False, "error": str(e)[:120]}
                 json.dump(prog, open(PROGRESS, "w"))
                 continue
-            json.dump(r, open(f"{TRACE_DIR}/{it['task']}_{it['subtask']}_{m}.json", "w"), indent=2)
+            base = f"{TRACE_DIR}/{it['task']}_{it['subtask']}_{m}"
+            json.dump(r, open(f"{base}.json", "w"), indent=2)
+            with open(f"{base}.txt", "w") as fh:              # readable step-by-step
+                fh.write(f"TASK {it['task']}/{it['subtask']} [{pat}] {m}  "
+                         f"success={r['success']}  stores={sorted(stores)}\n"
+                         f"  {r['task_text']}\n" + "=" * 70 + "\n"
+                         + "\n".join(r["sequence"]) + "\n")
             prog[key] = {"success": r["success"], "level": it["level"], "pattern": pat,
                          "consults": len(stores), "tokens": r["em"]["injected_tokens"],
                          "steps": r["steps"]}

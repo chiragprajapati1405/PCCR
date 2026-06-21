@@ -20,6 +20,39 @@ if not os.environ.get("DOCKER_HOST"):
     if os.path.exists(_sock):
         os.environ["DOCKER_HOST"] = f"unix://{_sock}"
 
+def _parse_action(a):
+    import ast
+    a = (a or "").strip()
+    for parser in (json.loads, ast.literal_eval):
+        try:
+            d = parser(a)
+            if isinstance(d, dict):
+                return d
+        except Exception:
+            pass
+    return {}
+
+
+def format_steps(trajectory):
+    """Readable orchestrator-delegation / sub-agent step sequence."""
+    lines = []
+    for n, (a, o) in enumerate(trajectory, 1):
+        d = _parse_action(a)
+        app, act = d.get("app", ""), d.get("action", "")
+        args = {k: v for k, v in d.items() if k not in ("app", "action")}
+        if app == "system" and act == "switch_app":
+            lbl = f"ORCHESTRATOR  --delegate-->  [{d.get('target_app')}] agent"
+        elif app == "system" and act == "finish_task":
+            lbl = f"ORCHESTRATOR  --finish--  answer={d.get('answer')!r}"
+        elif app:
+            lbl = f"  SUBAGENT[{app}]  --do-->  {act}  {json.dumps(args)[:120]}"
+        else:
+            lbl = f"  (unparsed) {str(a)[:100]}"
+        lines.append(f"step {n:>2}: {lbl}")
+        lines.append(f"         OBSERVATION: {str(o)[:200]}")
+    return lines
+
+
 _READY = False
 def _setup():
     global _READY
@@ -77,6 +110,7 @@ def run_task(task_id, subtask_id, model="gpt-oss-120b", memory=None, method="no_
         # lossless on long actions (email bodies, multi-field creates); observations
         # truncated to keep traces/bank a sane size.
         "trajectory": [(str(a), (o or "")[:400]) for a, o in steps],
+        "sequence": format_steps([(str(a), o) for a, o in steps]),  # readable step-by-step
         "task_text": config["task"],
     }
 
