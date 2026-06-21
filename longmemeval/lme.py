@@ -110,6 +110,13 @@ class QuestionMemory:
     turn_emb: np.ndarray            # (n_turns, d)     -> SM
     turn_to_sid: list               # session id for each turn row
     recency_sids: list              # session ids newest-first  -> ENT
+    turn_text: list = field(default_factory=list)   # text per turn row (for QA injection)
+
+    def turn_sims(self, qvec):
+        if len(self.turn_emb) == 0:
+            return np.zeros((0,))
+        with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+            return self.turn_emb @ qvec
 
     def em(self, qvec, k):                              # session-level
         with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
@@ -157,7 +164,8 @@ def build_memory(entry: dict, model) -> QuestionMemory:
 
     # newest first by date string (LongMemEval dates sort lexicographically by Y/M/D)
     recency = [sid for _, sid in sorted(zip(dates, sids), reverse=True)]
-    return QuestionMemory(sids, np.asarray(sess_emb), np.asarray(turn_emb), turn_to_sid, recency)
+    return QuestionMemory(sids, np.asarray(sess_emb), np.asarray(turn_emb), turn_to_sid,
+                          recency, turn_text)
 
 
 # ---- per-question evaluation ---------------------------------------------------
