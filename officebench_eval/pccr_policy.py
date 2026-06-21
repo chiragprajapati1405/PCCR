@@ -1,52 +1,37 @@
-"""PCCR policy for OfficeBench — our architecture driving the env.
+"""PCCR policy for OfficeBench — driven by the REAL architecture (swap A).
 
-Replaces OfficeBench's single LLMPolicy: same app-switching loop, but the
-prompt is augmented with rho-gated EM (procedure memory) at two granularities:
-  orchestrator -> retrieved past task PLANS (guide the overall plan)
-  agent        -> retrieved past per-app ACTIONS (guide the current app step)
-no_memory injects nothing (the floor); retrieve_all always injects; pccr injects
-only the stores the rho-gate opened. The Cerebras backbone is swapped in.
-
-Built as a factory because the LLMPolicy base class is only importable once
-OfficeBench is on sys.path (done by the runner).
+Same app-switching loop, but memory is the real FAISS EpisodicStore gated by the
+real router.py rho-gate (via RealArch). On an EM hit, em.search() supplies
+orchestrator-level past plans and em.preload_for_agents() supplies per-app
+subtask memories. no_memory injects nothing; retrieve_all always injects; pccr
+injects only when the real rho-gate consults EM.
 """
 from __future__ import annotations
 
 from .cerebras_llm import CerebrasLLM
 
 
-def make_pccr_policy(LLMPolicyCls, model, env, config, memory=None, method="no_memory",
-                     stores=frozenset(), k_orch=5, k_agent=3, exclude_task=None):
+def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="no_memory",
+                     pattern=None, exclude_task=None):
 
     class PCCRPolicy(LLMPolicyCls):
         def __init__(self):
             super().__init__(model_name="local-oss", key="", env=env, config=config)
             self.llm = CerebrasLLM(model_name=model, system_message=self.system_message)
-            self.memory, self.method, self.stores = memory, method, stores
-            self.k_orch, self.k_agent = k_orch, k_agent
-            self.exclude_task = exclude_task           # leave-one-out for calibration
+            self.real, self.method, self.pattern = real_arch, method, pattern
+            self.exclude_task = exclude_task
             self.task = config["task"]
-            self.em_trace = {"method": method, "stores": sorted(stores),
-                             "orchestrator_hits": [], "agent_hits": [], "injected_tokens": 0}
-
-        def proc_action(self, action):
-            """Robust action extraction: take the FIRST balanced {...} object.
-            gpt-oss often emits two JSON blocks at once; OfficeBench's default
-            (first '{' .. last '}') captures BOTH -> invalid JSON -> 'Malformed
-            action' and ~half the steps wasted. This fixes that for all methods."""
-            s = action or ""
-            i = s.find("{")
-            if i < 0:
-                return action
-            depth = 0
-            for j in range(i, len(s)):
-                if s[j] == "{":
-                    depth += 1
-                elif s[j] == "}":
-                    depth -= 1
-                    if depth == 0:
-                        return s[i:j + 1]
-            return s[i:]
+            # decide EM consult ONCE per task (Phase-3 rho-gate)
+            self._consult_em = False
+            self._rho_decision = None
+            if real_arch is not None and method != "no_memory":
+                if method == "retrieve_all":
+                    self._consult_em = True
+                else:  # pccr -> real router.py rho-gate
+                    self._consult_em, self._rho_decision = real_arch.gate(pattern)
+            self.em_trace = {"method": method, "consult_em": self._consult_em,
+                             "orchestrator_hits": [], "agent_hits": [], "injected_tokens": 0,
+                             "faiss_backed": True}
 
         def build_prompt(self, env):
             base = super().build_prompt(env)
@@ -57,26 +42,27 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, memory=None, method="no_m
             return base
 
         def _memory_block(self, env):
-            if not self.memory or self.method == "no_memory" or not self.stores:
+            if not self._consult_em or self.real is None:
                 return ""
             blocks = []
-            if "orchestrator" in self.stores:
-                hits = self.memory.retrieve_orchestrator(self.task, self.k_orch,
-                                                         exclude_task=self.exclude_task)
-                if hits:
-                    blocks.append("RELEVANT PAST TASK PLANS (reuse the steps if the task is similar):")
-                    for sc, r in hits:
-                        blocks.append(f" - ({sc:.2f}) task: {r['task'][:80]} | "
-                                      f"plan: {' ; '.join(r['plan'][:8])}")
-                    self.em_trace["orchestrator_hits"].append([r["task"][:60] for _, r in hits])
-            if "agent" in self.stores and getattr(env, "current_app", None):
-                hits = self.memory.retrieve_agent(self.task, env.current_app, self.k_agent,
-                                                  exclude_task=self.exclude_task)
-                if hits:
-                    blocks.append(f"RELEVANT PAST {env.current_app} ACTIONS:")
-                    for sc, s in hits:
-                        blocks.append(f" - ({sc:.2f}) {s['text'][:120]}")
-                    self.em_trace["agent_hits"].append([s["text"][:50] for _, s in hits])
+            hits = self.real.search(self.task, k=5)                 # FAISS orchestrator-level
+            if hits:
+                blocks.append("RELEVANT PAST TASK PLANS (reuse the steps if similar):")
+                for sc, m in hits:
+                    if self.exclude_task and m.description == self.exclude_task:
+                        continue
+                    blocks.append(f" - ({sc:.2f}) {m.description[:80]} | "
+                                  f"plan: {' ; '.join(m.plan[:8])}")
+                self.em_trace["orchestrator_hits"].append([m.description[:60] for _s, m in hits[:5]])
+            app = getattr(env, "current_app", None)
+            if app:
+                pre = self.real.preload(self.task, k=3)             # FAISS agent-level
+                ah = pre.get(app, [])
+                if ah:
+                    blocks.append(f"RELEVANT PAST {app} ACTIONS:")
+                    for sm in ah:
+                        blocks.append(f" - {sm.action[:110]}")
+                    self.em_trace["agent_hits"].append([sm.action[:50] for sm in ah])
             return "\n".join(blocks)
 
     return PCCRPolicy()

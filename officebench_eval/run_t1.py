@@ -16,8 +16,8 @@ import os
 import time
 from collections import defaultdict
 
-from .gate import load_calibration, stores_for
-from .memory import ProcedureMemory
+from .gate import load_calibration
+from .real_arch import RealArch
 from .runner import run_task, cap_for_level
 
 _PKG = os.path.dirname(os.path.abspath(__file__))
@@ -38,11 +38,9 @@ def main():
     ap.add_argument("--limit", type=int, default=0)
     args = ap.parse_args()
 
-    mem = ProcedureMemory()
-    mem.load(BANK)
-    print(f"loaded EM bank: {len(mem)} procedures")
-    cost, util = load_calibration(CALIB := os.path.join(_PKG, "calibration"))
-    print(f"cost={cost}")
+    cost, util = load_calibration(os.path.join(_PKG, "calibration"))
+    real = RealArch(BANK, cost, util, theta=args.theta)   # real FAISS EM + router.py rho-gate
+    print(f"loaded real FAISS EM: {len(real)} procedures | theta={args.theta}")
 
     test = json.load(open(SPLIT))["test"]
     if args.limit:
@@ -59,10 +57,9 @@ def main():
             key = f"{it['task']}/{it['subtask']}|{m}"
             if key in prog:
                 continue
-            stores = stores_for(m, pat, args.theta, cost, util)
             try:
-                r = run_task(it["task"], it["subtask"], model=args.model, memory=mem,
-                             method=m, stores=stores, pattern=pat, max_iter=cap_for_level(it['level']),
+                r = run_task(it["task"], it["subtask"], model=args.model, real_arch=real,
+                             method=m, pattern=pat, max_iter=cap_for_level(it['level']),
                              container="ob-test")
             except Exception as e:
                 print(f"  {key} ERR {str(e)[:80]}", flush=True)
@@ -73,11 +70,11 @@ def main():
             json.dump(r, open(f"{base}.json", "w"), indent=2)
             with open(f"{base}.txt", "w") as fh:              # readable step-by-step
                 fh.write(f"TASK {it['task']}/{it['subtask']} [{pat}] {m}  "
-                         f"success={r['success']}  stores={sorted(stores)}\n"
+                         f"success={r['success']}  consult_em={r['em']['consult_em']}\n"
                          f"  {r['task_text']}\n" + "=" * 70 + "\n"
                          + "\n".join(r["sequence"]) + "\n")
             prog[key] = {"success": r["success"], "level": it["level"], "pattern": pat,
-                         "consults": len(stores), "tokens": r["em"]["injected_tokens"],
+                         "consults": int(r["em"]["consult_em"]), "tokens": r["em"]["injected_tokens"],
                          "steps": r["steps"]}
             json.dump(prog, open(PROGRESS, "w"))
         if (i + 1) % 5 == 0:

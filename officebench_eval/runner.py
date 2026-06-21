@@ -72,9 +72,8 @@ def _setup():
     _READY = True
 
 
-def run_task(task_id, subtask_id, model="gpt-oss-120b", memory=None, method="no_memory",
-             stores=frozenset(), pattern=None, max_iter=20, container="ob-run",
-             exclude_task=None):
+def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="no_memory",
+             pattern=None, max_iter=20, container="ob-run", exclude_task=None):
     _setup()
     from utils.env import OfficeAgentEnv
     from utils.policies import LLMPolicy
@@ -89,8 +88,8 @@ def run_task(task_id, subtask_id, model="gpt-oss-120b", memory=None, method="no_
     # native eval layout: cache the INITIAL state (some evaluators diff against
     # tasks/<id>/cache/<sub>/) before the agent acts
     env.cache_docker_status(local_cache_dir=f"tasks/{task_id}/cache/{subtask_id}/")
-    policy = make_pccr_policy(LLMPolicy, model, env, config, memory, method, stores,
-                              exclude_task=exclude_task)
+    policy = make_pccr_policy(LLMPolicy, model, env, config, real_arch=real_arch,
+                              method=method, pattern=pattern, exclude_task=exclude_task)
 
     t0 = time.perf_counter()
     done, n, steps = False, 0, []

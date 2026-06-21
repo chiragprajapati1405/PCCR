@@ -1,13 +1,14 @@
-"""T0c: calibrate the rho-gate's cost and utility for the 9-app setting.
+"""T0c: calibrate the REAL rho-gate (router.py) for OfficeBench.
 
-COST (local, no API): average injected-procedure tokens per granularity
-  (orchestrator = top-5 plans, agent = top-3 steps), anchored cheapest = 0.15
-  (same convention as the earlier A1 calibration). -> calibration/store_cost.json
+With a single gated store (EM), rho = U/C reduces to a per-pattern utility
+threshold, so the meaningful calibration is UTILITY. We also report EM injection
+cost for the writeup.
 
-UTILITY (API, counterfactual + leave-one-out): on a balanced slice of TRAIN
-  tasks, run each with store OFF / orchestrator-only / agent-only (LOO retrieval
-  so a task never reuses its own banked solution); U(pattern,s) =
-  P(success|s on) - P(success|off). -> calibration/pattern_utility.json
+  COST (local): avg injected EM tokens (em.search + preload); C(EM) anchored to 1.0
+                so the gate thresholds on measured utility. -> calibration/store_cost.json
+  UTILITY (API): counterfactual, leave-one-out: U(pattern) =
+                 clamp(P(success | EM on, LOO) - P(success | off), 0, 1).
+                 -> calibration/pattern_utility.json   (RealArch reads the 'orchestrator' key)
 
   source cerebras.env
   python -m officebench_eval.calibrate cost
@@ -18,9 +19,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import sys
-import time
 from collections import defaultdict
+
+from .gate import load_calibration
+from .real_arch import RealArch
+from .runner import cap_for_level, run_task
 
 _PKG = os.path.dirname(os.path.abspath(__file__))
 BANK = os.path.join(_PKG, "em_bank.json")
@@ -30,96 +33,64 @@ CALIB = os.path.join(_PKG, "calibration")
 TOK = lambda s: max(1, len(s) // 4)
 
 
-def _load_memory():
-    from .memory import ProcedureMemory
-    mem = ProcedureMemory()
-    mem.load(BANK)
-    return mem
-
-
-def measure_cost(sample=60):
-    """Average injected tokens for each granularity over banked tasks."""
-    mem = _load_memory()
-    tasks = [r["task"] for r in mem.records][:sample]
-    orch_tok, agent_tok = [], []
-    for t in tasks:
-        oh = mem.retrieve_orchestrator(t, k=5, exclude_task=t)
-        ob = "\n".join(f"task: {r['task'][:80]} | plan: {' ; '.join(r['plan'][:8])}" for _s, r in oh)
-        orch_tok.append(TOK(ob))
-        ah = mem.retrieve_agent(t, "calendar", k=3, exclude_task=t) or \
-             mem.retrieve_agent(t, "email", k=3, exclude_task=t)
-        ab = "\n".join(s["text"][:120] for _s, s in ah)
-        agent_tok.append(TOK(ab))
-    avg_o = sum(orch_tok) / max(len(orch_tok), 1)
-    avg_a = sum(agent_tok) / max(len(agent_tok), 1)
-    base = max(min(avg_o, avg_a), 1)
-    cost = {"orchestrator": round(0.15 * avg_o / base, 3),
-            "agent": round(0.15 * avg_a / base, 3)}
-    out = {**cost, "_avg_tokens": {"orchestrator": round(avg_o, 1), "agent": round(avg_a, 1)},
-           "_method": "avg injected procedure tokens, anchored cheapest=0.15", "_n": len(tasks)}
+def measure_cost(sample=40):
+    cost, util = load_calibration(CALIB)
+    real = RealArch(BANK, cost, util, theta=0.0)
+    toks = []
+    for rec in json.load(open(BANK))[:sample]:
+        block = "\n".join(f"{m.description[:80]} | {' ; '.join(m.plan[:8])}"
+                          for _s, m in real.search(rec["task"], 5))
+        block += "\n".join(sm.action[:110] for ah in real.preload(rec["task"], 3).values() for sm in ah)
+        toks.append(TOK(block))
+    avg = sum(toks) / max(len(toks), 1)
+    out = {"orchestrator": 1.0, "agent": 1.0,            # C=1 -> gate thresholds on utility
+           "_avg_em_injection_tokens": round(avg, 1), "_n": len(toks)}
     os.makedirs(CALIB, exist_ok=True)
     json.dump(out, open(f"{CALIB}/store_cost.json", "w"), indent=2)
-    print(json.dumps(out, indent=2))
-    print(f"\nwrote {CALIB}/store_cost.json")
+    print(json.dumps(out, indent=2)); print(f"wrote {CALIB}/store_cost.json")
 
 
 def measure_utility(per_pattern=6, model="gpt-oss-120b"):
-    from .runner import run_task
-    mem = _load_memory()
+    cost, util = load_calibration(CALIB)
+    real = RealArch(BANK, cost, util, theta=0.0)
     pats = {(p["task"], p["subtask"]): p["pattern"] for p in json.load(open(PATTERNS))}
-    train = json.load(open(SPLIT))["train"]
-
-    # balanced calibration slice: up to `per_pattern` train tasks per pattern
     by = defaultdict(list)
-    for it in train:
+    for it in json.load(open(SPLIT))["train"]:
         by[pats.get((it["task"], it["subtask"]), "multi_app")].append(it)
-    calib = []
-    for pat, items in by.items():
-        calib += [(it, pat) for it in items[:per_pattern]]
+    calib = [(it, p) for p, items in by.items() for it in items[:per_pattern]]
 
-    prog_path = f"{CALIB}/utility_progress.json"
     os.makedirs(CALIB, exist_ok=True)
+    prog_path = f"{CALIB}/utility_progress.json"
     prog = json.load(open(prog_path)) if os.path.exists(prog_path) else {}
+    succ = defaultdict(lambda: [0, 0])  # (pattern,cond) -> [passed,total]
 
-    # succ[(pattern, store)] = [passed, total] for on; off tracked separately per pattern
-    succ = defaultdict(lambda: [0, 0])
-    print(f"counterfactual utility over {len(calib)} calib tasks x 3 conditions (LOO)...")
+    print(f"counterfactual utility over {len(calib)} calib tasks x 2 (EM off/on, LOO)...")
     for i, (it, pat) in enumerate(calib):
-        for cond, stores in [("off", frozenset()), ("orchestrator", {"orchestrator"}),
-                             ("agent", {"agent"})]:
+        for cond, method in [("off", "no_memory"), ("on", "retrieve_all")]:
             key = f"{it['task']}/{it['subtask']}|{cond}"
             if key in prog:
                 ok = prog[key]
             else:
                 try:
-                    r = run_task(it["task"], it["subtask"], model=model, memory=mem,
-                                 method=("no_memory" if cond == "off" else "retrieve_all"),
-                                 stores=stores, pattern=pat, container="ob-calib",
-                                 exclude_task=it["task"])     # LOO
+                    r = run_task(it["task"], it["subtask"], model=model, real_arch=real,
+                                 method=method, pattern=pat, max_iter=cap_for_level(it["level"]),
+                                 container="ob-calib", exclude_task=it["task"])  # LOO
                     ok = int(r["success"])
                 except Exception as e:
-                    print(f"   {key} ERR {str(e)[:70]}"); ok = 0
-                prog[key] = ok
-                json.dump(prog, open(prog_path, "w"))
-            succ[(pat, cond)][0] += ok
-            succ[(pat, cond)][1] += 1
+                    print(f"   {key} ERR {str(e)[:60]}"); ok = 0
+                prog[key] = ok; json.dump(prog, open(prog_path, "w"))
+            succ[(pat, cond)][0] += ok; succ[(pat, cond)][1] += 1
         print(f"  [{i+1}/{len(calib)}] {it['task']}/{it['subtask']} [{pat}]", flush=True)
 
-    # U(pattern, store) = clamp(P(success|store) - P(success|off), 0, 1)
-    util = {}
+    util_out = {}
     for pat in by:
-        off = succ[(pat, "off")]
-        p_off = off[0] / max(off[1], 1)
-        util[pat] = {}
-        for store in ("orchestrator", "agent"):
-            on = succ[(pat, store)]
-            p_on = on[0] / max(on[1], 1)
-            util[pat][store] = round(max(0.0, min(1.0, p_on - p_off)), 3)
-    out = {**util, "_method": "U = clamp(P(success|store on, LOO) - P(success|off), 0, 1)",
+        on, off = succ[(pat, "on")], succ[(pat, "off")]
+        u = max(0.0, min(1.0, on[0]/max(on[1], 1) - off[0]/max(off[1], 1)))
+        util_out[pat] = {"orchestrator": round(u, 3), "agent": round(u, 3)}
+    out = {**util_out, "_method": "U = clamp(P(success|EM on,LOO) - P(success|off), 0, 1)",
            "_raw": {f"{p}|{c}": v for (p, c), v in succ.items()}}
     json.dump(out, open(f"{CALIB}/pattern_utility.json", "w"), indent=2)
-    print(json.dumps(util, indent=2))
-    print(f"\nwrote {CALIB}/pattern_utility.json")
+    print(json.dumps(util_out, indent=2)); print(f"wrote {CALIB}/pattern_utility.json")
 
 
 if __name__ == "__main__":
@@ -128,7 +99,4 @@ if __name__ == "__main__":
     ap.add_argument("--per-pattern", type=int, default=6)
     ap.add_argument("--model", default="gpt-oss-120b")
     a = ap.parse_args()
-    if a.cmd == "cost":
-        measure_cost()
-    else:
-        measure_utility(a.per_pattern, a.model)
+    measure_cost() if a.cmd == "cost" else measure_utility(a.per_pattern, a.model)
