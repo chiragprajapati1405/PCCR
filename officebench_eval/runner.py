@@ -71,7 +71,10 @@ def run_task(task_id, subtask_id, model="gpt-oss-120b", memory=None, method="no_
         "pattern": pattern, "method": method, "success": ok, "failed_predicate": failed,
         "steps": n, "llm_calls": policy.llm.calls, "wall_s": round(time.perf_counter() - t0, 1),
         "em": policy.em_trace,
-        "trajectory": [(str(a)[:200], (o or "")[:200]) for a, o in steps],
+        # FULL action (untruncated) so the EM bank's plans + agent-index parse are
+        # lossless on long actions (email bodies, multi-field creates); observations
+        # truncated to keep traces/bank a sane size.
+        "trajectory": [(str(a), (o or "")[:400]) for a, o in steps],
         "task_text": config["task"],
     }
 
