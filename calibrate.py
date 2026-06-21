@@ -92,7 +92,7 @@ def measure_costs(reps=40):
 def measure_utilities(n_calib=None):
     from mm_on_top_of_legomem import MultiLLM
     emb = LocalEmbedder()
-    keys = [os.environ.get(f"CEREBRAS_KEY_{i}", "") for i in range(1, 5)]
+    keys = [os.environ.get(f"CEREBRAS_KEY_{i}", "") for i in range(1, 10)]
     llm = MultiLLM(keys, model=os.environ.get("PCCR_MODEL", "gpt-oss-120b"))
     for c in llm.clients:
         try:
