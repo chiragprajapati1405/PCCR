@@ -78,6 +78,9 @@ def run_task(task_id, subtask_id, model="gpt-oss-120b", memory=None, method="no_
                          task=config["task"], verbose=False)
     env.reset()
     env.prepare_docker_env(testbed_dir=f"tasks/{task_id}/testbed/", app_dir="apps/")
+    # native eval layout: cache the INITIAL state (some evaluators diff against
+    # tasks/<id>/cache/<sub>/) before the agent acts
+    env.cache_docker_status(local_cache_dir=f"tasks/{task_id}/cache/{subtask_id}/")
     policy = make_pccr_policy(LLMPolicy, model, env, config, memory, method, stores,
                               exclude_task=exclude_task)
 
@@ -89,17 +92,24 @@ def run_task(task_id, subtask_id, model="gpt-oss-120b", memory=None, method="no_
         obs, reward, done, info = env.step(action)
         steps.append((action, obs))
 
-    out = f"/tmp/ob_{container}_{task_id}_{subtask_id}"
-    shutil.rmtree(out, ignore_errors=True)
-    env.cache_docker_status(local_cache_dir=out)
-    testbed = os.path.join(out, "testbed")
-    failed = None
-    ok = True
+    # cache FINAL state to the native path so eval args like
+    # "../../../../reference/x" and "../cache/<sub>/" resolve correctly
+    out_dir = f"tasks/{task_id}/outputs/{subtask_id}/{method}"
+    shutil.rmtree(out_dir, ignore_errors=True)
+    env.cache_docker_status(local_cache_dir=out_dir)          # -> out_dir/testbed
+    testbed = os.path.join(out_dir, "testbed")
+    failed, ok = None, True
     for item in config["evaluation"]:
-        if not getattr(ev, item["function"])(testbed, item["args"]):
-            ok, failed = False, item["function"]
+        try:
+            if not getattr(ev, item["function"])(testbed, item["args"]):
+                ok, failed = False, item["function"]
+                break
+        except Exception as e:                                # never crash the task -> always trace
+            ok, failed = False, f"{item['function']}:ERR:{str(e)[:50]}"
             break
     env.close()
+    shutil.rmtree(out_dir, ignore_errors=True)
+    shutil.rmtree(f"tasks/{task_id}/cache/{subtask_id}", ignore_errors=True)
 
     return {
         "task": task_id, "subtask": subtask_id, "level": int(task_id.split("-")[0]),
