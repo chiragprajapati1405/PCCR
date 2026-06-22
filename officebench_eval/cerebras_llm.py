@@ -25,6 +25,7 @@ class CerebrasLLM:
         self._i = 0
         self._lock = threading.Lock()
         self.calls = 0
+        self.max_tokens = 512                  # raise for long outputs (e.g. curation)
 
     def _next(self):
         with self._lock:
@@ -38,7 +39,7 @@ class CerebrasLLM:
             c = self._next()
             try:
                 r = c.chat.completions.create(
-                    model=self.model_name, temperature=0, max_tokens=512,
+                    model=self.model_name, temperature=0, max_tokens=self.max_tokens,
                     messages=[{"role": "system", "content": self.system_message or ""},
                               {"role": "user", "content": prompt}])
                 txt = (r.choices[0].message.content or "").strip()

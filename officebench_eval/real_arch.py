@@ -41,12 +41,21 @@ def _app_of(a):
 
 
 def _to_full(rec, i):
-    sm = [SubtaskMemory(agent=_app_of(s["action"]) or "agent", subtask=rec["task"][:80],
-                        action=s["action"], observation_summary=(s.get("obs") or "")[:200],
-                        outcome="success")
-          for s in rec["steps"] if _app_of(s["action"]) not in ("system", "")]
-    sig = " -> ".join(_app_of(s["action"]) for s in rec["steps"]
-                      if _app_of(s["action"]) not in ("system", ""))
+    if rec.get("curated_subtasks"):                       # LegoMem-curated agent memory
+        sm = [SubtaskMemory(agent=str(st.get("agent", "agent")).replace("_agent", "").lower(),
+                            subtask=str(st.get("description", ""))[:120],
+                            action=str(st.get("steps", ""))[:400],
+                            observation_summary=str(st.get("observations", ""))[:200],
+                            outcome="success")
+              for st in rec["curated_subtasks"]]
+        sig = " -> ".join(str(st.get("agent", "")).replace("_agent", "") for st in rec["curated_subtasks"])
+    else:                                                  # raw fallback
+        sm = [SubtaskMemory(agent=_app_of(s["action"]) or "agent", subtask=rec["task"][:80],
+                            action=s["action"], observation_summary=(s.get("obs") or "")[:200],
+                            outcome="success")
+              for s in rec["steps"] if _app_of(s["action"]) not in ("system", "")]
+        sig = " -> ".join(_app_of(s["action"]) for s in rec["steps"]
+                          if _app_of(s["action"]) not in ("system", ""))
     return FullTaskMemory(task_id=f"t{i}", description=rec["task"],
                           pattern=PAT_MAP.get(rec.get("pattern"), Pattern.COORDINATION),
                           plan=rec["plan"], step_signature=sig, subtask_memories=sm,
