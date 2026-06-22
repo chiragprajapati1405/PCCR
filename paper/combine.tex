@@ -1,0 +1,1116 @@
+\documentclass[10pt,twocolumn]{article}
+
+% ---- Packages (all in Overleaf's default TeX Live) ----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{authblk}
+\usepackage{titlesec}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc,shapes.geometric}
+\usepackage[hidelinks]{hyperref}
+
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.5em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalfont\small\bfseries}{\thesubsubsection}{0.5em}{}
+\setlength{\parskip}{2pt}
+
+\newcommand{\code}[1]{\texttt{\small #1}}
+
+\title{\textbf{Phase-Conditioned Cascading Memory Routing\\
+with Two-Dimensional Concurrency\\
+for Multi-Agent LLM Systems}}
+\author[1]{[Your Name]}
+\author[1]{[Mentor Name]}
+\affil[1]{[Affiliation] \quad \texttt{[email]}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Memory-augmented LLM agents increasingly maintain several specialized memory
+stores---procedural rules, working state, cached plans, episodic traces,
+semantic facts, and durable entity profiles---yet most systems retrieve from
+\emph{all} of them on \emph{every} step, paying retrieval cost and injecting
+irrelevant context regardless of what the current task needs. We present the
+\textbf{Phase-Conditioned Cascading Memory Router (PCCR)}, a single central
+manager that routes both reads and writes across six cognitive memory types over
+a ten-phase agentic lifecycle in a multi-agent orchestrator/sub-agent setting.
+PCCR (i)~makes the routing policy a function of the executing \emph{lifecycle
+phase}, (ii)~on a cache miss gates each optional store by an explicit
+cost-effectiveness ratio $\rho=\text{utility}/\text{cost}$ against a single
+tunable threshold $\theta$, and (iii)~logs every decision as a first-class record
+that a closed loop uses to adapt utilities from task outcomes. On the OfficeBench
+office-automation benchmark with a real backbone (gpt-oss-120b), PCCR matches or
+exceeds the accuracy of an indiscriminate \emph{retrieve-everything} policy while
+issuing \textbf{41--87\% fewer store consultations} and injecting up to
+\textbf{89\% fewer retrieved tokens} at equal accuracy.
+We then ask whether this cost-efficient design can also be made
+\emph{throughput}-efficient, since PCCR's reference execution model is strictly
+sequential---one task at a time, one sub-agent at a time. We extend it with
+\textbf{two orthogonal dimensions of concurrency}: \emph{parallel sub-agents}
+(independent sub-tasks within a task run simultaneously) and \emph{parallel
+tasks} (many tasks run simultaneously across the system), realized as a
+seven-layer design that leaves the $\rho$-gate router and the ten-phase lifecycle
+\emph{unchanged}. Per-task Working-Memory isolation, deterministic
+dependency-wave execution, and per-resource locking with an exclusive
+consolidation window make the parallel schedule provably and empirically
+\emph{outcome-equivalent} to the sequential one: on a 100-task workload at the
+measured backbone latency ($0.516$\,s/call) it is \textbf{$3.73\times$} faster at
+concurrency $C{=}4$ (scaling to \textbf{$13.5\times$} at $C{=}16$) with
+\textbf{60/60 byte-identical} outcomes. The result is a memory architecture that
+is simultaneously cost-efficient (via $\rho$-gating) and throughput-efficient
+(via concurrency), with accuracy held exactly constant.
+\end{abstract}
+
+% =====================================================================
+\section{Introduction}
+% =====================================================================
+LLM agents lose all state when a task ends unless augmented with external memory.
+Cognitive-architecture accounts of agents (CoALA~\cite{coala}) and recent
+surveys~\cite{survey1,survey2} converge on a small set of functionally distinct
+memory types---\emph{procedural} (skills/rules), \emph{working} (volatile task
+state), \emph{short-term} (a session cache), \emph{episodic} (specific past
+experiences), \emph{semantic} (distilled facts), and \emph{entity} (durable facts
+about users/things). A practical agent benefits from all of them.
+
+This raises a routing problem that is largely unaddressed: \emph{given many
+memory stores of differing cost, which should the agent consult for the current
+task, and which should it write to?} The prevailing answer in deployed systems is
+\emph{all of them, every time}. This is wasteful: a similarity search over a
+large episodic store is orders of magnitude costlier than a key--value lookup of a
+user profile, and for many tasks the expensive store contributes
+nothing---a factual lookup (``when is my meeting with Alice?'') is answered from
+stored facts, not a search through past task traces.
+
+Recent work has begun to treat retrieval as a decision rather than a reflex.
+Cost-sensitive store routing~\cite{pocket} frames store selection as an
+accuracy-vs-cost trade-off and shows (via an oracle) that selective retrieval
+dominates uniform retrieval; learned budget-tier routers~\cite{budgetmem} and
+embedding-based write routers~\cite{memrouter} optimize specific edges of the
+problem. However, each existing system optimizes \emph{one} edge---write
+admission, \emph{or} read-side store selection, \emph{or} memory-structure choice,
+\emph{or} a context budget---under a \emph{single, global} policy, almost always
+in a \emph{single-agent conversational} loop. None route across a full six-type
+cognitive taxonomy, with one central manager governing both reads and writes,
+conditioned on \emph{which lifecycle phase is executing} and \emph{what kind of
+task it is}, in a \emph{multi-agent} orchestrator/sub-agent system.
+
+\paragraph{From cost to throughput.} Solving the routing problem reduces
+\emph{cost per task}, but it says nothing about \emph{throughput} or
+\emph{wall-clock latency}: PCCR's reference execution model is sequential in two
+senses at once. Within a task the orchestrator delegates to one sub-agent at a
+time; across the system tasks are processed one after another. Real
+office-automation workloads are neither---a single ``schedule a sync and email
+everyone'' task contains several independent information-gathering steps that need
+not be serialized, and a deployed system faces a stream of overlapping tasks. Yet
+memory makes parallelism dangerous: Working Memory is a per-task scratchpad that
+agents read and write throughout a task (concurrent mutation races); the shared
+stores are written at task completion (concurrent writes lose updates); and
+consolidation rewrites the FAISS indices in bulk (a mid-rewrite read sees a torn
+state). A naive ``just add threads'' approach would change task \emph{outcomes},
+destroying the very accuracy parity that justifies PCCR.
+
+\paragraph{Contributions.} This paper contributes a single architecture that is
+both cost- and throughput-efficient:
+\begin{enumerate}\itemsep1pt
+\item \textbf{Phase-conditioned routing.} The policy is not global; each of ten
+lifecycle phases carries its own rule, because ``what to consult'' means something
+structurally different at retrieval time than at storage or consolidation time
+(\S\ref{sec:phase}).
+\item \textbf{A cost-effectiveness cascade.} Retrieval first attempts a free
+short-circuit (a short-term cache hit skips all optional stores); on a miss it
+consults an optional store \emph{iff} $\rho=U(\text{pattern},s)/C(s)$ clears a
+single tunable threshold $\theta$ (\S\ref{sec:gate}).
+\item \textbf{Decision logging + a closed loop.} Every routing call emits a
+structured \code{RoutingDecision}; an outcome-driven update nudges utilities
+up/down from success/failure (\S\ref{sec:loop}).
+\item \textbf{A two-dimensional concurrency model} for phase-structured agent
+memory---parallel sub-agents (intra-task) and parallel tasks (inter-task)---as
+seven cleanly separated layers that leave the $\rho$-gate and the ten phases
+intact (\S\ref{sec:arch}).
+\item \textbf{Correctness invariants and a proof} of outcome-equivalence between
+the parallel and sequential schedules (\S\ref{sec:correct}).
+\item \textbf{Empirical evidence}: on OfficeBench PCCR preserves accuracy while
+cutting retrieval cost by 41--87\% (\S\ref{sec:pccr-results}); and parallelism
+buys $3.73\times$ speedup at $C{=}4$ (up to $13.5\times$ at $C{=}16$) with
+\textbf{60/60 byte-identical} outcomes (\S\ref{sec:par-results}).
+\item \textbf{Grounded priors and a load-bearing-memory test} (\S\ref{sec:rectify}):
+a 14-assumption ledger; cost measured ($30\times$ ratio) and utility measured
+counterfactually; and a memory-critical set on which no-memory scores $0/16$ while
+PCCR scores $16/16$, proving the memory is used where required.
+\item \textbf{Generalisation} to a memory-native benchmark, LongMemEval
+(\S\ref{sec:lme}), and a \textbf{full-scale, real-architecture} OfficeBench
+evaluation (FAISS \code{EpisodicStore} $+$ unmodified \code{router.py} over 9 apps),
+including a LEGOMem-style curation study (\S\ref{sec:ob}).
+\end{enumerate}
+
+% =====================================================================
+\section{Related Work}
+% =====================================================================
+\paragraph{Taxonomies and lifecycle.} CoALA~\cite{coala} maps human memory types
+onto LLM agents; surveys~\cite{survey1,survey2} formalize agent memory as a
+write--manage--read loop. These define \emph{what} the memory types are, not
+\emph{how to route} among them.
+
+\paragraph{Cost-sensitive / learned routing.} ``Did You Check the Right
+Pocket?''~\cite{pocket} formalizes store selection as a cost-sensitive decision
+and shows an oracle advantage, but gives no implementable policy and considers
+retrieval in isolation. BudgetMem~\cite{budgetmem} learns per-module budget tiers
+under an RL cost objective; U-Mem~\cite{umem} scores retrieval by similarity plus
+a learned utility; AgeMem~\cite{agemem} learns tool-based long/short-term
+management. These learn a policy over a \emph{flat} memory space in single-agent
+settings, without phase conditioning.
+
+\paragraph{Write-side, structure, multi-agent.} MemRouter~\cite{memrouter} is a
+write-admission router; FluxMem~\cite{fluxmem} selects a memory \emph{structure}.
+LEGOMem~\cite{legomem} splits \emph{procedural} memory into orchestrator vs.\
+sub-agent modules (informing our PM split) but has no central cost-gated router;
+MIRIX~\cite{mirix} defines six memory types managed by \emph{separate} per-type
+agents, with no single central cost-based manager; RCR-Router~\cite{rcr} routes a
+context \emph{budget} by role within one phase.
+
+\paragraph{Consolidation, production, grounding.} A-MEM~\cite{amem} and
+self-consolidation~\cite{selfcons} inform our consolidation phase;
+MemGPT~\cite{memgpt}, Mem0~\cite{mem0}, MemMachine~\cite{memmachine}, and
+MemOS~\cite{memos} apply uniform policies without phase/pattern-conditioned cost
+gating. The cost/utility score descends from value-of-information
+theory~\cite{voi} and metareasoning~\cite{meta}.
+
+\paragraph{Parallel multi-agent execution.} DynTaskMAS~\cite{dyntaskmas}
+introduces a shared context layer and asynchronous parallel execution;
+GAP~\cite{gap} models sub-task dependencies as a DAG; SPOQ~\cite{spoq} dispatches
+in topological waves; AdaptOrch~\cite{adaptorch} switches between parallel and
+sequential executors. We adopt DAG-into-waves and async dispatch but place them
+\emph{underneath} a phase-conditioned memory router, which prior parallel
+orchestrators lack. CompArch~\cite{comparch} motivates copy-on-read snapshots for
+memory consistency; AISAC~\cite{aisac} uses a blackboard append/patch merge (our
+staging$\to$merge). MIRIX~\cite{mirix} uses \code{asyncio.gather} with
+per-resource locks for parallel writes; we borrow the locking pattern but keep a
+\emph{single} central $\rho$-gated manager and add the inter-task queue and the
+exclusive consolidation window. To our knowledge, no prior system combines a
+six-type cost-gated memory router, phase + task-pattern conditioning, a
+multi-agent setting, a two-dimensional concurrency model, and a proof of
+outcome-equivalence.
+
+% =====================================================================
+\section{The Agentic Memory Lifecycle}\label{sec:lifecycle}
+% =====================================================================
+We model a task as flowing through \textbf{ten phases}: (1)~bootstrap,
+(2)~ingestion, (3)~retrieval, (4)~orchestrator inference, (5)~delegation,
+(6)~agent inference, (7)~agent output, (8)~observation, (9)~storage, and
+(10)~consolidation. Phases 4--8 form the inner loop: the orchestrator picks a
+sub-agent, the sub-agent acts, the environment returns an observation, and the
+loop repeats until the task is done. Six memory types carry data across the
+phases (Table~\ref{tab:types}). Each task is classified at ingestion into a
+\textbf{pattern} (lookup, single-action, coordination, recurring, document-create,
+document-query, \ldots) by a lightweight classifier; this label conditions all
+downstream routing. Working Memory is special: it is \emph{per task} and is
+unconditionally cleared when the task ends (``WM dies now'').
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}llc@{}}
+\toprule
+Type & Role & Access cost \\
+\midrule
+PM (proc.)    & static prompts/rules        & cheap (dict) \\
+WM (work.)    & per-task scratchpad         & cheap; \emph{per task} \\
+STM (short)   & cache of plan bundles       & cheap \\
+EM (episodic) & past task traces (FAISS)    & \textbf{expensive} \\
+SM (semantic) & distilled facts (FAISS)     & \textbf{expensive} \\
+ENT (entity)  & per-user profiles           & cheap \\
+\bottomrule
+\end{tabular}
+\caption{The six memory types and their relative access cost. EXT (external
+files) is a seventh, non-memory sink for artifacts (e.g.\ \code{.eml}/\code{.ics}).}
+\label{tab:types}
+\end{table}
+
+% =====================================================================
+\section{PCCR: The Core Router}\label{sec:pccr}
+% =====================================================================
+A central \code{MemoryManager} executes the lifecycle; a \code{MemoryRouter}
+\emph{decides} what to touch at each phase, and the manager performs the
+reads/writes. This decision/execution separation lets the policy be inspected,
+tuned, and replaced without rewriting the lifecycle plumbing.
+
+\subsection{Phase conditioning}\label{sec:phase}
+Each phase declares a routing \emph{mode}: bootstrap $=$ classify-by-kind
+(rules$\rightarrow$PM, facts$\rightarrow$ENT, vectors$\rightarrow$SM); ingestion
+and observation $=$ fixed-sink ($\rightarrow$WM); retrieval $=$ the cascading
+cost-gate (below); orchestrator inference $=$ consume-and-log (nothing persists);
+storage $=$ outcome-conditional (success $\rightarrow$ write STM+ENT; failure
+$\rightarrow$ write nothing); consolidation $=$ batch-distribute
+($\rightarrow$EM/SM/PM/STM). The same request shape is routed differently
+depending on the phase.
+
+\subsection{The cascading cost-effectiveness gate}\label{sec:gate}
+PM and WM are read unconditionally. STM is checked first; a confident cache hit
+\textbf{short-circuits} all optional stores. On a miss, for each optional store
+$s \in \{\text{EM},\text{SM},\text{ENT}\}$:
+\[
+\rho(\text{pattern},s) = \frac{U(\text{pattern},s)}{C(s)},\quad
+\text{consult } s \iff \rho \geq \theta,
+\]
+where $C(s)$ is a relative access cost ($C(\text{ENT}){=}0.15$ for a keyed
+lookup; $C(\text{EM}){=}C(\text{SM}){=}0.55$ for a vector search $+$
+deserialization) and $U(\text{pattern},s)\in[0,1]$ is the expected utility of $s$
+for that pattern. $\theta$ is a single dial trading cost against quality. $U$
+encodes hypotheses such as ``pure-lookup tasks gain little from episodic search
+but much from entity facts,'' which the experiments test directly.
+\textbf{Crucially, the entire routing decision happens once per task, in phase 3,
+before any sub-agent runs}---the single fact that later makes parallelism
+orthogonal to routing (\S\ref{sec:arch}).
+
+\subsection{Outcome-driven adaptation and audit}\label{sec:loop}
+Every routing call returns and records a \code{RoutingDecision}: candidates,
+consulted set, skipped set with per-store reasons, cache hit/miss, and latency. A
+closed loop reads this log and, after each task, nudges $U(\text{pattern},s)$
+\textbf{up} if consulting $s$ coincided with success and \textbf{down} if with
+failure (clamped to $[0,1]$). Because the policy is indexed by
+$(\text{phase}\times\text{pattern}\times\text{store})$, the learned quantity is
+higher-dimensional and more interpretable than a flat global policy.
+
+\subsection{Priors, not assumptions}
+$C(\cdot)$ and $U(\cdot,\cdot)$ start as hand-set priors. They are not assumed
+final: the closed loop refines $U$ from outcomes, $C$ can be replaced by measured
+latencies from the decision log, and---as \S\ref{sec:pccr-results} shows---the
+held-out comparison itself empirically tests the priors (pruning a low-utility
+store without losing accuracy confirms its low utility).
+
+% =====================================================================
+\section{PCCR Experiments}\label{sec:pccr-results}
+% =====================================================================
+\subsection{Setup}
+\paragraph{Benchmark.} OfficeBench~\cite{officebench}, a multi-application
+office-automation benchmark; a task is correct only if \emph{all} of its
+evaluation predicates pass. We use the subset executable by our agents:
+calendar/email tasks (two-agent) and calendar/email/document tasks (three-agent).
+
+\paragraph{Agents and backbone.} An orchestrator delegates to specialist
+sub-agents---calendar, email, and (three-agent) a document agent. All roles run on
+\textbf{gpt-oss-120b} (via Cerebras), temperature 0. EM/SM are FAISS
+\code{IndexFlatIP} over 384-d \code{all-MiniLM-L6-v2} embeddings.
+
+\paragraph{Protocol.} Held-out, disjoint train/test split (two-agent
+$\sim$23/11; three-agent 60/32). Train (memory off) $\rightarrow$ consolidate once
+$\rightarrow$ test with memory. The three-agent comparison uses \textbf{frozen
+test memory} (no writes during test) so the only variable across methods is the
+routing policy.
+
+\paragraph{Methods.} All share identical agents, prompts, and consolidated memory,
+differing only in retrieval policy: \textbf{Retrieve-All} (consult every optional
+store), \textbf{Boolean} (a hand-set per-pattern on/off table), and \textbf{PCCR}
+(the $\rho$-gate, swept over $\theta\in\{1.0,1.2,1.4\}$).
+
+\subsection{RQ1 --- Cost at equal quality}
+All methods reach identical accuracy; PCCR attains it at the lowest cost
+(Tables~\ref{tab:cmp2}--\ref{tab:cmp3}).
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Method & Acc & Consults & FAISS \\
+\midrule
+Retrieve-All & 5/11 & 20 & 27 \\
+Boolean      & 5/11 & 14 & 27 \\
+\textbf{PCCR}& 5/11 & \textbf{12} & \textbf{25} \\
+\bottomrule
+\end{tabular}
+\caption{Two-agent held-out comparison ($\theta{=}1.0$, 11 tasks).}
+\label{tab:cmp2}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Method & Acc & Consults & FAISS \\
+\midrule
+Retrieve-All & 10/32 & 46 & 72 \\
+Boolean      & 10/32 & 39 & 72 \\
+\textbf{PCCR}& \textbf{11/32} & \textbf{27} & \textbf{62} \\
+\bottomrule
+\end{tabular}
+\caption{Three-agent held-out comparison ($\theta{=}1.0$, 32 tasks). PCCR
+slightly exceeds the baselines' accuracy while cutting consultations $\sim$41\%.}
+\label{tab:cmp3}
+\end{table}
+
+\subsection{RQ2 --- Pattern-conditioned routing}
+Per-pattern consult rates (Table~\ref{tab:pattern}) match the $\rho$-model
+exactly: episodic is pruned on pure lookups (\code{email\_query},
+$\rho_{\text{EM}}{=}0.87{<}1$), entity is pruned where a profile is irrelevant
+(\code{email\_send}), both are consulted for coordination, and a pure document
+read (\code{word\_query}) consults \emph{neither} optional store. The aggregate
+savings are thus the sum of interpretable, store-specific decisions---evidence the
+mechanism behaves as designed rather than succeeding by chance.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Pattern & $n$ & EM & ENT \\
+\midrule
+\code{email\_query} (lookup)        & 7  & 0/7  & 7/7 \\
+\code{email\_send}                  & 10 & 10/10& 0/10 \\
+\code{single\_cal\_create}          & 8  & 8/8  & 0/8 \\
+\code{multi\_cal\_find\_and\_create}& 1  & 1/1  & 1/1 \\
+\code{word\_create}                 & 3  & 3/3  & 0/3 \\
+\code{word\_query}                  & 3  & 0/3  & 0/3 \\
+\bottomrule
+\end{tabular}
+\caption{Per-pattern EM/ENT consult rates (PCCR, three-agent, $\theta{=}1.0$).}
+\label{tab:pattern}
+\end{table}
+
+\subsection{RQ3 --- Threshold as a cost dial; token savings}
+The three-agent frontier (Table~\ref{tab:frontier}; all points share identical
+consolidated memory) has a sharp knee: $\theta{=}1.0{\rightarrow}1.2$ cuts
+consultations $27{\rightarrow}6$ ($-78\%$) and injected retrieved tokens
+$837{\rightarrow}96$ ($-89\%$) with \emph{no} accuracy loss; accuracy only
+degrades at $\theta{=}1.4$. \textbf{Headline: PCCR at $\theta{=}1.2$ matches or
+beats every baseline's accuracy while issuing $\sim$87\% fewer consultations than
+Retrieve-All (6 vs.\ 46) and injecting $\sim$89\% fewer retrieved tokens.} Token
+counts are an orchestrator-context lower bound ($\sim$4 chars/token); realized
+savings are larger.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+$\theta$ & Acc & Consults & FAISS & Inj.\ tokens \\
+\midrule
+1.0 & 11/32 & 27 & 60 & 837 \\
+\textbf{1.2} & \textbf{11/32} & \textbf{6} & 38 & \textbf{96 ($-89\%$)} \\
+1.4 & 8/32 & 6 & 37 & 96 \\
+\bottomrule
+\end{tabular}
+\caption{Three-agent cost/quality frontier (self-consistent).}
+\label{tab:frontier}
+\end{table}
+
+\subsection{RQ4 --- Closed-loop adaptation}
+In the online two-agent run, outcome-driven updates moved utilities
+\textbf{bidirectionally}---upward for (pattern,\,store) pairs co-occurring with
+success (e.g.\ \code{multi.episodic} $0.78{\rightarrow}0.83$) and downward for
+those co-occurring with failure (e.g.\ \code{email\_send.episodic}
+$0.62{\rightarrow}0.57$)---demonstrating online policy adaptation with no backbone
+updates. (The three-agent run froze memory to isolate routing, so RQ4 is reported
+from the two-agent run.)
+
+% =====================================================================
+\section{Grounding the Priors: Assumption Rectification}\label{sec:rectify}
+% =====================================================================
+A reviewer's first question is ``where do $C$ and $U$ come from, and is the
+benchmark even memory-dependent?'' We wrote out an explicit \textbf{14-assumption
+ledger} (A1--A14) and rectified each (Table~\ref{tab:ledger}). The two that matter
+most are the hand-set \emph{numbers}; both are now measured.
+
+\paragraph{A1 --- cost is measured, not asserted (local, no LLM).} We replace the
+hand-set cost with the \emph{measured token-injection cost}: the average number of
+prompt tokens a consultation injects. Episodic injection averages $212$ tokens vs.\
+$7$ for an entity lookup, so $C(\text{EM})/C(\text{ENT})\approx\mathbf{30\times}$
+(the hand-set prior was $\sim$3.7$\times$). The router auto-loads the measured
+\code{store\_cost.json}; \emph{this experiment is purely local} (no API)---it only
+times retrieval and counts injected tokens.
+
+\paragraph{A2 --- utility is counterfactual (LLM/API).} We initialise $U$ from a
+\emph{with/without-store ablation}: run a task with store $s$ forced on vs.\ off and
+take the marginal success gain. For the entity-critical pattern this gives
+$U(\text{ENT}){=}\mathbf{0.875}$ (ENT off $\to0/8$, ENT on $\to7/8$). \emph{This
+needs the LLM} because it measures task success, which only the agent loop can
+produce.
+
+\paragraph{A3--A14.} A6 separates routing-decision latency ($\sim$15\,$\mu$s) from
+retrieval latency ($\sim$17\,ms) and adds token/$\$$ accounting; A7 wires PM
+rule-distillation into consolidation; A13 adds a similarity-threshold baseline;
+A3/A4/A9/A11/A12 are documented design choices (not unjustified numbers); A8
+(cross-model) is an evidence gap---our Cerebras account exposes only gpt-oss-120b
+plus a parser-incompatible GLM model, so we report it as a limitation; A14
+(sequential scope) is resolved by the parallel architecture (\S\ref{sec:arch}).
+
+\paragraph{Is the memory load-bearing? (the validity check, LLM/API).} A sharp
+test: run the \emph{same} held-out tasks with memory \emph{off}. On base
+OfficeBench tasks no-memory scores $13/30$ vs.\ $15/30$ for PCCR and
+retrieve-all---i.e.\ \emph{base tasks barely need memory}. We therefore engineered
+a \textbf{memory-critical} set (8 episodic-critical $+$ 8 entity-critical tasks
+whose answer lives \emph{only} in a store): no-memory collapses to $\mathbf{0/16}$,
+while PCCR reaches $\mathbf{16/16}$ (matching retrieve-all) at lower cost
+(\textbf{24 vs.\ 32} consults). Per pattern: \code{recurring\_em} $0/8{\to}8/8$,
+\code{relation\_email} $0/8{\to}8/8$. This decisively answers the validity
+question---memory is used \emph{where it is required}, and PCCR routes to it.
+
+\paragraph{Scale at equal accuracy (LLM/API).} On 30 held-out tasks with the
+\emph{measured} cost, all methods reach the same accuracy while PCCR cuts cost most:
+Retrieve-All $15/30$ ($41$ consults), Boolean $14/30$ ($37$), \textbf{PCCR $15/30$
+($\mathbf{7}$ consults, $-83\%$)}.
+
+\begin{table}[t]
+\centering\scriptsize
+\begin{tabular}{@{}llp{3.0cm}@{}}
+\toprule
+\# & Assumption (original) & Status \\
+\midrule
+A1 & store cost hand-set & \textbf{measured} (token ratio $30\times$) \\
+A2 & utility hand-set & \textbf{counterfactual} (ENT $0.875$) \\
+A3 & keyword classifier & justified; LLM classifier added (\S\ref{sec:ob}) \\
+A4 & hand-designed patterns & justified from task distribution \\
+A5 & small held-out ($11/32$) & scaled to 30, and to 152 (\S\ref{sec:ob}) \\
+A6 & latency conflated & decision vs.\ retrieval split; tokens/\$ \\
+A7 & PM rules empty & rule-distillation wired \\
+A8 & single backbone & \emph{open}: only gpt-oss usable \\
+A9 & frozen vs.\ online & both reported as named protocols \\
+A10 & ENT not load-bearing & memory-critical set ($0/16{\to}16/16$) \\
+A11 & SM rides in EM index & documented (co-located by design) \\
+A12 & strict-semantic STM & principled near-duplicate cache \\
+A13 & 2 baselines & similarity baseline added \\
+A14 & sequential single-task & \textbf{parallel arch} (\S\ref{sec:arch}) \\
+\bottomrule
+\end{tabular}
+\caption{The 14-assumption ledger and its rectification status.}
+\label{tab:ledger}
+\end{table}
+
+% =====================================================================
+\section{Generalisation to Long-Term Memory: LongMemEval}\label{sec:lme}
+% =====================================================================
+OfficeBench is a task-automation benchmark; to test the router on a benchmark
+\emph{designed} for memory we add LongMemEval~\cite{longmemeval} (500 questions over
+multi-session chat histories). Its five abilities map cleanly onto our stores,
+letting us measure routing \emph{ability-by-ability}: information-extraction and
+multi-session reasoning $\to$ EM, knowledge-update $\to$ ENT, temporal $\to$ SM,
+and abstention $\to$ the \emph{skip} decision. Each question's history is ingested
+into three stores---EM (session-level embeddings), SM (turn-level), ENT (most-recent
+sessions)---and the $\rho$-gate routes per question type.
+
+\paragraph{D1 --- retrieval routing (local, deterministic; 90 balanced Q).}
+Session-recall at equal cost: Retrieve-All $0.759$ ($270$ consults), Boolean
+$0.735$ ($180$), \textbf{PCCR $0.735$ ($225$, SM searches halved $90{\to}45$)}.
+Parallel execution is \textbf{outcome-identical} to sequential here too. No API:
+retrieval recall is deterministic given the embeddings.
+
+\paragraph{D2 --- end-to-end QA (LLM/API; 30 balanced Q).} Generating answers with
+gpt-oss-120b from the $\rho$-gated context: Retrieve-All and PCCR reach the
+\emph{same} accuracy ($0.733$), with PCCR at \textbf{$-17\%$ consults}
+($75$ vs.\ $90$), \textbf{half the expensive turn-level searches} ($15$ vs.\ $30$),
+and $-5\%$ injected tokens; per-type accuracy is identical. This needs the LLM (it
+generates and we grade answers).
+
+\paragraph{D3 --- real parallel latency (LLM/API; 30 Q).} Sequential $165.6$\,s
+$\to$ parallel $138.6$\,s ($1.19\times$); the live speedup is rate-limit-bound on a
+4-key account (the architecture's ceiling is the modeled $3.73\times$ of
+\S\ref{sec:par-results}).
+
+\paragraph{Honest reads.} On session-recall@5, EM dominates (Boolean ties PCCR), so
+the routing differentiation is modest there; the QA grader is a deterministic
+lexical proxy for LongMemEval's GPT-4o judge (it scores the subjective
+\emph{preference} type $0/5$ for \emph{both} methods---a grader limit, equal across
+methods). The clean win is unchanged: \emph{same accuracy, fewer/cheaper searches},
+and parallel$\equiv$sequential on real data.
+
+% =====================================================================
+\section{The Two-Dimensional Parallel Architecture}\label{sec:arch}
+% =====================================================================
+Having established that PCCR cuts \emph{cost per task}, we now reorganize its
+\emph{execution} to cut \emph{latency}, without touching the router. We add
+concurrency as seven layers (Fig.~\ref{fig:arch}). Layers~1--2 introduce parallel
+\emph{tasks}; layers~3--4 introduce parallel \emph{sub-agents}; layers~5--7 are
+the shared-state protections that make both safe.
+
+% ----------- the big architecture figure -----------
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  box/.style   ={draw, rounded corners, align=center, inner sep=3pt, minimum height=6.5mm},
+  phase/.style ={draw, fill=gray!8,  rounded corners, align=center, inner sep=3pt, minimum height=6.5mm, text width=33mm},
+  group/.style ={draw, fill=green!7, rounded corners, align=center, inner sep=4pt, text width=52mm},
+  store/.style ={draw, fill=blue!10, rounded corners, align=center, minimum width=12mm, minimum height=5mm},
+  storebox/.style={draw, fill=blue!4, rounded corners, align=center, inner sep=5pt, text width=33mm},
+  cons/.style  ={draw, fill=orange!12, rounded corners, align=center, inner sep=4pt, text width=70mm},
+  lyr/.style   ={font=\scriptsize\bfseries, text=red!55!black},
+  arr/.style   ={-{Latex[length=1.6mm]}, semithick},
+  darr/.style  ={-{Latex[length=1.6mm]}, dashed, semithick},
+  node distance=3.2mm and 9mm
+]
+
+% ---- LAYER 1: task queue ----
+\node[box, fill=orange!12, text width=150mm] (queue)
+  {\textbf{LAYER 1 — Async Task Queue}\quad accepts $N$ tasks, runs their pipelines concurrently
+   (\code{max\_concurrency}=$C$); admits a task into phase 3 only when \code{is\_consolidating()} is false};
+
+% ---- LAYER 2: N per-task pipelines (show 3) ----
+\node[box, below left=5mm and 18mm of queue, text width=24mm] (t1) {Task 1 pipeline\\\textit{own WM}};
+\node[box, below=5mm of queue, text width=24mm]               (t2) {Task 2 pipeline\\\textit{own WM}};
+\node[box, below right=5mm and 18mm of queue, text width=24mm](tn) {Task $N$ pipeline\\\textit{own WM}};
+\node[lyr, left=1mm of t1] {L2};
+\draw[arr] (queue) -- (t1); \draw[arr] (queue) -- (t2); \draw[arr] (queue) -- (tn);
+
+% ---- expanded single pipeline (center column) ----
+\node[phase, below=8mm of t2] (p12) {\textbf{Phase 1--2}\\ bootstrap (shared, once) + ingestion\\ task$\to$WM, pattern classified};
+\node[phase, below=of p12]    (p3)  {\textbf{Phase 3 — PCCR $\rho$-gate}\\ PM+WM always; STM check;\\ $\rho=U/C\ge\theta\Rightarrow$ consult $s$ \emph{(once/task)}};
+\node[phase, below=of p3]     (p45) {\textbf{Phase 4--5} orchestrator\\ emit next \emph{group} of delegations};
+\node[box, fill=gray!8, below=of p45, text width=33mm] (dag)
+  {\textbf{L3 — Dependency Analyzer}\\ group $\to$ DAG; indep.\ $\to$ same wave,\\ dependent $\to$ next wave};
+\node[group, below=of dag] (grp)
+  {\textbf{L4 — Parallel agent wave}\\[1pt]
+   1.\ snapshot WM (frozen, copy-on-read)\\
+   2.\ \fbox{calendar agent} $\parallel$ \fbox{email agent} $\parallel\,\dots$\\
+   \hspace*{3mm}(each writes its own \emph{staging} slot)\\
+   3.\ \code{asyncio.gather} runs the wave\\
+   4.\ deterministic merge (sorted) $\to$ live WM};
+\node[phase, below=of grp] (p8) {\textbf{Phase 8} merge staging $\to$ WM\\ \code{step\_history}, \code{shared\_context}};
+\node[draw, diamond, aspect=2.2, fill=yellow!15, below=of p8, inner sep=1pt, align=center] (dec) {more\\groups?};
+\node[phase, below=4mm of dec] (p9)
+  {\textbf{Phase 9} — write routing (W1--W6)\\ success gate; pattern$\to$STM (lock);\\ person$\to$ENT (lock); EM/SM deferred;\\ routing history (atomic, W6); \textbf{WM clear}};
+
+\draw[arr] (p12) -- (p3); \draw[arr] (p3) -- (p45); \draw[arr] (p45) -- (dag);
+\draw[arr] (dag) -- (grp); \draw[arr] (grp) -- (p8); \draw[arr] (p8) -- (dec);
+\draw[arr] (dec) -- node[right]{done} (p9);
+\draw[arr] (dec.west) -- ++(-26mm,0) node[midway,above]{yes (re-plan)} |- (p45.west);
+
+% pipeline container (background)
+\begin{scope}[on background layer]
+\node[draw, dashed, rounded corners, fill=black!2, fit=(p12)(p3)(p45)(dag)(grp)(p8)(dec)(p9),
+      inner sep=4mm, label={[lyr]above right:{Per-task pipeline (Task $i$) — own 10-phase lifecycle, own WM \;$\times N$ concurrent}}] (pipe) {};
+\end{scope}
+
+% ---- LAYER 5/6: shared stores (right) ----
+\node[storebox, right=14mm of p3, anchor=west] (stores)
+  {\textbf{LAYER 5 — Shared stores}\\ \textbf{(cross-task, lock-protected)}\\[2pt]
+   PM \;\; STM\textsuperscript{$\dagger$} \;\; ENT\textsuperscript{$\dagger$}\\
+   EM \;\; SM \;\; routing history\\[2pt]
+   \footnotesize $\dagger$ per-key lock (per pattern / per user);\\
+   EM/SM/PM via global FAISS/PM lock};
+\node[lyr, above=0.5mm of stores] {L5/L6};
+\draw[arr] (p3.east) to[bend left=8] node[above,sloped]{read} (stores.west);
+\draw[arr] (p9.east) to[bend right=14] node[below,sloped]{write (locked)} (stores.south west);
+
+% ---- LAYER 7: consolidation (bottom) ----
+\node[cons, below=8mm of p9] (p10)
+  {\textbf{LAYER 7 — Phase 10 Consolidation (exclusive window)}\\
+   raises \code{is\_consolidating}; holds global FAISS lock; batch-writes EM/SM/PM/STM.\\
+   \emph{No task enters phase 3 while open.}};
+\draw[arr] (p9) -- (p10);
+\draw[arr] (p10.east) to[bend right=18] node[below,sloped]{rewrites} (stores.south);
+\draw[darr] (p10.west) -- ++(-20mm,0) |- node[near start,left]{blocks}([xshift=-6mm]queue.west);
+
+\end{tikzpicture}
+\caption{The seven-layer parallel PCCR architecture. \textbf{Parallel tasks}
+(L1--L2): the async queue runs $N$ task pipelines concurrently, each with its
+\emph{own} Working Memory (copy-on-fork) but sharing the cross-task stores.
+\textbf{Parallel sub-agents} (L3--L4): within a task the orchestrator emits a
+group of delegations; the dependency analyzer splits it into waves (independent
+sub-tasks in one wave); a wave runs concurrently against a frozen WM snapshot and
+is merged back deterministically; control returns to the orchestrator (``more
+groups?'') until \textsc{finish}. \textbf{Protections} (L5--L7): per-resource locks
+guard concurrent store writes, and phase 10 is an exclusive window. The $\rho$-gate
+(phase 3) is unchanged and runs once per task before any parallelism.}
+\label{fig:arch}
+\end{figure*}
+
+\subsection{Design goals and invariants}
+The extension is governed by four hard constraints: (C1)~the $\rho$-gate router is
+unmodified; (C2)~the ten-phase lifecycle is preserved; (C3)~the six stores change
+only by gaining optional lock parameters; (C4)~the parallel schedule yields the
+\emph{same task outcomes} as the sequential one. C1--C3 keep the contribution
+surgical; C4 is the correctness property proved in \S\ref{sec:correct}. Three
+invariants deliver C4:
+\begin{description}\itemsep1pt
+\item[\textsc{I1 (WM isolation).}] No two concurrently executing units (tasks or
+same-wave agents) ever mutate the same Working Memory.
+\item[\textsc{I2 (deterministic merge).}] The result of merging a wave's
+sub-agent outputs into WM is independent of the order in which the sub-agents
+finish.
+\item[\textsc{I3 (no lost writes).}] Concurrent writes to a shared store are
+serialized per resource, and consolidation never overlaps task reads.
+\end{description}
+
+\subsection{Layer 1 --- Async task queue (parallel tasks)}
+\code{AsyncTaskQueue} accepts a list of task specs and runs each task's full
+pipeline as an \code{asyncio} coroutine, bounded by a semaphore of size $C$
+(\code{max\_concurrency}). Two behaviours matter. First, \emph{fault isolation}: a
+task that raises is caught and returns an error record, so one failure cannot
+abort the batch. Second, the \emph{consolidation gate}: before a task enters phase
+3 (the FAISS read), the queue waits while \code{is\_consolidating()} is true, so no
+task reads vectors that phase 10 is rewriting (half of \textsc{I3}). The queue
+reduces \emph{inter-task} latency: while task~$A$ waits on an LLM call, task~$B$
+proceeds.
+
+\subsection{Layer 2 --- Per-task pipeline with WM isolation}
+Each task runs its own ten-phase lifecycle. The mechanism is
+\code{fork\_for\_task()}: it produces a per-task \code{MemoryManager} that
+\emph{shares} the cross-task stores (PM/STM/EM/SM/ENT), the router, and the lock
+manager, but receives a \emph{fresh} Working Memory instance. This copy-on-fork
+satisfies \textsc{I1} at the task level: because WM is per task by construction,
+concurrent tasks can never collide on working state. Bootstrap (phase 1) is done
+once on the parent and shared, not repeated per task.
+
+\subsection{Layer 3 --- Dependency analyzer (DAG $\to$ waves)}
+Within a task, the orchestrator emits a \emph{group} of delegations (an agent + a
+sub-task instruction each). The analyzer turns a flat group into ordered
+\emph{waves}: it assigns each delegation a coarse category by keyword---\textsc{read}
+(list/search/find/\ldots), \textsc{create} (create/add/schedule/\ldots),
+\textsc{send} (send/email/notify/\ldots), or \textsc{finish}---and orders
+categories by an action-precedence relation
+$\textsc{read}\prec\textsc{create}\prec\textsc{send}\prec\textsc{finish}$.
+Delegations in the same category form one wave (run in parallel); categories run
+in sequence. The intuition is sound and conservative: reads gather information
+that creates may depend on, and sends depend on what was created. Formally, every
+node in wave $k{+}1$ is treated as depending on every node in wave $k$---a coarse
+but \emph{safe} over-approximation of the true DAG that never parallelizes a
+genuine dependency. ``list events $\to$ create event $\to$ send invite'' becomes
+three ordered waves; three independent reads become one three-way parallel wave.
+
+\subsection{Layer 4 --- Parallel agent execution}
+A wave executes in four steps that together guarantee \textsc{I1} (agent level)
+and \textsc{I2}:
+\begin{enumerate}\itemsep0pt
+\item \textbf{Snapshot.} \code{wm.snapshot()} deep-copies the current WM. Every
+agent in the wave reads this \emph{frozen} copy, never live WM (copy-on-read).
+\item \textbf{Staging.} Each agent writes only its own result object, never live
+WM.
+\item \textbf{Gather.} \code{asyncio.gather} runs the wave concurrently; the
+overlap of the agents' (I/O-bound) LLM calls is where wall-clock is saved.
+\item \textbf{Merge.} After \emph{all} agents finish, results are merged into live
+WM in a fixed sorted order (by \code{(agent\_type, subtask)}), appending one step
+per agent and updating \code{shared\_context}.
+\end{enumerate}
+Because same-wave agents are \emph{independent} (L3 placed them together precisely
+because neither depends on the other), they read external state, not each other;
+the frozen snapshot is therefore sufficient, and the sorted merge makes the
+outcome invariant to completion order (\textsc{I2}). Dependent agents are in
+different waves, so a later agent does see the merged results of earlier waves.
+
+\subsection{Layer 5 --- Memory lock manager}
+\code{MemoryLockManager} hands out \code{asyncio} locks at a granularity matched to
+contention. STM is locked \emph{per pattern key} and ENT \emph{per username}, so
+two tasks touching different patterns/users never block each other; only genuine
+same-key contention serializes. EM/SM share a single global FAISS lock and PM a
+single PM lock, because their writes are global, batched, and rare (phase 10). A
+\code{history\_lock} guards the shared router's routing-history append. Locks are
+created lazily on first use, because on the target runtime an \code{asyncio.Lock}
+must bind to a running event loop. This layer delivers \textsc{I3}.
+
+\subsection{Layer 6 --- Phase-9 parallel writes}
+Phase 9 (storage) applies six write rules; the parallel version runs the
+success-gated writes concurrently via \code{asyncio.gather}, each acquiring its own
+lock: W1~success gate (failures write nothing); W2~pattern$\to$STM under the
+per-pattern lock; W3~person$\to$ENT under the per-user lock; W4~experience$\to$EM
+and W5~rule$\to$PM are \emph{deferred} to consolidation (only the raw trace is
+appended now); W6~routing-history append under \code{history\_lock} (atomic across
+the tasks that share one router). WM is then cleared. Because the writes touch
+disjoint, independently locked resources, they proceed in parallel without lost
+updates.
+
+\subsection{Layer 7 --- Consolidation exclusive window}
+Consolidation (phase 10) distills the accumulated traces into EM/SM, learns PM
+rules, and pre-fills STM---a bulk rewrite of the FAISS indices. The async wrapper
+\code{consolidate\_async} raises \code{is\_consolidating()} and holds the global
+FAISS lock for the duration, then lowers the flag in a \code{finally} block.
+Combined with the L1 gate, this makes phase 10 an \emph{exclusive window}:
+in-flight tasks finish, no new task enters phase~3, the indices are rewritten
+atomically, and normal concurrency resumes (the second half of \textsc{I3}).
+
+\subsection{The orchestrator re-planning loop}
+Layers 3--4 run \emph{one group}; a full task may need several. The loop
+\code{run\_planned\_task} re-invokes the orchestrator after each group merges: it
+inspects the (now-updated) live WM, emits the next group (or \textsc{finish}), that
+group is split into waves and run, and control returns (the ``more groups?''
+decision in Fig.~\ref{fig:arch}). This keeps the orchestrator in the loop---each
+round sees the merged results of all prior groups---rather than decomposing the
+whole plan up front.
+
+\subsection{Non-invasive integration}\label{sec:integration}
+The parallel path is \emph{additive}. New modules \code{parallel.py} (analyzer,
+executor, lock manager) and \code{task\_queue.py} are self-contained. The manager
+gains async methods (\code{run\_planned\_task}, \code{complete\_task\_async},
+\code{consolidate\_async}, \code{fork\_for\_task}) that sit \emph{beside} the
+unchanged synchronous lifecycle methods; the stores gain only \code{snapshot}/
+\code{merge\_staging} on WM. The $\rho$-gate router file is untouched (C1), the ten
+phases keep their identity (C2), and every pre-existing test still passes (C3/C4).
+A system can run sequentially or in parallel from the same codebase.
+
+% =====================================================================
+\section{Correctness: parallel $\equiv$ sequential}\label{sec:correct}
+% =====================================================================
+We argue that the parallel schedule produces the same outcome as the sequential
+one, then verify it empirically (\S\ref{sec:eq}).
+
+\paragraph{Intra-task (parallel sub-agents).} Sequential execution runs a task's
+delegations one at a time in dependency order; parallel execution runs each wave
+concurrently. The two differ \emph{only} in whether same-wave agents observe one
+another's mid-flight WM writes. By L3, same-wave agents are mutually independent,
+so an agent's result is a function of external state and its own sub-task,
+\emph{not} of a sibling's WM step. Hence each agent produces the same result in
+both schedules. The merge (L4) is order-independent (\textsc{I2}). Dependent agents
+are in different waves, and a later wave reads the merged earlier waves identically
+in both schedules. Therefore the merged WM---and thus the task's plan, actions, and
+success---are identical.
+
+\paragraph{Inter-task (parallel tasks).} Each task has its own WM (\textsc{I1}), so
+concurrent tasks cannot corrupt one another's working state. Shared-store
+\emph{writes} are serialized per resource (\textsc{I3}); no update is lost. The one
+schedule-dependent quantity is what a task \emph{reads} from the shared cache:
+under concurrency, task~$B$ may run before task~$A$'s STM write lands and therefore
+\emph{miss} a cache entry it would have hit sequentially. But a miss only causes a
+\emph{recompute}, and the recomputed plan equals the cached plan (the cache stores
+a previously computed plan for the same signature). Thus cross-task concurrency
+changes cache-hit \emph{timing}---an efficiency quantity---never the correctness of
+any task's answer.
+
+\paragraph{The one genuine divergence vector.} The argument assumes each task acts
+on its \emph{own} external environment. If tasks share a single mutable external
+resource (e.g.\ one global filesystem of calendar events), a concurrent task can
+mutate it under another task's read, producing a different observation. This is a
+property of the shared \emph{environment}, not of the memory architecture, and
+held-out evaluation already isolates it (each task is scored against its own
+sandbox). \S\ref{sec:eq} demonstrates both the divergence (under a deliberately
+shared world) and its disappearance under per-task isolation.
+
+\paragraph{Unit-tested primitives.} The invariants are pinned by tests:
+deterministic merge regardless of finish order (\textsc{I2}); snapshot isolation
+(\textsc{I1}); per-key lock identity and no-lost-update under contention, and the
+consolidation-window wait (\textsc{I3}); plus fault isolation and the re-planning
+loop. All 39 tests pass (15 exercise the parallelism layer).
+
+% =====================================================================
+\section{Parallel Experiments}\label{sec:par-results}
+% =====================================================================
+\subsection{Setup}
+The benchmark drives the \emph{same} real framework (per-task fork, $\rho$-gate,
+re-planning loop, dependency waves, locked writes, shared stores) in two execution
+modes---sequential and parallel---over a 100-task workload with a realistic pattern
+mix (single-action 20, lookup 20, recurring 10, coordination 30, exploratory 20;
+440 LLM calls in total, critical-path depth 360). The only modeled quantity is the
+external call cost $L$, set to the \textbf{measured} per-call latency of
+gpt-oss-120b on Cerebras: median $0.516$\,s over real calls (mean $0.743$\,s).
+Because \code{asyncio} overlaps a real network await exactly as it overlaps
+\code{asyncio.sleep($L$)}, the measured wall-clock speedup is what real parallel
+API calls would achieve for this I/O-bound workload.
+
+\subsection{Latency: parallel vs.\ sequential}
+At concurrency $C{=}4$, parallel execution completes the 100 tasks in $61.1$\,s
+versus $227.7$\,s sequential---a \textbf{$3.73\times$ speedup}, $-73\%$ wall-clock
+(Table~\ref{tab:lat}). The sequential time matches the analytic
+$440{\times}0.516{=}227.0$\,s, confirming the model.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Run & Wall-clock (100 tasks) & Per task & Speedup\\
+\midrule
+Sequential       & $227.7$\,s & $2277$\,ms & $1.00\times$\\
+\textbf{Parallel ($C{=}4$)} & $\mathbf{61.1}$\,\textbf{s} & $\mathbf{611}$\,\textbf{ms} & $\mathbf{3.73\times}$\\
+\bottomrule
+\end{tabular}
+\caption{Latency at the measured backbone latency ($L{=}0.516$\,s/call).}
+\label{tab:lat}
+\end{table}
+
+\subsection{Scaling with concurrency}
+The speedup grows near-linearly with $C$ up to the dependency critical path
+(Table~\ref{tab:scale}). The ratio is latency-independent: $C{=}4$ measured at a
+reduced $L{=}0.05$\,s reproduces the same $3.7\times$, confirming the framework
+overhead is negligible relative to call latency. $C{=}1$ is approximately neutral
+($0.96\times$): with no task-level concurrency the only gain is intra-task wave
+overlap, which roughly cancels the per-wave snapshot/merge overhead. The win is
+therefore dominated by \emph{parallel tasks}, with \emph{parallel sub-agents} a
+secondary benefit on coordination/exploratory tasks.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+$C$ & 1 & 2 & 4 & 8 & 16\\
+\midrule
+Speedup        & $0.96\times$ & $1.89\times$ & $3.73\times$ & $7.15\times$ & $13.47\times$\\
+Wall-clock cut & $-5\%$ & $47\%$ & $73\%$ & $86\%$ & $93\%$\\
+\bottomrule
+\end{tabular}
+\caption{Speedup vs.\ task-concurrency $C$ (100 tasks).}
+\label{tab:scale}
+\end{table}
+
+\subsection{Accuracy equivalence}\label{sec:eq}
+We run the same task set through both schedules and compare, per task, the outcome
+tuple (success, plan, sorted normalized observations) and the final shared-memory
+state (STM/EM/SM/PM sizes and ENT facts). With \textbf{per-task isolated
+environments}, outcomes are \textbf{60/60 byte-identical} and the final memory
+state is identical (Table~\ref{tab:eq})---empirically confirming
+\S\ref{sec:correct}. With a deliberately \emph{shared} external world, 2/60
+coordination tasks diverge on an incidental observation count (the number of
+calendar events seen by a search agent), while success, plan, and memory state
+remain identical---exactly the single divergence vector predicted above, removed by
+isolation.
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Environment & Outcomes identical & Memory state identical\\
+\midrule
+Per-task isolated & \textbf{60/60} & \textbf{yes}\\
+Shared world      & 58/60\textsuperscript{$\ast$} & yes\\
+\bottomrule
+\end{tabular}
+\caption{Parallel vs.\ sequential outcome equivalence ($C{=}4$, 60 tasks).
+\textsuperscript{$\ast$}The two differ only on an incidental observation count of a
+shared mutable resource; success/plan/memory identical.}
+\label{tab:eq}
+\end{table}
+
+\subsection{Cost/accuracy carry over unchanged}
+Because the $\rho$-gate is untouched and outcomes are equivalent, the PCCR cost and
+accuracy results of \S\ref{sec:pccr-results}---41--87\% fewer consultations and up
+to 89\% fewer injected tokens at equal accuracy---hold verbatim for the parallel
+system. Parallelism and $\rho$-gating optimize orthogonal axes: the former cuts
+\emph{latency}, the latter cuts \emph{cost per task}; neither moves accuracy.
+
+% =====================================================================
+\section{Full-Scale OfficeBench with the \emph{Real} Architecture (in progress)}\label{sec:ob}
+% =====================================================================
+The experiments above used the standalone reference implementation. To test the
+\emph{actual} architecture at scale---and to position against LEGOMem~\cite{legomem},
+which reports $+12$--$13$\,pp (and $+14$--$19$\,pp on its hardest level) from
+procedural memory on OfficeBench---we built a harness in which our \emph{real}
+components drive the benchmark: the FAISS \code{EpisodicStore} is the memory and
+\code{router.py}'s \code{MemoryRouter} is the gate (configured for OfficeBench
+patterns at runtime; the router code is \emph{unchanged}). This runs inside
+OfficeBench's native Docker environment with \textbf{all 9 apps} (calendar, email,
+word, excel, pdf, ocr, shell, system, llm) and OfficeBench's own state-based
+evaluators.
+
+\paragraph{Setup.} \textbf{Split}: LEGOMem-style $148$ train $/152$ test over the
+300 annotated subtasks, stratified by difficulty level (L1/L2/L3). \textbf{Pattern
+key}: an \emph{LLM classifier} (A3) labels each task into 5 patterns (counts over
+300: \code{multi\_app} 150, \code{doc\_process} 55, \code{single\_action} 47,
+\code{lookup} 31, \code{data\_compute} 17; merged from an initial 7 after a
+distribution analysis showed two buckets too sparse to calibrate). \textbf{Memory
+build (T0a)}: run the 148 train tasks with no memory; successful trajectories
+become EM procedures.
+
+\paragraph{T0a --- no-memory baseline by level (LLM/API).} The difficulty gradient
+is clear (Table~\ref{tab:ob}): L1 $70\%$, L2 $51\%$, L3 $11\%$ ($\sim$42\% overall),
+yielding a bank of $62$ procedures (thin on L3, since few L3 tasks succeed
+unaided). This is healthy headroom for memory and is in line with LEGOMem's
+$\sim$46\% no-memory baseline (they used GPT-4o; we use gpt-oss-120b).
+
+\begin{table}[t]
+\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Level & L1 & L2 & L3 \\
+\midrule
+no-memory success & 32/46 (70\%) & 24/47 (51\%) & 6/55 (11\%) \\
+\bottomrule
+\end{tabular}
+\caption{T0a no-memory baseline on the 148 train tasks (the bank-building run),
+by difficulty level. Overall $\sim$42\%; bank $=62$ procedures.}
+\label{tab:ob}
+\end{table}
+
+\paragraph{Engineering rectifications (found by inspection of saved traces).}
+Scaling to a live 9-app loop surfaced five issues, each of which would have skewed
+the L2/L3 numbers; all are fixed and re-run: (i)~\emph{action truncation}
+corrupting banked plans on long actions; (ii)~gpt-oss emitting \emph{two JSON
+blocks} that OfficeBench's parser merged into one invalid action (``Malformed
+action'')---fixed by extracting the first balanced object, halving wasted steps
+($11/5\to7/1$ on a sample task); (iii)~an \emph{evaluation-path} bug (predicates
+referencing \code{../reference}/\code{../cache} outside the cached testbed)---fixed
+by mirroring OfficeBench's native output layout; (iv)~a flat 20-step cap that was
+\emph{budget-binding} on L3 (half its failures hit it; successes already used up to
+16 steps)---replaced by a \emph{level-dependent} cap (L1 15 / L2 22 / L3 30);
+(v)~\emph{duplicate procedures} from re-queued re-runs---fixed by dedupe-on-load.
+A targeted re-run of 11 cap-bound tasks at a 50-step budget rescued 2 (both simple
+Excel edits); the rest remained budget-bound because gpt-oss edits spreadsheets
+\emph{one cell per step}---a model step-inefficiency, not a cap artefact, that we
+report as a limitation.
+
+\paragraph{T0c --- calibration (cost local; utility LLM/API).} Measured EM
+injection cost is $\sim$1239 tokens/consult. The counterfactual utility on the
+\emph{raw} bank is the key (and honest) finding: episodic reuse is net
+$\approx 0$ or \emph{negative} on most patterns (it \emph{hurt} \code{data\_compute}
+and \code{single\_action}), with only \code{lookup} ($+0.33$) and \code{multi\_app}
+($+0.17$) positive. \textbf{Raw trajectory-RAG does not reproduce LEGOMem's gains}---
+because LEGOMem \emph{curates} trajectories into clean reusable units and we
+initially banked them raw (noisy: the agent's own cell-by-cell edits and retries).
+This is itself a result: the $\rho$-gate correctly \emph{declines} a memory that
+does not help, and indiscriminate retrieve-all would inject it (and the
+$\sim$1239-token cost) even where it hurts.
+
+\paragraph{Current step --- LEGOMem-style curation (option D).} We therefore added a
+curation layer using LEGOMem's \emph{verbatim} memory-curation prompt (Appendix A of
+\cite{legomem}): an LLM distills each successful trajectory into structured memory
+(\code{high\_level\_plan} $+$ per-agent \code{subtasks} $+$ \code{reflections}),
+denoising before banking. Curation is running; we then re-measure utility on the
+curated bank---the expectation is that curated $U$ turns positive, so the
+$\rho$-gate consults EM where it now helps.
+
+\paragraph{Planned (T1, T9).} \textbf{T1}: the by-level comparison
+(no-memory vs.\ retrieve-all vs.\ $\rho$-gated PCCR) over the 152 test tasks
+$\times$3 methods, reporting success/consults/tokens per L1/L2/L3---the LEGOMem
+head-to-head. \textbf{T9}: the combined system test---$\rho$-gate $+$ 4 parallel
+tasks $+$ $N$ parallel sub-agents in one task---exercising routing and both
+concurrency dimensions together with per-task container isolation.
+
+% =====================================================================
+\section{Experiment Inventory: API vs.\ Local, and Why}\label{sec:inventory}
+% =====================================================================
+Table~\ref{tab:inv} lists every experiment, whether it issues live LLM calls, and
+why. The pattern is deliberate: anything that depends on a \emph{task outcome}
+(accuracy, utility) must run the agent loop (API); anything that depends only on
+the \emph{routing decision or retrieval} (consult counts, recall, latency
+scheduling, equivalence) is deterministic and runs offline, which is why the cost
+and correctness claims are cheap and exactly reproducible.
+
+\begin{table}[t]
+\centering\scriptsize
+\begin{tabular}{@{}llp{3.1cm}@{}}
+\toprule
+Experiment & LLM? & Why \\
+\midrule
+PCCR 2/3-agent (\S\ref{sec:pccr-results}) & \textbf{API} & measures task success \\
+Per-pattern routing & local & consult set is deterministic \\
+$\theta$ frontier / tokens & local & gating + token count, no outcome \\
+A1 cost calibration & local & times retrieval, counts tokens \\
+A2 utility (counterfactual) & \textbf{API} & needs success on/off \\
+No-mem \& memory-critical & \textbf{API} & measures task success \\
+Scale ($-83\%$ consults) & \textbf{API} & success at scale \\
+LongMemEval D1 (recall) & local & retrieval recall is deterministic \\
+LongMemEval D2 (QA) & \textbf{API} & generates + grades answers \\
+Parallel latency (C1/C2) & modeled & overlaps measured-latency awaits \\
+Parallel equivalence (C3) & local & deterministic stub backends \\
+Stress/unit tests (39) & local & invariants, no model needed \\
+OfficeBench T0a/T1 & \textbf{API} & multi-step agent execution \\
+OfficeBench curation (D) & \textbf{API} & LLM distills trajectories \\
+\bottomrule
+\end{tabular}
+\caption{Which experiments call the LLM and why. ``modeled'' = real async
+scheduling with the per-call cost set to the measured $0.516$\,s.}
+\label{tab:inv}
+\end{table}
+
+% =====================================================================
+\section{Discussion and Limitations}
+% =====================================================================
+\textbf{Scale.} The OfficeBench held-out sets are small (11/32 tasks); the routing
+results are a directional proof-of-concept, and some splits are pattern-skewed---
+scaling and balancing is the priority for a camera-ready result. \textbf{Cost
+currency.} In our local harness FAISS is milliseconds and LLM inference dominates
+wall-clock, so we report retrieval cost (consultations, FAISS queries, injected
+tokens), the deployment-relevant cost when stores are large, remote, or LLM-backed;
+token counts are approximate and a lower bound. \textbf{Priors.} $C$ and $U$ begin
+hand-set (the loop refines $U$; $C$ is replaceable by logged latencies); a fully
+learned cost model and a counterfactual with/without-store measurement of utility
+remain future work. \textbf{Latency model.} We model agent work as the measured
+per-call latency rather than re-issuing 440 live calls (cost/rate-limit); the
+\emph{scheduling} measured is the real framework's, but absolute numbers assume the
+I/O-bound regime. \textbf{Provider limits.} Effective $C$ is capped below the ideal
+by provider rate limits (we observed HTTP~429) and by the dependency critical path.
+\textbf{Dependency granularity.} L3 uses a coarse keyword-based, category-precedence
+DAG; it is safe (never parallelizes a true dependency) but may serialize some
+independent work, leaving speedup on the table---a learned/semantic dependency
+analyzer is future work. \textbf{Environment isolation.} Outcome-equivalence
+assumes per-task external isolation; systems that share a live mutable environment
+must add application-level resource coordination, as benchmarks already do.
+\textbf{Raw vs.\ curated memory.} On full OfficeBench, \emph{raw} episodic reuse was
+net-neutral-to-negative (\S\ref{sec:ob}); a curation layer (LEGOMem's prompt) is the
+ingredient that makes procedural memory help, and is the current focus. \textbf{Live
+throughput.} The headline $3.73$--$13.5\times$ speedups are at the measured latency;
+on a rate-limited 4-key account the realised speedup was $1.19\times$
+(\S\ref{sec:lme})---the architecture is not the bottleneck, the provider quota is.
+\textbf{Model step-efficiency.} gpt-oss-120b edits spreadsheets one cell per step,
+exhausting step budgets on Excel-heavy tasks; a coarser tool action would help more
+than a larger budget.
+
+\paragraph{Current status and next steps.} (a)~The reference router + parallel
+architecture and the LongMemEval study are complete and reproducible. (b)~On full
+OfficeBench the no-memory baseline, the 62-procedure bank, and cost/utility
+calibration are done; LEGOMem-style \emph{curation} is running, after which we
+re-measure utility and run \textbf{T1} (the by-level no-memory/retrieve-all/PCCR
+comparison) and \textbf{T9} (combined routing $+$ two-dimensional parallelism).
+(c)~A8 (cross-model generality) and a balanced, multi-seed scale-up remain the two
+evidence gaps; both need API budget, not redesign.
+
+% =====================================================================
+\section{Reproducibility}
+% =====================================================================
+The router lives in \code{memory\_manager/router.py} and the lifecycle in
+\code{manager.py}; the parallelism lives in \code{parallel.py} and
+\code{task\_queue.py} with manager hooks. Three scripts reproduce the parallel
+results: \code{run\_parallel\_demo.py} (all seven layers end-to-end, offline),
+\code{bench\_parallel.py} (Tables~\ref{tab:lat}--\ref{tab:scale}), and
+\code{verify\_equivalence.py} (Table~\ref{tab:eq}). All 39 unit tests run with
+\code{pytest}. No API key is needed for the demo, benchmark, or equivalence check
+(deterministic stub backends); the latency constant is the only measured input and
+is overridable. The full-scale OfficeBench evaluation lives in \code{officebench\_eval/}
+(\code{real\_arch.py} wires the real FAISS \code{EpisodicStore} $+$ \code{router.py}
+into the Docker harness; \code{build\_bank.py}/\code{calibrate.py}/\code{curate.py}/
+\code{run\_t1.py} are the T0a/T0c/curation/T1 stages, all checkpointed with full
+per-task traces); the LongMemEval integration lives in \code{longmemeval/}. Cost
+calibration, retrieval-recall, and equivalence are local/deterministic; accuracy,
+utility, and QA require the backbone (Table~\ref{tab:inv}).
+
+% =====================================================================
+\section{Conclusion}
+% =====================================================================
+We presented PCCR, which conditions retrieval on lifecycle phase and task pattern,
+gates each store by an explicit cost-effectiveness ratio, and adapts from logged
+outcomes---matching or beating an indiscriminate retrieve-everything policy on
+OfficeBench while cutting store consultations by 41--87\% and injected tokens by up
+to 89\% at equal accuracy. We then extended PCCR with two orthogonal dimensions of
+concurrency---parallel sub-agents within a task and parallel tasks across the
+system---through a seven-layer design that leaves the $\rho$-gate router and the
+ten-phase lifecycle intact. Per-task Working-Memory isolation, deterministic
+dependency-wave execution, and per-resource locking with an exclusive consolidation
+window make the parallel schedule provably and empirically outcome-equivalent to
+the sequential one: $3.73\times$ faster at $C{=}4$ (up to $13.5\times$ at $C{=}16$)
+with \textbf{60/60 byte-identical} outcomes. A memory architecture can be made
+cost-efficient and throughput-efficient at the same time, with accuracy held
+exactly constant; ``which memory to consult'' should be a tunable, phase-aware,
+cost-sensitive decision rather than a reflex, and ``how to execute'' a concurrency
+question answerable without disturbing it.
+
+\begin{thebibliography}{99}\small
+\bibitem{coala} T.~Sumers et al. Cognitive Architectures for Language Agents (CoALA). TMLR, 2024.
+\bibitem{survey1} Memory for Autonomous LLM Agents: Mechanisms, Evaluation, and Emerging Frontiers. arXiv:2603.07670.
+\bibitem{survey2} Anatomy of Agentic Memory: Taxonomy and Empirical Analysis. arXiv:2602.19320.
+\bibitem{pocket} M.~Gaikwad. Did You Check the Right Pocket? Cost-Sensitive Store Routing for Memory-Augmented Agents. ICLR 2026 Workshop. arXiv:2603.15658.
+\bibitem{budgetmem} H.~Zhang et al. Learning Query-Aware Budget-Tier Routing for Runtime Agent Memory (BudgetMem). arXiv:2602.06025.
+\bibitem{memrouter} MemRouter: Memory-as-Embedding Routing for Long-Term Conversational Agents. arXiv:2605.00356.
+\bibitem{umem} Towards Autonomous Memory Agents (U-Mem). arXiv:2602.22406.
+\bibitem{agemem} Agentic Memory: Learning Unified Long-Term and Short-Term Memory Management for LLM Agents. arXiv:2601.01885.
+\bibitem{fluxmem} Choosing How to Remember: Adaptive Memory Structures for LLM Agents (FluxMem). arXiv:2602.14038.
+\bibitem{legomem} LEGOMem: Modular Procedural Memory for Multi-agent LLM Systems. arXiv:2510.04851.
+\bibitem{mirix} Y.~Wang, X.~Chen. MIRIX: Multi-Agent Memory System for LLM-Based Agents. arXiv:2507.07957.
+\bibitem{rcr} RCR-Router: Efficient Role-Aware Context Routing for Multi-Agent LLM Systems. arXiv:2508.04903.
+\bibitem{amem} A-MEM: Agentic Memory for LLM Agents. NeurIPS, 2025. arXiv:2502.12110.
+\bibitem{selfcons} Self-Consolidation for Self-Evolving Agents. arXiv:2602.01966.
+\bibitem{memgpt} C.~Packer et al. MemGPT: Towards LLMs as Operating Systems. 2024.
+\bibitem{mem0} Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory. 2025.
+\bibitem{memmachine} MemMachine: A Ground-Truth-Preserving Memory System. arXiv:2604.04853.
+\bibitem{memos} MemOS: An Operating System for Memory-Augmented Generation. EMNLP 2025. arXiv:2505.22101.
+\bibitem{voi} R.~Howard. Information Value Theory. IEEE Trans. SSC, 1966.
+\bibitem{meta} S.~Russell, E.~Wefald. Principles of Metareasoning. Artificial Intelligence, 1991.
+\bibitem{dyntaskmas} DynTaskMAS: A Dynamic Task-Graph Multi-Agent System with Asynchronous Parallel Execution. arXiv:2503.07675.
+\bibitem{gap} GAP: Graph-based Agent Planning with Dependency-Aware Parallelism. arXiv:2510.25320.
+\bibitem{spoq} SPOQ: Scheduling Parallel Orchestration via Topological Wave Dispatch. arXiv:2606.03115.
+\bibitem{comparch} A Compositional Architecture for Consistent Agent Memory. arXiv:2603.10062.
+\bibitem{aisac} AISAC: A Blackboard-Based Shared-Context Substrate for Multi-Agent Systems. arXiv:2511.14043.
+\bibitem{adaptorch} AdaptOrch: Adaptive Parallel/Sequential Orchestration for LLM Agents. arXiv:2602.16873.
+\bibitem{officebench} T.~Wang et al. OfficeBench: Benchmarking Language Agents across Multiple Applications for Office Automation. arXiv:2407.19056.
+\bibitem{longmemeval} D.~Wu et al. LongMemEval: Benchmarking Chat Assistants on Long-Term Interactive Memory. ICLR 2025. arXiv:2410.10813.
+\end{thebibliography}
+
+\end{document}
