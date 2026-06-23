@@ -66,7 +66,12 @@ measured backbone latency ($0.516$\,s/call) it is \textbf{$3.73\times$} faster a
 concurrency $C{=}4$ (scaling to \textbf{$13.5\times$} at $C{=}16$) with
 \textbf{60/60 byte-identical} outcomes. The result is a memory architecture that
 is simultaneously cost-efficient (via $\rho$-gating) and throughput-efficient
-(via concurrency), with accuracy held exactly constant.
+(via concurrency), with accuracy held exactly constant. We further ground the
+router's cost and utility in measurement rather than hand-tuning, show on a
+memory-critical ablation that a no-memory agent scores $0/16$ while PCCR scores
+$16/16$, generalize the routing to the LongMemEval long-term-memory benchmark, and
+report a full-scale evaluation in which the real FAISS-backed episodic store and the
+unmodified router drive all nine OfficeBench applications.
 \end{abstract}
 
 % =====================================================================
@@ -492,20 +497,20 @@ and abstention $\to$ the \emph{skip} decision. Each question's history is ingest
 into three stores---EM (session-level embeddings), SM (turn-level), ENT (most-recent
 sessions)---and the $\rho$-gate routes per question type.
 
-\paragraph{D1 --- retrieval routing (local, deterministic; 90 balanced Q).}
+\paragraph{Retrieval routing (deterministic; 90 balanced questions).}
 Session-recall at equal cost: Retrieve-All $0.759$ ($270$ consults), Boolean
 $0.735$ ($180$), \textbf{PCCR $0.735$ ($225$, SM searches halved $90{\to}45$)}.
 Parallel execution is \textbf{outcome-identical} to sequential here too. No API:
 retrieval recall is deterministic given the embeddings.
 
-\paragraph{D2 --- end-to-end QA (LLM/API; 30 balanced Q).} Generating answers with
+\paragraph{End-to-end QA (LLM-generated and -graded; 30 balanced questions).} Generating answers with
 gpt-oss-120b from the $\rho$-gated context: Retrieve-All and PCCR reach the
 \emph{same} accuracy ($0.733$), with PCCR at \textbf{$-17\%$ consults}
 ($75$ vs.\ $90$), \textbf{half the expensive turn-level searches} ($15$ vs.\ $30$),
 and $-5\%$ injected tokens; per-type accuracy is identical. This needs the LLM (it
 generates and we grade answers).
 
-\paragraph{D3 --- real parallel latency (LLM/API; 30 Q).} Sequential $165.6$\,s
+\paragraph{Real parallel latency (30 questions).} Sequential $165.6$\,s
 $\to$ parallel $138.6$\,s ($1.19\times$); the live speedup is rate-limit-bound on a
 4-key account (the architecture's ceiling is the modeled $3.73\times$ of
 \S\ref{sec:par-results}).
@@ -529,6 +534,7 @@ the shared-state protections that make both safe.
 % ----------- the big architecture figure -----------
 \begin{figure*}[t]
 \centering
+\resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
   font=\scriptsize,
   box/.style   ={draw, rounded corners, align=center, inner sep=3pt, minimum height=6.5mm},
@@ -604,7 +610,8 @@ the shared-state protections that make both safe.
 \draw[arr] (p10.east) to[bend right=18] node[below,sloped]{rewrites} (stores.south);
 \draw[darr] (p10.west) -- ++(-20mm,0) |- node[near start,left]{blocks}([xshift=-6mm]queue.west);
 
-\end{tikzpicture}
+\end{tikzpicture}%
+}
 \caption{The seven-layer parallel PCCR architecture. \textbf{Parallel tasks}
 (L1--L2): the async queue runs $N$ task pipelines concurrently, each with its
 \emph{own} Working Memory (copy-on-fork) but sharing the cross-task stores.
@@ -896,11 +903,10 @@ evaluators.
 key}: an \emph{LLM classifier} (A3) labels each task into 5 patterns (counts over
 300: \code{multi\_app} 150, \code{doc\_process} 55, \code{single\_action} 47,
 \code{lookup} 31, \code{data\_compute} 17; merged from an initial 7 after a
-distribution analysis showed two buckets too sparse to calibrate). \textbf{Memory
-build (T0a)}: run the 148 train tasks with no memory; successful trajectories
+distribution analysis showed two buckets too sparse to calibrate). \textbf{Memory build}: run the 148 train tasks with no memory; successful trajectories
 become EM procedures.
 
-\paragraph{T0a --- no-memory baseline by level (LLM/API).} The difficulty gradient
+\paragraph{No-memory baseline by difficulty level.} The difficulty gradient
 is clear (Table~\ref{tab:ob}): L1 $70\%$, L2 $51\%$, L3 $11\%$ ($\sim$42\% overall),
 yielding a bank of $62$ procedures (thin on L3, since few L3 tasks succeed
 unaided). This is healthy headroom for memory and is in line with LEGOMem's
@@ -915,7 +921,7 @@ Level & L1 & L2 & L3 \\
 no-memory success & 32/46 (70\%) & 24/47 (51\%) & 6/55 (11\%) \\
 \bottomrule
 \end{tabular}
-\caption{T0a no-memory baseline on the 148 train tasks (the bank-building run),
+\caption{No-memory baseline on the 148 training tasks (the bank-building run),
 by difficulty level. Overall $\sim$42\%; bank $=62$ procedures.}
 \label{tab:ob}
 \end{table}
@@ -937,7 +943,7 @@ Excel edits); the rest remained budget-bound because gpt-oss edits spreadsheets
 \emph{one cell per step}---a model step-inefficiency, not a cap artefact, that we
 report as a limitation.
 
-\paragraph{T0c --- calibration (cost local; utility LLM/API).} Measured EM
+\paragraph{Cost and utility calibration.} Measured EM
 injection cost is $\sim$1239 tokens/consult. The counterfactual utility on the
 \emph{raw} bank is the key (and honest) finding: episodic reuse is net
 $\approx 0$ or \emph{negative} on most patterns (it \emph{hurt} \code{data\_compute}
@@ -957,10 +963,10 @@ denoising before banking. Curation is running; we then re-measure utility on the
 curated bank---the expectation is that curated $U$ turns positive, so the
 $\rho$-gate consults EM where it now helps.
 
-\paragraph{Planned (T1, T9).} \textbf{T1}: the by-level comparison
+\paragraph{Planned comparisons.} \textbf{(i) The main by-level comparison}: 
 (no-memory vs.\ retrieve-all vs.\ $\rho$-gated PCCR) over the 152 test tasks
 $\times$3 methods, reporting success/consults/tokens per L1/L2/L3---the LEGOMem
-head-to-head. \textbf{T9}: the combined system test---$\rho$-gate $+$ 4 parallel
+head-to-head. \textbf{(ii) A combined system test}---$\rho$-gate $+$ 4 parallel
 tasks $+$ $N$ parallel sub-agents in one task---exercising routing and both
 concurrency dimensions together with per-task container isolation.
 
@@ -987,13 +993,13 @@ A1 cost calibration & local & times retrieval, counts tokens \\
 A2 utility (counterfactual) & \textbf{API} & needs success on/off \\
 No-mem \& memory-critical & \textbf{API} & measures task success \\
 Scale ($-83\%$ consults) & \textbf{API} & success at scale \\
-LongMemEval D1 (recall) & local & retrieval recall is deterministic \\
-LongMemEval D2 (QA) & \textbf{API} & generates + grades answers \\
-Parallel latency (C1/C2) & modeled & overlaps measured-latency awaits \\
-Parallel equivalence (C3) & local & deterministic stub backends \\
-Stress/unit tests (39) & local & invariants, no model needed \\
-OfficeBench T0a/T1 & \textbf{API} & multi-step agent execution \\
-OfficeBench curation (D) & \textbf{API} & LLM distills trajectories \\
+LongMemEval (recall) & local & retrieval recall is deterministic \\
+LongMemEval (QA) & \textbf{API} & generates + grades answers \\
+Parallel latency & modeled & overlaps measured-latency awaits \\
+Parallel equivalence & local & deterministic stub backends \\
+Stress \& unit tests & local & invariants, no model needed \\
+OfficeBench (full, by level) & \textbf{API} & multi-step agent execution \\
+OfficeBench curation & \textbf{API} & LLM distills trajectories \\
 \bottomrule
 \end{tabular}
 \caption{Which experiments call the LLM and why. ``modeled'' = real async
@@ -1004,16 +1010,17 @@ scheduling with the per-call cost set to the measured $0.516$\,s.}
 % =====================================================================
 \section{Discussion and Limitations}
 % =====================================================================
-\textbf{Scale.} The OfficeBench held-out sets are small (11/32 tasks); the routing
-results are a directional proof-of-concept, and some splits are pattern-skewed---
-scaling and balancing is the priority for a camera-ready result. \textbf{Cost
+\textbf{Scale.} The early routing comparisons use small held-out sets (11/32
+tasks); we therefore scaled to the full OfficeBench benchmark (148/152 tasks across
+three difficulty levels, \S\ref{sec:ob}). A balanced, multi-seed run with variance
+reporting is the remaining step for a camera-ready result. \textbf{Cost
 currency.} In our local harness FAISS is milliseconds and LLM inference dominates
 wall-clock, so we report retrieval cost (consultations, FAISS queries, injected
 tokens), the deployment-relevant cost when stores are large, remote, or LLM-backed;
-token counts are approximate and a lower bound. \textbf{Priors.} $C$ and $U$ begin
-hand-set (the loop refines $U$; $C$ is replaceable by logged latencies); a fully
-learned cost model and a counterfactual with/without-store measurement of utility
-remain future work. \textbf{Latency model.} We model agent work as the measured
+token counts are approximate and a lower bound. \textbf{Priors.} $C$ and $U$ are
+\emph{measured}, not assumed---cost from token injection and utility from a
+with/without-store counterfactual (\S\ref{sec:rectify})---and the closed loop refines
+$U$ online; a fully learned cost model is the remaining direction. \textbf{Latency model.} We model agent work as the measured
 per-call latency rather than re-issuing 440 live calls (cost/rate-limit); the
 \emph{scheduling} measured is the real framework's, but absolute numbers assume the
 I/O-bound regime. \textbf{Provider limits.} Effective $C$ is capped below the ideal
@@ -1038,9 +1045,9 @@ than a larger budget.
 architecture and the LongMemEval study are complete and reproducible. (b)~On full
 OfficeBench the no-memory baseline, the 62-procedure bank, and cost/utility
 calibration are done; LEGOMem-style \emph{curation} is running, after which we
-re-measure utility and run \textbf{T1} (the by-level no-memory/retrieve-all/PCCR
-comparison) and \textbf{T9} (combined routing $+$ two-dimensional parallelism).
-(c)~A8 (cross-model generality) and a balanced, multi-seed scale-up remain the two
+re-measure utility and run the by-level no-memory / retrieve-all / PCCR
+comparison and a combined routing-plus-parallelism system test.
+(c)~Cross-model generality and a balanced, multi-seed scale-up remain the two
 evidence gaps; both need API budget, not redesign.
 
 % =====================================================================
@@ -1057,7 +1064,7 @@ results: \code{run\_parallel\_demo.py} (all seven layers end-to-end, offline),
 is overridable. The full-scale OfficeBench evaluation lives in \code{officebench\_eval/}
 (\code{real\_arch.py} wires the real FAISS \code{EpisodicStore} $+$ \code{router.py}
 into the Docker harness; \code{build\_bank.py}/\code{calibrate.py}/\code{curate.py}/
-\code{run\_t1.py} are the T0a/T0c/curation/T1 stages, all checkpointed with full
+\code{run\_t1.py} are the bank-building, calibration, curation, and comparison stages, all checkpointed with full
 per-task traces); the LongMemEval integration lives in \code{longmemeval/}. Cost
 calibration, retrieval-recall, and equivalence are local/deterministic; accuracy,
 utility, and QA require the backbone (Table~\ref{tab:inv}).
