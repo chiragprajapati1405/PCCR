@@ -50,45 +50,59 @@ def measure_cost(sample=40):
     print(json.dumps(out, indent=2)); print(f"wrote {CALIB}/store_cost.json")
 
 
-def measure_utility(per_pattern=6, model="gpt-oss-120b"):
+def measure_utility(per_pattern=100, model="gpt-oss-120b"):
+    """ON-only: reuse T0a's no-memory results as P(success|off) (the bank was built
+    by that same no-memory run), and only run the EM-ON condition (retrieve_all,
+    leave-one-out) over all train tasks. U = clamp(P_on - P_off, 0, 1)."""
     cost, util = load_calibration(CALIB)
     real = RealArch(BANK, cost, util, theta=0.0)
     pats = {(p["task"], p["subtask"]): p["pattern"] for p in json.load(open(PATTERNS))}
+    train = json.load(open(SPLIT))["train"]
+
+    # P_off per pattern from T0a (no-memory) -- no re-running of OFF
+    t0 = json.load(open(os.path.join(_PKG, "t0_progress.json")))
+    off = defaultdict(lambda: [0, 0])
+    for it in train:
+        k = f"{it['task']}/{it['subtask']}"
+        if k in t0:
+            pat = pats.get((it["task"], it["subtask"]), "multi_app")
+            off[pat][0] += int(bool(t0[k])); off[pat][1] += 1
+
     by = defaultdict(list)
-    for it in json.load(open(SPLIT))["train"]:
+    for it in train:
         by[pats.get((it["task"], it["subtask"]), "multi_app")].append(it)
     calib = [(it, p) for p, items in by.items() for it in items[:per_pattern]]
 
     os.makedirs(CALIB, exist_ok=True)
     prog_path = f"{CALIB}/utility_progress.json"
     prog = json.load(open(prog_path)) if os.path.exists(prog_path) else {}
-    succ = defaultdict(lambda: [0, 0])  # (pattern,cond) -> [passed,total]
+    on = defaultdict(lambda: [0, 0])
 
-    print(f"counterfactual utility over {len(calib)} calib tasks x 2 (EM off/on, LOO)...")
+    print(f"ON-only utility: {len(calib)} train tasks (EM-on, LOO); P_off reused from T0a")
     for i, (it, pat) in enumerate(calib):
-        for cond, method in [("off", "no_memory"), ("on", "retrieve_all")]:
-            key = f"{it['task']}/{it['subtask']}|{cond}"
-            if key in prog:
-                ok = prog[key]
-            else:
-                try:
-                    r = run_task(it["task"], it["subtask"], model=model, real_arch=real,
-                                 method=method, pattern=pat, max_iter=cap_for_level(it["level"]),
-                                 container="ob-calib", exclude_task=it["task"])  # LOO
-                    ok = int(r["success"])
-                except Exception as e:
-                    print(f"   {key} ERR {str(e)[:60]}"); ok = 0
-                prog[key] = ok; json.dump(prog, open(prog_path, "w"))
-            succ[(pat, cond)][0] += ok; succ[(pat, cond)][1] += 1
-        print(f"  [{i+1}/{len(calib)}] {it['task']}/{it['subtask']} [{pat}]", flush=True)
+        key = f"{it['task']}/{it['subtask']}|on"
+        if key in prog:
+            ok = prog[key]
+        else:
+            try:
+                r = run_task(it["task"], it["subtask"], model=model, real_arch=real,
+                             method="retrieve_all", pattern=pat, max_iter=cap_for_level(it["level"]),
+                             container="ob-calib", exclude_task=it["task"])  # LOO
+                ok = int(r["success"])
+            except Exception as e:
+                print(f"   {key} ERR {str(e)[:60]}"); ok = 0
+            prog[key] = ok; json.dump(prog, open(prog_path, "w"))
+        on[pat][0] += ok; on[pat][1] += 1
+        print(f"  [{i+1}/{len(calib)}] {it['task']}/{it['subtask']} [{pat}] on={ok}", flush=True)
 
-    util_out = {}
+    util_out, raw = {}, {}
     for pat in by:
-        on, off = succ[(pat, "on")], succ[(pat, "off")]
-        u = max(0.0, min(1.0, on[0]/max(on[1], 1) - off[0]/max(off[1], 1)))
+        p_on = on[pat][0] / max(on[pat][1], 1)
+        p_off = off[pat][0] / max(off[pat][1], 1)
+        u = max(0.0, min(1.0, p_on - p_off))
         util_out[pat] = {"orchestrator": round(u, 3), "agent": round(u, 3)}
-    out = {**util_out, "_method": "U = clamp(P(success|EM on,LOO) - P(success|off), 0, 1)",
-           "_raw": {f"{p}|{c}": v for (p, c), v in succ.items()}}
+        raw[f"{pat}|on"] = on[pat]; raw[f"{pat}|off(T0a)"] = off[pat]
+    out = {**util_out, "_method": "U = clamp(P(on, LOO) - P_off[T0a no-memory], 0, 1)", "_raw": raw}
     json.dump(out, open(f"{CALIB}/pattern_utility.json", "w"), indent=2)
     print(json.dumps(util_out, indent=2)); print(f"wrote {CALIB}/pattern_utility.json")
 
