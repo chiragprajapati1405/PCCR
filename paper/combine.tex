@@ -13,6 +13,18 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc,shapes.geometric}
 \usepackage[hidelinks]{hyperref}
+\usepackage{stfloats}     % correct placement of full-width (figure*/table*) floats in twocolumn
+
+% ---- float placement: avoid [t]-only pile-ups overlapping in twocolumn ----
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.7}
+\renewcommand{\textfraction}{0.06}
+\renewcommand{\floatpagefraction}{0.7}
+\setlength{\textfloatsep}{12pt plus 3pt minus 3pt}
+\setlength{\floatsep}{10pt plus 3pt minus 2pt}
 
 \titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.5em}{}
 \titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.5em}{}
@@ -811,7 +823,7 @@ versus $227.7$\,s sequential---a \textbf{$3.73\times$ speedup}, $-73\%$ wall-clo
 (Table~\ref{tab:lat}). The sequential time matches the analytic
 $440{\times}0.516{=}227.0$\,s, confirming the model.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \centering\small
 \begin{tabular}{@{}lccc@{}}
 \toprule
@@ -835,7 +847,7 @@ overlap, which roughly cancels the per-wave snapshot/merge overhead. The win is
 therefore dominated by \emph{parallel tasks}, with \emph{parallel sub-agents} a
 secondary benefit on coordination/exploratory tasks.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \centering\small
 \begin{tabular}{@{}lccccc@{}}
 \toprule
@@ -861,7 +873,7 @@ calendar events seen by a search agent), while success, plan, and memory state
 remain identical---exactly the single divergence vector predicted above, removed by
 isolation.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \centering\small
 \begin{tabular}{@{}lcc@{}}
 \toprule
@@ -912,7 +924,7 @@ yielding a bank of $62$ procedures (thin on L3, since few L3 tasks succeed
 unaided). This is healthy headroom for memory and is in line with LEGOMem's
 $\sim$46\% no-memory baseline (they used GPT-4o; we use gpt-oss-120b).
 
-\begin{table}[t]
+\begin{table}[htbp]
 \centering\small
 \begin{tabular}{@{}lccc@{}}
 \toprule
@@ -980,7 +992,7 @@ the \emph{routing decision or retrieval} (consult counts, recall, latency
 scheduling, equivalence) is deterministic and runs offline, which is why the cost
 and correctness claims are cheap and exactly reproducible.
 
-\begin{table}[t]
+\begin{table}[htbp]
 \centering\scriptsize
 \begin{tabular}{@{}llp{3.1cm}@{}}
 \toprule
