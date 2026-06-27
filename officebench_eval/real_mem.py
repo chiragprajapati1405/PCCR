@@ -51,7 +51,7 @@ class RealMem:
 
     def __init__(self, bank_path, theta=1.0, stm_threshold=0.92, username="user", date="2026-06-08",
                  confidence_gate=False, sim_threshold=0.55, curate_pm=False, model="gpt-oss-120b",
-                 stm_capacity=0):
+                 stm_capacity=0, online=False):
         s = config.Settings(embedding_backend="sentence-transformers", llm_backend="stub",
                             stm_cache_threshold=stm_threshold, confidence_gate=confidence_gate,
                             stm_capacity=stm_capacity)
@@ -63,6 +63,12 @@ class RealMem:
         if confidence_gate:
             self.mgr.router.confidence_only = True
             self.mgr.router.confidence_sim_threshold = sim_threshold
+        # A2: online closed-loop -- learn U=P_on-P_off per (pattern,store) from outcomes.
+        # Uses the prior-utility gate (not confidence_only, which it would bypass).
+        self.online = online
+        if online:
+            from memory_manager.online_utility import OnlineUtility
+            self.mgr.router.online = OnlineUtility()
         self.username, self.date = username, date
         emb = self.mgr.embedder
         self._clean_actions: dict[str, list[str]] = {}             # desc -> ordered SUCCESSFUL actions (for replay, B1)
@@ -137,6 +143,16 @@ class RealMem:
             return (float(sc), m.description, acts) if acts else None
         return None
 
+    def record_outcome(self, ob_pattern, consulted_stores, success):
+        """A2: feed one completed task's outcome into the online estimator so the gate
+        adapts (U=P_on-P_off). Maps the OB pattern + consulted store names to the
+        router's types. No-op unless online learning is enabled."""
+        if not self.online:
+            return
+        consulted = {MemoryType(s) for s in consulted_stores if s in (
+            MemoryType.EM.value, MemoryType.SM.value, MemoryType.ENT.value)}
+        self.mgr.router.record_outcome(PAT_MAP.get(ob_pattern, Pattern.COORDINATION), consulted, bool(success))
+
     def retrieve(self, task_desc, ob_pattern, exclude_task=None):
         """Real retrieve() cascade -> (injected memory block, trace)."""
         self.mgr.ingest_task(task_desc, self.username, self.date)
@@ -154,6 +170,13 @@ class RealMem:
             blocks.append("##CACHED PLAN (near-identical past task): " + " ; ".join(cb.plan[:8]))
         else:
             if b.episodes:                                          # EM (rho-gated)
+                # B3: memory-guided step budget -- the closest past episode's length is a
+                # soft expectation that curbs exploratory flailing (a hint, not a hard cap).
+                top_sc, top_m = b.episodes[0]
+                n_exp = len(self._clean_actions.get(top_m.description, [])) or len(top_m.plan)
+                if top_sc >= 0.6 and n_exp:
+                    blocks.append(f"##STEP BUDGET: a near-identical past task finished in ~{n_exp} "
+                                  "actions; plan efficiently and avoid unnecessary exploration.")
                 blocks.append("##RELEVANT PAST TASK PLANS:")
                 for sc, m in b.episodes:
                     if exclude_task and m.description == exclude_task:

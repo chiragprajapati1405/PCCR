@@ -80,7 +80,8 @@ async def main_async(args):
     real = RealArch(BANK, cost, util, theta=args.theta)
     realmem = RealMem(BANK, theta=args.theta, stm_threshold=0.85,
                       confidence_gate=args.confidence, sim_threshold=args.sim_threshold,
-                      curate_pm=args.curate_pm, model=args.model, stm_capacity=args.stm_capacity)
+                      curate_pm=args.curate_pm, model=args.model, stm_capacity=args.stm_capacity,
+                      online=args.online)
     _lock_encode(real.embedder)
     _lock_encode(realmem.mgr.embedder)
     gate = f"A1 confidence (theta_sim={args.sim_threshold})" if args.confidence else \
@@ -126,6 +127,8 @@ async def main_async(args):
         finally:
             pool.put_nowait(container)                     # release
         async with write_lock:
+            if args.online:                              # A2: learn utility from this outcome
+                realmem.record_outcome(pat, r["em"].get("consulted_stores", []), r["success"])
             _record(prog, key, it, pat, r)
             json.dump(prog, open(PROGRESS, "w"))
             done = sum(1 for v in prog.values() if "level" in v)
@@ -187,6 +190,8 @@ def main():
     ap.add_argument("--batch-size", type=int, default=4, dest="batch_size")
     ap.add_argument("--stm-capacity", type=int, default=0, dest="stm_capacity",
                     help="C1: bounded STM budget with LFU+LRU eviction (0 = unbounded)")
+    ap.add_argument("--online", action="store_true",
+                    help="A2: online closed-loop -- learn U=P_on-P_off from outcomes (prior-utility gate)")
     args = ap.parse_args()
     asyncio.run(main_async(args))
 

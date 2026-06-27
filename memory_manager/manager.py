@@ -197,7 +197,7 @@ class MemoryManager:
         ctx = self.wm.current
         pattern = ctx.pattern or Pattern.SINGLE_ACTION
 
-        cache_hit = self.stm.lookup(ctx.description)
+        cache_hit = self.stm.lookup(ctx.description, pattern=pattern)   # C3 pattern guard
         stm_hit = cache_hit is not None
         k = self.settings.max_episodes_per_query
 

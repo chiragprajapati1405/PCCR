@@ -63,9 +63,14 @@ class ShortTermStore:
 
     # -- Retrieval: the cache-short-circuit check ---------------------------
 
-    def lookup(self, query_text: str) -> Optional[tuple[MemoryBundle, float]]:
+    def lookup(self, query_text: str, pattern: Optional[Pattern] = None) -> Optional[tuple[MemoryBundle, float]]:
         """Return (bundle, similarity) for the closest cached bundle if it
-        clears the similarity threshold ('STM HIT'), else None ('STM MISS')."""
+        clears the similarity threshold ('STM HIT'), else None ('STM MISS').
+
+        C3: optional pattern-match safety guard -- when `pattern` is given, a hit is
+        only accepted if the cached bundle is the SAME task pattern. This lets the
+        threshold be lowered (0.85->0.80) for more hits without short-circuiting onto
+        a plan from a different kind of task."""
         if not self._embeddings:
             return None
         query_vec = self._embedder.encode([query_text])[0]
@@ -80,6 +85,8 @@ class ShortTermStore:
         if sims[best] >= self._threshold:
             sig = self._signatures[best]
             bundle = self._bundles[sig]
+            if pattern is not None and bundle.pattern is not None and bundle.pattern != pattern:
+                return None                            # C3 guard: don't reuse a different pattern's plan
             bundle.hits += 1
             self._freq[best] += 1                      # C1: usage stats for eviction
             self._last[best] = self._tick()
