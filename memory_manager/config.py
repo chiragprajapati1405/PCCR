@@ -39,5 +39,9 @@ class Settings:
     # clears a single global threshold (label-free, no per-pattern utility table).
     confidence_gate: bool = os.environ.get("CONFIDENCE_GATE", "0") == "1"
 
+    # C1: bounded STM hot-cache. 0 -> unbounded (legacy); >0 -> fixed budget with
+    # LFU+LRU eviction so STM stays the hot set and scales to 1000+ tasks.
+    stm_capacity: int = int(os.environ.get("STM_CAPACITY", "0"))
+
 
 SETTINGS = Settings()

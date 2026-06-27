@@ -77,7 +77,8 @@ class MemoryManager:
 
         self.pm = ProceduralStore()
         self.wm = WorkingMemoryStore()
-        self.stm = ShortTermStore(self.embedder, settings.stm_cache_threshold)
+        self.stm = ShortTermStore(self.embedder, settings.stm_cache_threshold,
+                                  capacity=(getattr(settings, "stm_capacity", 0) or None))
         self.em = EpisodicStore(self.embedder, config.FAISS_DIR)
         self.sm = SemanticStore(self.embedder, config.FAISS_DIR)
         self.ent = EntityStore()

@@ -21,15 +21,45 @@ from ..types import MemoryBundle, Pattern
 
 
 class ShortTermStore:
-    def __init__(self, embedder, similarity_threshold: float):
+    def __init__(self, embedder, similarity_threshold: float, capacity: Optional[int] = None):
         self._embedder = embedder
         self._threshold = similarity_threshold
         self._bundles: dict[str, MemoryBundle] = {}   # signature -> bundle
         self._embeddings: list[np.ndarray] = []
         self._signatures: list[str] = []
+        # C1: bounded hot-cache. capacity=None -> unbounded (legacy). When set, the
+        # cache holds at most `capacity` occurrence-entries; on overflow it evicts the
+        # least-valuable one by LFU (fewest hits) with LRU tiebreak (oldest access), so
+        # frequently-reused procedures stay hot and cold prefill is shed. Scales to
+        # 1000+ tasks without STM degenerating into a copy of EM.
+        self._capacity = capacity
+        self._freq: list[int] = []                    # per-entry hit count
+        self._last: list[int] = []                    # per-entry last-access tick (LRU)
+        self._clock = 0
 
     def __len__(self) -> int:
         return len(self._bundles)
+
+    @property
+    def entries(self) -> int:
+        return len(self._signatures)
+
+    def _tick(self) -> int:
+        self._clock += 1
+        return self._clock
+
+    def _evict_if_needed(self) -> None:
+        if self._capacity is None:
+            return
+        while len(self._signatures) > self._capacity:
+            # victim = min (freq, last_access): least frequently used, oldest as tiebreak
+            victim = min(range(len(self._signatures)), key=lambda i: (self._freq[i], self._last[i]))
+            sig = self._signatures.pop(victim)
+            self._embeddings.pop(victim)
+            self._freq.pop(victim)
+            self._last.pop(victim)
+            if sig not in self._signatures:           # no other occurrence references this bundle
+                self._bundles.pop(sig, None)
 
     # -- Retrieval: the cache-short-circuit check ---------------------------
 
@@ -51,6 +81,8 @@ class ShortTermStore:
             sig = self._signatures[best]
             bundle = self._bundles[sig]
             bundle.hits += 1
+            self._freq[best] += 1                      # C1: usage stats for eviction
+            self._last[best] = self._tick()
             return bundle, float(sims[best])
         return None
 
@@ -76,6 +108,9 @@ class ShortTermStore:
             )
         self._signatures.append(signature)
         self._embeddings.append(np.asarray(embedding, dtype=np.float32))
+        self._freq.append(0)                           # new entry: cold until it's hit
+        self._last.append(self._tick())
+        self._evict_if_needed()                        # C1: enforce the budget
 
     # -- Consolidation: pre-fill with successful patterns -------------------
 

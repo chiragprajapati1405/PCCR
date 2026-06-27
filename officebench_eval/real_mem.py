@@ -50,9 +50,11 @@ class RealMem:
     """The real MemoryManager wired for OfficeBench (EM/SM/PM/STM all live)."""
 
     def __init__(self, bank_path, theta=1.0, stm_threshold=0.92, username="user", date="2026-06-08",
-                 confidence_gate=False, sim_threshold=0.55, curate_pm=False, model="gpt-oss-120b"):
+                 confidence_gate=False, sim_threshold=0.55, curate_pm=False, model="gpt-oss-120b",
+                 stm_capacity=0):
         s = config.Settings(embedding_backend="sentence-transformers", llm_backend="stub",
-                            stm_cache_threshold=stm_threshold, confidence_gate=confidence_gate)
+                            stm_cache_threshold=stm_threshold, confidence_gate=confidence_gate,
+                            stm_capacity=stm_capacity)
         self.mgr = MemoryManager(s)
         self.mgr.bootstrap(ORCH_PROMPT, AGENT_PROMPTS, TASK_RULES, AGENT_PROFILES)
         self.mgr.router.consult_threshold = theta

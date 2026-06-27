@@ -80,7 +80,7 @@ async def main_async(args):
     real = RealArch(BANK, cost, util, theta=args.theta)
     realmem = RealMem(BANK, theta=args.theta, stm_threshold=0.85,
                       confidence_gate=args.confidence, sim_threshold=args.sim_threshold,
-                      curate_pm=args.curate_pm, model=args.model)
+                      curate_pm=args.curate_pm, model=args.model, stm_capacity=args.stm_capacity)
     _lock_encode(real.embedder)
     _lock_encode(realmem.mgr.embedder)
     gate = f"A1 confidence (theta_sim={args.sim_threshold})" if args.confidence else \
@@ -185,6 +185,8 @@ def main():
     ap.add_argument("--plan", action="store_true",
                     help="B2: plan-then-execute (batch next K actions per LLM call)")
     ap.add_argument("--batch-size", type=int, default=4, dest="batch_size")
+    ap.add_argument("--stm-capacity", type=int, default=0, dest="stm_capacity",
+                    help="C1: bounded STM budget with LFU+LRU eviction (0 = unbounded)")
     args = ap.parse_args()
     asyncio.run(main_async(args))
 
