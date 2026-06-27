@@ -88,7 +88,7 @@ def _parse_action_array(text):
 def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="no_memory",
                      pattern=None, exclude_task=None, use_pm=False, real_mem=None,
                      replay=False, replay_threshold=0.75,
-                     plan_then_execute=False, batch_size=4):
+                     plan_then_execute=False, batch_size=4, output_convention=False):
 
     class PCCRPolicy(LLMPolicyCls):
         def __init__(self):
@@ -123,6 +123,7 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
             self._b2_on = bool(plan_then_execute) and method not in ("no_memory", "retrieve_all")
             self._batch_q = []
             self._batch_k = max(2, int(batch_size))
+            self._use_convention = bool(output_convention)   # D3: opt-in (default off = baseline)
 
             gate_arm = method not in ("no_memory", "retrieve_all")
             if gate_arm and real_mem is not None:
@@ -238,9 +239,11 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
             base = super().build_prompt(env)
             # gate arm: the real MemoryManager bundle; else PM(always) + EM(gated)
             prefix = self._realmem_block if self._realmem_block else (self._pm_text + self._memory_block(env))
-            # D3: output-path + completion convention on EVERY arm (not counted as
-            # injected memory tokens — it is a static harness instruction, like the system prompt)
-            base = OUTPUT_CONVENTION + "\n" + base
+            # D3: output-path + completion convention -- opt-in (default off so the baseline
+            # arms reproduce the paper). When on, applied to every arm (a static harness
+            # instruction like the system prompt; not counted as injected memory tokens).
+            if self._use_convention:
+                base = OUTPUT_CONVENTION + "\n" + base
             if prefix:
                 self.em_trace["injected_tokens"] += max(1, len(prefix) // 4)
                 return prefix + "\n\n" + base

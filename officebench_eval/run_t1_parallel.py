@@ -78,10 +78,10 @@ async def main_async(args):
     if args.priors:
         util, cost = {}, {}
     real = RealArch(BANK, cost, util, theta=args.theta)
-    realmem = RealMem(BANK, theta=args.theta, stm_threshold=0.85,
+    realmem = RealMem(BANK, theta=args.theta, stm_threshold=args.stm_threshold_lookup,
                       confidence_gate=args.confidence, sim_threshold=args.sim_threshold,
                       curate_pm=args.curate_pm, model=args.model, stm_capacity=args.stm_capacity,
-                      online=args.online)
+                      online=args.online, step_hint=args.step_hint)
     _lock_encode(real.embedder)
     _lock_encode(realmem.mgr.embedder)
     gate = f"A1 confidence (theta_sim={args.sim_threshold})" if args.confidence else \
@@ -120,9 +120,10 @@ async def main_async(args):
             r = await asyncio.to_thread(
                 run_task, it["task"], it["subtask"], model=args.model, real_arch=real,
                 real_mem=realmem, method=METHOD, pattern=pat,
-                max_iter=cap_for_level(it["level"]), container=container,
+                max_iter=cap_for_level(it["level"], l3_cap=args.l3_cap), container=container,
                 replay=args.replay, replay_threshold=args.replay_threshold,
-                plan_then_execute=args.plan, batch_size=args.batch_size)
+                plan_then_execute=args.plan, batch_size=args.batch_size,
+                output_convention=args.convention)
             r["_container"], r["_t0"], r["_t1"] = container, round(t0, 1), round(time.perf_counter() - t_start, 1)
         finally:
             pool.put_nowait(container)                     # release
@@ -192,7 +193,23 @@ def main():
                     help="C1: bounded STM budget with LFU+LRU eviction (0 = unbounded)")
     ap.add_argument("--online", action="store_true",
                     help="A2: online closed-loop -- learn U=P_on-P_off from outcomes (prior-utility gate)")
+    ap.add_argument("--convention", action="store_true",
+                    help="D3: prepend the output-path + completion convention (all arms)")
+    ap.add_argument("--step-hint", action="store_true", dest="step_hint",
+                    help="B3: inject the memory-guided step-budget hint")
+    ap.add_argument("--l3-cap", type=int, default=30, dest="l3_cap",
+                    help="B4: L3 step cap (default 30 = paper baseline; 45 = improved)")
+    ap.add_argument("--stm-threshold", type=float, default=0.85, dest="stm_threshold_lookup",
+                    help="STM short-circuit similarity threshold (default 0.85)")
+    ap.add_argument("--improved", action="store_true",
+                    help="convenience: turn on the full improved bundle "
+                         "(confidence+replay+plan+curate-pm+convention+step-hint, l3-cap 45)")
     args = ap.parse_args()
+    if args.improved:                                  # one-flag improved config
+        args.confidence = args.replay = args.plan = True
+        args.curate_pm = args.convention = args.step_hint = True
+        if args.l3_cap == 30:
+            args.l3_cap = 45
     asyncio.run(main_async(args))
 
 

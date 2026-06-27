@@ -43,5 +43,10 @@ class Settings:
     # LFU+LRU eviction so STM stays the hot set and scales to 1000+ tasks.
     stm_capacity: int = int(os.environ.get("STM_CAPACITY", "0"))
 
+    # C3: STM pattern-match safety guard. When True, an STM short-circuit is only
+    # taken if the cached bundle is the SAME task pattern (lets the threshold be
+    # lowered safely). Default False -> legacy behavior (no pattern filter).
+    stm_pattern_guard: bool = os.environ.get("STM_PATTERN_GUARD", "0") == "1"
+
 
 SETTINGS = Settings()

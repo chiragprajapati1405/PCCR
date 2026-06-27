@@ -51,7 +51,7 @@ class RealMem:
 
     def __init__(self, bank_path, theta=1.0, stm_threshold=0.92, username="user", date="2026-06-08",
                  confidence_gate=False, sim_threshold=0.55, curate_pm=False, model="gpt-oss-120b",
-                 stm_capacity=0, online=False):
+                 stm_capacity=0, online=False, step_hint=False):
         s = config.Settings(embedding_backend="sentence-transformers", llm_backend="stub",
                             stm_cache_threshold=stm_threshold, confidence_gate=confidence_gate,
                             stm_capacity=stm_capacity)
@@ -69,6 +69,7 @@ class RealMem:
         if online:
             from memory_manager.online_utility import OnlineUtility
             self.mgr.router.online = OnlineUtility()
+        self.step_hint = step_hint            # B3: opt-in step-budget hint (default off = baseline)
         self.username, self.date = username, date
         emb = self.mgr.embedder
         self._clean_actions: dict[str, list[str]] = {}             # desc -> ordered SUCCESSFUL actions (for replay, B1)
@@ -174,7 +175,7 @@ class RealMem:
                 # soft expectation that curbs exploratory flailing (a hint, not a hard cap).
                 top_sc, top_m = b.episodes[0]
                 n_exp = len(self._clean_actions.get(top_m.description, [])) or len(top_m.plan)
-                if top_sc >= 0.6 and n_exp:
+                if self.step_hint and top_sc >= 0.6 and n_exp:
                     blocks.append(f"##STEP BUDGET: a near-identical past task finished in ~{n_exp} "
                                   "actions; plan efficiently and avoid unnecessary exploration.")
                 blocks.append("##RELEVANT PAST TASK PLANS:")

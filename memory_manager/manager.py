@@ -197,7 +197,10 @@ class MemoryManager:
         ctx = self.wm.current
         pattern = ctx.pattern or Pattern.SINGLE_ACTION
 
-        cache_hit = self.stm.lookup(ctx.description, pattern=pattern)   # C3 pattern guard
+        # C3 pattern guard is OPT-IN (settings.stm_pattern_guard). Default off ->
+        # pattern=None -> legacy lookup, so the baseline/equivalence behavior is unchanged.
+        _guard = pattern if getattr(self.settings, "stm_pattern_guard", False) else None
+        cache_hit = self.stm.lookup(ctx.description, pattern=_guard)
         stm_hit = cache_hit is not None
         k = self.settings.max_episodes_per_query
 

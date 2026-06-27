@@ -20,14 +20,14 @@ if not os.environ.get("DOCKER_HOST"):
     if os.path.exists(_sock):
         os.environ["DOCKER_HOST"] = f"unix://{_sock}"
 
-def cap_for_level(level):
+def cap_for_level(level, l3_cap=30):
     """Step budget scaled to difficulty: L3 pipelines (explore -> 3-4 app
     switches -> multi-file ops) legitimately need more steps than L1 edits.
     Measured: L3 successes use up to 16 steps and ~half its failures were
-    budget-bound at a flat 20 cap. NEXT_STEPS B4: L3 raised 30->45 — multi-output
-    L3 tasks (2-6 files across apps) need budget for the SECOND app after a long
-    cell-by-cell Excel build (13 of the 67 L3 file_exist fails were cap-bound)."""
-    return {1: 15, 2: 22, 3: 45}.get(int(level), 22)
+    budget-bound at a flat 20 cap. Default L3=30 (the paper baseline); NEXT_STEPS
+    B4 raises it to 45 via l3_cap (opt-in) for multi-output L3 tasks that need
+    budget for the SECOND app after a long cell-by-cell Excel build."""
+    return {1: 15, 2: 22, 3: int(l3_cap)}.get(int(level), 22)
 
 
 def _parse_action(a):
@@ -76,7 +76,8 @@ def _setup():
 
 def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="no_memory",
              pattern=None, max_iter=20, container="ob-run", exclude_task=None, real_mem=None,
-             replay=False, replay_threshold=0.75, plan_then_execute=False, batch_size=4):
+             replay=False, replay_threshold=0.75, plan_then_execute=False, batch_size=4,
+             output_convention=False):
     _setup()
     from utils.env import OfficeAgentEnv
     from utils.policies import LLMPolicy
@@ -97,7 +98,8 @@ def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="
                               method=gate_method, pattern=pattern, exclude_task=exclude_task,
                               use_pm=use_pm, real_mem=real_mem,   # real_mem -> real MemoryManager gate arm
                               replay=replay, replay_threshold=replay_threshold,
-                              plan_then_execute=plan_then_execute, batch_size=batch_size)
+                              plan_then_execute=plan_then_execute, batch_size=batch_size,
+                              output_convention=output_convention)
 
     t0 = time.perf_counter()
     done, n, steps = False, 0, []
