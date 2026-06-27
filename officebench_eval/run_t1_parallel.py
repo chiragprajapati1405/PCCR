@@ -78,7 +78,8 @@ async def main_async(args):
         util, cost = {}, {}
     real = RealArch(BANK, cost, util, theta=args.theta)
     realmem = RealMem(BANK, theta=args.theta, stm_threshold=0.85,
-                      confidence_gate=args.confidence, sim_threshold=args.sim_threshold)
+                      confidence_gate=args.confidence, sim_threshold=args.sim_threshold,
+                      curate_pm=args.curate_pm, model=args.model)
     _lock_encode(real.embedder)
     _lock_encode(realmem.mgr.embedder)
     gate = f"A1 confidence (theta_sim={args.sim_threshold})" if args.confidence else \
@@ -177,6 +178,8 @@ def main():
     ap.add_argument("--replay", action="store_true",
                     help="B1+B5: adaptive+verified procedure replay on high-confidence hits")
     ap.add_argument("--replay-threshold", type=float, default=0.75, dest="replay_threshold")
+    ap.add_argument("--curate-pm", action="store_true", dest="curate_pm",
+                    help="D1: LLM-curated actionable PM rules (cached to pm_curated.json)")
     args = ap.parse_args()
     asyncio.run(main_async(args))
 

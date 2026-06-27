@@ -50,7 +50,7 @@ class RealMem:
     """The real MemoryManager wired for OfficeBench (EM/SM/PM/STM all live)."""
 
     def __init__(self, bank_path, theta=1.0, stm_threshold=0.92, username="user", date="2026-06-08",
-                 confidence_gate=False, sim_threshold=0.55):
+                 confidence_gate=False, sim_threshold=0.55, curate_pm=False, model="gpt-oss-120b"):
         s = config.Settings(embedding_backend="sentence-transformers", llm_backend="stub",
                             stm_cache_threshold=stm_threshold, confidence_gate=confidence_gate)
         self.mgr = MemoryManager(s)
@@ -64,12 +64,63 @@ class RealMem:
         self.username, self.date = username, date
         emb = self.mgr.embedder
         self._clean_actions: dict[str, list[str]] = {}             # desc -> ordered SUCCESSFUL actions (for replay, B1)
-        for i, rec in enumerate(json.load(open(bank_path))):
+        bank = json.load(open(bank_path))
+        for i, rec in enumerate(bank):
             ft = _to_full(rec, i)                                   # outcome="success"
             ft.embedding = emb.encode([ft.description])[0]          # needed for clustering
             self.mgr._task_log.append(ft)
             self._clean_actions[rec["task"]] = _ok_actions(rec)
         self.stats = self.mgr.consolidate()                        # fills EM/SM/PM/STM (as designed)
+        if curate_pm:                                              # D1: LLM-curated actionable PM rules
+            self._curate_pm_rules(bank, model)
+
+    # -- D1: LLM-curated, actionable PM rules (replaces rule-based step-signatures) --
+    def _curate_pm_rules(self, bank, model, cache_path=None):
+        """Distil each task pattern's successful episodes + reflections into ONE crisp,
+        actionable PM rule (canonical step order, key params, cautions, and -- for
+        multi-output patterns -- a completion checklist). One Cerebras call per pattern,
+        cached to disk so the parallel run / re-runs don't repeat it."""
+        import os
+        cache_path = cache_path or os.path.join(os.path.dirname(os.path.abspath(__file__)), "pm_curated.json")
+        curated = {}
+        if os.path.exists(cache_path):
+            try:
+                curated = json.load(open(cache_path))
+            except Exception:
+                curated = {}
+        if not curated:
+            from .cerebras_llm import CerebrasLLM
+            llm = CerebrasLLM(model_name=model, system_message="You distil reusable office-automation procedures.")
+            llm.max_tokens = 600
+            by_pat = defaultdict(list)
+            for rec in bank:
+                by_pat[rec.get("pattern", "multi_app")].append(rec)
+            for pat, recs in by_pat.items():
+                ex = recs[:6]
+                body = "\n\n".join(
+                    f"TASK: {r['task']}\nPLAN: {' ; '.join(r.get('plan', [])[:8])}\n"
+                    f"LESSON: {str(r.get('reflections',''))[:280]}" for r in ex)
+                prompt = (
+                    f"Below are {len(ex)} SUCCESSFUL examples of the same kind of task (pattern: {pat}).\n\n"
+                    f"{body}\n\n"
+                    "Write ONE reusable PROCEDURAL RULE an agent should follow for this kind of task. Cover: "
+                    "the canonical step order across apps; the key parameters to get exactly right (file paths "
+                    "under /testbed/data, exact filenames, cell refs); the common failure modes to AVOID "
+                    "(cautions); and IF these tasks produce multiple output files across apps, an explicit "
+                    "checklist of ALL outputs to produce before finishing. 2-4 imperative sentences, no preamble.")
+                curated[pat] = (llm.generate(prompt) or "").strip()
+            try:
+                json.dump(curated, open(cache_path, "w"), indent=2)
+            except Exception:
+                pass
+        # install: replace the rule-based learned_rules with the curated ones (keyed by enum value)
+        from officebench_eval.real_arch import PAT_MAP
+        self.mgr.pm.learned_rules = []
+        for pat, rule in curated.items():
+            if rule:
+                self.mgr.pm.consolidate_rule(
+                    {"pattern": PAT_MAP.get(pat, Pattern.COORDINATION).value, "rule": rule, "support": 0})
+        self.pm_curated = curated
 
     def replay_candidate(self, task_desc, exclude_task=None, min_sim=0.75):
         """B1: the best EM episode's ORDERED SUCCESSFUL action sequence, IF the top
