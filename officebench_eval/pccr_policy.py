@@ -87,7 +87,8 @@ def _parse_action_array(text):
 
 def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="no_memory",
                      pattern=None, exclude_task=None, use_pm=False, real_mem=None,
-                     replay=False, replay_threshold=0.75):
+                     replay=False, replay_threshold=0.75,
+                     plan_then_execute=False, batch_size=4):
 
     class PCCRPolicy(LLMPolicyCls):
         def __init__(self):
@@ -116,6 +117,12 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
             if self._replay_on:
                 self._replay_cand = real_mem.replay_candidate(
                     self.task, exclude_task=exclude_task, min_sim=replay_threshold)
+
+            # B2: plan-then-execute -- batch the NEXT few actions per LLM call (the
+            # medium-confidence tier / replay fallback). Verified the same way as B1.
+            self._b2_on = bool(plan_then_execute) and method not in ("no_memory", "retrieve_all")
+            self._batch_q = []
+            self._batch_k = max(2, int(batch_size))
 
             gate_arm = method not in ("no_memory", "retrieve_all")
             if gate_arm and real_mem is not None:
@@ -152,7 +159,7 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
             LLM loop from that point (never blind). Falls through to super().forward
             when not replaying."""
             if not self._replay_on or self._replay_cand is None or self._replay_aborted:
-                return super().forward(env)
+                return self._plan_or_single(env)
 
             # First entry: 1 adapt call -> the executable plan (handles the "11th step").
             if not self._replay_adapted:
@@ -162,9 +169,9 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
                 self._replay_q = _parse_action_array(reply)
                 self.em_trace["replay"] = {"used": bool(self._replay_q), "sim": round(sim, 3),
                                            "planned": len(self._replay_q), "executed": 0, "aborted": False}
-                if not self._replay_q:                       # adapt failed -> normal loop
+                if not self._replay_q:                       # adapt failed -> batch/normal loop
                     self._replay_aborted = True
-                    return super().forward(env)
+                    return self._plan_or_single(env)
 
             # Verify the PREVIOUS replayed action by the env's own signal.
             if env.history:
@@ -172,14 +179,37 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
                 if is_action_failure(last_obs):
                     self._replay_aborted = True
                     self.em_trace["replay"]["aborted"] = True
-                    return super().forward(env)              # recover from here with the LLM
+                    return self._plan_or_single(env)         # recover from here (batch/LLM)
 
             if self._replay_q:
                 action = self._replay_q.pop(0)
                 self.em_trace["replay"]["executed"] += 1
                 return action
-            self._replay_aborted = True                       # sequence exhausted -> let LLM finish/verify
-            return super().forward(env)
+            self._replay_aborted = True                       # sequence exhausted -> batch/LLM finish
+            return self._plan_or_single(env)
+
+        def _plan_or_single(self, env):
+            """B2: plan-then-execute. Plan up to K next actions in ONE LLM call and
+            execute them with the same tool-signal verification as B1 (abort the batch
+            on any failure -> re-plan). Falls back to the base single-action loop when
+            B2 is off or a batch can't be parsed."""
+            if not self._b2_on:
+                return super().forward(env)
+            # verify the previous batched action; on failure, drop the rest and re-plan
+            if self._batch_q and env.history and is_action_failure(env.history[-1][1]):
+                self._batch_q = []
+            if not self._batch_q:
+                prompt = self.build_prompt(env) + (
+                    f"\n\n##PLAN-THEN-EXECUTE: output the NEXT up to {self._batch_k} actions you will take, "
+                    "in order, as a JSON array of action objects (same format). Stop the list at the first "
+                    "action whose result you'd need to SEE before deciding the next (e.g. a read/list). "
+                    "Include finish_task only when truly done.")
+                self._batch_q = _parse_action_array(self.llm.generate(prompt))
+                self.em_trace["batch_calls"] = self.em_trace.get("batch_calls", 0) + 1
+                self.em_trace["batch_actions"] = self.em_trace.get("batch_actions", 0) + len(self._batch_q)
+                if not self._batch_q:
+                    return super().forward(env)
+            return self._batch_q.pop(0)
 
         def proc_action(self, action):
             """Return the FIRST balanced JSON object. The base class takes

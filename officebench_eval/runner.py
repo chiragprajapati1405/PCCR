@@ -76,7 +76,7 @@ def _setup():
 
 def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="no_memory",
              pattern=None, max_iter=20, container="ob-run", exclude_task=None, real_mem=None,
-             replay=False, replay_threshold=0.75):
+             replay=False, replay_threshold=0.75, plan_then_execute=False, batch_size=4):
     _setup()
     from utils.env import OfficeAgentEnv
     from utils.policies import LLMPolicy
@@ -96,7 +96,8 @@ def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="
     policy = make_pccr_policy(LLMPolicy, model, env, config, real_arch=real_arch,
                               method=gate_method, pattern=pattern, exclude_task=exclude_task,
                               use_pm=use_pm, real_mem=real_mem,   # real_mem -> real MemoryManager gate arm
-                              replay=replay, replay_threshold=replay_threshold)
+                              replay=replay, replay_threshold=replay_threshold,
+                              plan_then_execute=plan_then_execute, batch_size=batch_size)
 
     t0 = time.perf_counter()
     done, n, steps = False, 0, []

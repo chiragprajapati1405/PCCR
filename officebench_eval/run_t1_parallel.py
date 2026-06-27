@@ -69,6 +69,7 @@ def _record(prog, key, it, pat, r):
                  "stm_hit": int(em.get("stm_hit", False)), "top_em_sim": em.get("top_em_sim", 0.0),
                  "stores": em.get("consulted_stores", []), "pm_used": bool(em.get("pm_used", False)),
                  "failed_predicate": r.get("failed_predicate"), "replay": em.get("replay"),
+                 "batch_calls": em.get("batch_calls"), "batch_actions": em.get("batch_actions"),
                  "container": r.get("_container"), "worker_t0": r.get("_t0"), "worker_t1": r.get("_t1")}
 
 
@@ -119,7 +120,8 @@ async def main_async(args):
                 run_task, it["task"], it["subtask"], model=args.model, real_arch=real,
                 real_mem=realmem, method=METHOD, pattern=pat,
                 max_iter=cap_for_level(it["level"]), container=container,
-                replay=args.replay, replay_threshold=args.replay_threshold)
+                replay=args.replay, replay_threshold=args.replay_threshold,
+                plan_then_execute=args.plan, batch_size=args.batch_size)
             r["_container"], r["_t0"], r["_t1"] = container, round(t0, 1), round(time.perf_counter() - t_start, 1)
         finally:
             pool.put_nowait(container)                     # release
@@ -180,6 +182,9 @@ def main():
     ap.add_argument("--replay-threshold", type=float, default=0.75, dest="replay_threshold")
     ap.add_argument("--curate-pm", action="store_true", dest="curate_pm",
                     help="D1: LLM-curated actionable PM rules (cached to pm_curated.json)")
+    ap.add_argument("--plan", action="store_true",
+                    help="B2: plan-then-execute (batch next K actions per LLM call)")
+    ap.add_argument("--batch-size", type=int, default=4, dest="batch_size")
     args = ap.parse_args()
     asyncio.run(main_async(args))
 
