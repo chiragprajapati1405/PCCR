@@ -45,6 +45,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 
+from .online_utility import OnlineUtility
 from .types import MemoryType, Pattern, Phase, RoutingDecision
 
 # ---------------------------------------------------------------------------
@@ -154,6 +155,7 @@ class MemoryRouter:
         default_factory=lambda: {p: dict(v) for p, v in PATTERN_UTILITY.items()})
     store_cost: dict[MemoryType, float] = field(default_factory=lambda: dict(STORE_COST))
     decision_log: list[RoutingDecision] = field(default_factory=list)
+    online: OnlineUtility | None = None        # closed loop: learns utility from outcomes (opt-in)
 
     # -- Phase 1: BOOTSTRAP --------------------------------------------------
 
@@ -179,7 +181,8 @@ class MemoryRouter:
 
     # -- Phase 3: RETRIEVAL (the cascading cost-gate -- core contribution) ---
 
-    def plan_retrieval(self, task_id: str, pattern: Pattern, stm_hit: bool) -> RoutingDecision:
+    def plan_retrieval(self, task_id: str, pattern: Pattern, stm_hit: bool,
+                       confidence: dict[MemoryType, float] | None = None) -> RoutingDecision:
         """Decide which stores to consult for this task's memory bundle.
 
         Step 1 (cascade head): STM is checked first by the caller; if it was a
@@ -207,13 +210,19 @@ class MemoryRouter:
             for store in OPTIONAL_ON_MISS:
                 utility = utilities.get(store, 0.0)
                 cost = self.store_cost.get(store, 1.0)
-                ratio = utility / cost if cost > 0 else float("inf")
+                # per-query retrieval confidence (e.g. top-hit similarity) scales the
+                # pattern-level utility: a high-utility pattern with a weak match THIS
+                # query is gated down, and vice versa. Defaults to 1.0 (= prior behavior).
+                conf = 1.0 if confidence is None else float(confidence.get(store, 0.0))
+                ratio = (utility * conf) / cost if cost > 0 else float("inf")
                 if ratio >= self.consult_threshold:
                     consulted.append(store)
+                elif self.online is not None and self.online.explore():
+                    consulted.append(store)            # value-of-information: keep sampling P_on
                 else:
                     skipped[store] = (
                         f"utility/cost ratio {ratio:.2f} < threshold {self.consult_threshold:.2f} "
-                        f"(utility={utility:.2f}, cost={cost:.2f}) for pattern {pattern.value}"
+                        f"(utility={utility:.2f}, conf={conf:.2f}, cost={cost:.2f}) for pattern {pattern.value}"
                     )
 
         decision = RoutingDecision(
@@ -275,7 +284,23 @@ class MemoryRouter:
         self.decision_log.append(decision)
         return decision
 
-    # -- Closed-loop hook (staged for phase 2 of the project) ----------------
+    # -- Closed loop: learn utility from outcomes (wired) --------------------
+
+    def record_outcome(self, pattern: Pattern, consulted_stores, success: bool) -> None:
+        """Feed one completed task's outcome into the online estimator and refresh the
+        pattern's utilities. For each optional store we record whether it was consulted
+        and whether the task succeeded; U=P_on-P_off is then recomputed from the
+        accumulated on/off success rates (no calibration runs). A store with too few
+        on-samples keeps its hand-set prior until evidence accrues."""
+        if self.online is None:
+            self.online = OnlineUtility()
+        consulted = set(consulted_stores)
+        table = self.pattern_utility.setdefault(pattern, {})
+        for store in OPTIONAL_ON_MISS:
+            self.online.observe(pattern, store, store in consulted, success)
+            learned = self.online.utility(pattern, store)
+            if learned is not None:                    # enough evidence -> override the prior
+                table[store] = learned
 
     def adjust_utility(self, pattern: Pattern, store: MemoryType, delta: float, *, lo: float = 0.0, hi: float = 1.0) -> None:
         """Nudge a learned utility weight toward what outcome data suggests.

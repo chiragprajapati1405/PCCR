@@ -40,3 +40,19 @@ officebench_eval/t0_progress.json
 officebench_eval/traces/
 officebench_eval/calibration/
 officebench_eval/results/
+
+# ---- OfficeBench eval scratch (logs, diagnostics, intermediate result dumps) ----
+officebench_eval/*.log
+officebench_eval/diagnose/
+officebench_eval/diagnose.py
+officebench_eval/hisim_diag.py
+officebench_eval/rescue.py
+officebench_eval/rescue_targets.json
+officebench_eval/recurate_chain.sh
+officebench_eval/em_bank_raw.json
+officebench_eval/t1_pccr_APPROX.json
+officebench_eval/t1_pccr_STM.json
+officebench_eval/t1_pccr_noSTM.json
+officebench_eval/t1_progress_prefix.json
+.claude/scheduled_tasks.lock
+explanation/

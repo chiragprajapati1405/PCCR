@@ -14,11 +14,16 @@ import time
 class CerebrasLLM:
     def __init__(self, model_name: str = "gpt-oss-120b", system_message: str | None = None):
         from openai import OpenAI
-        keys = [os.environ.get(f"CEREBRAS_KEY_{i}", "") for i in range(1, 10)]
+        _start = int(os.environ.get("CEREBRAS_KEY_START", "1"))   # e.g. 16 -> use only keys 16..N (fresh quota)
+        keys = [os.environ.get(f"CEREBRAS_KEY_{i}", "") for i in range(_start, 33)]
         keys = [k for k in keys if k.strip()]
         if not keys:
             raise RuntimeError("no CEREBRAS_KEY_* in env — run `source cerebras.env`")
-        self.clients = [OpenAI(api_key=k, base_url="https://api.cerebras.ai/v1", max_retries=2)
+        # max_retries=0: on a 429 the SDK would otherwise obey Retry-After (60s) on the SAME
+        # key up to 2x before rotating -- blocking for ~2 min while other keys sit idle. We
+        # fail FAST and let generate() rotate to the next key instantly.
+        self.clients = [OpenAI(api_key=k, base_url="https://api.cerebras.ai/v1",
+                               max_retries=0, timeout=90)
                         for k in keys]
         self.model_name = model_name
         self.system_message = system_message
@@ -35,7 +40,8 @@ class CerebrasLLM:
             return c
 
     def generate(self, prompt: str) -> str:
-        for attempt in range(10):
+        n = len(self.clients)
+        for attempt in range(n + 4):                 # one sweep over keys + a little slack
             c = self._next()
             try:
                 r = c.chat.completions.create(
@@ -45,8 +51,12 @@ class CerebrasLLM:
                 txt = (r.choices[0].message.content or "").strip()
                 if txt:
                     return txt
-                time.sleep(1.0)
             except Exception as e:
                 s = str(e).lower()
-                time.sleep(min(2.0 + attempt, 6.0) if ("429" in s or "rate" in s) else 1.0)
+                if "401" in s or "organization" in s or "invalid_api_key" in s:
+                    continue                         # DEAD key -> skip instantly, next key
+                if "429" in s or "rate" in s:
+                    time.sleep(0.4)                  # PACED rotation (no burst, no 60s block)
+                    continue
+                time.sleep(0.5)                      # other transient -> brief pause, next key
         return "None"

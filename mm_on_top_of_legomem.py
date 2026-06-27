@@ -1115,7 +1115,7 @@ def main():
 
     # Phase 1: System Bootstrap
     embedder = LocalEmbedder()
-    keys = [os.environ.get(f"CEREBRAS_KEY_{i}","") for i in range(1, 10)]
+    keys = [os.environ.get(f"CEREBRAS_KEY_{i}","") for i in range(1, 11)]
     llm = MultiLLM(keys, model="gpt-oss-120b")
     runner = LocalOfficeBenchRunner(REPO_PATH)
     all_tasks = runner.get_all_task_ids()

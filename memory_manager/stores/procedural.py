@@ -42,7 +42,13 @@ class ProceduralStore:
         return self.agent_prompts.get(agent_name, "")
 
     def get_rule_for_pattern(self, pattern_code: str) -> str:
-        return self.task_type_rules.get(pattern_code, "")
+        """Static bootstrap rule for this pattern PLUS any consolidated/learned
+        rules for it (the consolidation -> retrieval path; previously learned_rules
+        were write-only because this only read task_type_rules)."""
+        static = self.task_type_rules.get(pattern_code, "")
+        learned = " ".join(r["rule"] for r in self.learned_rules
+                           if r.get("pattern") == pattern_code and r.get("rule"))
+        return (static + " " + learned).strip()
 
     def get_capability_profile(self, agent_name: str) -> dict:
         return self.agent_capability_profiles.get(agent_name, {})

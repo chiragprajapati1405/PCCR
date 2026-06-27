@@ -12,33 +12,83 @@ from .cerebras_llm import CerebrasLLM
 
 
 def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="no_memory",
-                     pattern=None, exclude_task=None):
+                     pattern=None, exclude_task=None, use_pm=False, real_mem=None):
 
     class PCCRPolicy(LLMPolicyCls):
         def __init__(self):
             super().__init__(model_name="local-oss", key="", env=env, config=config)
             self.llm = CerebrasLLM(model_name=model, system_message=self.system_message)
+            self.llm.max_tokens = 2048   # 512 truncated gpt-oss actions to a lone '{' (~35% malformed)
             self.real, self.method, self.pattern = real_arch, method, pattern
             self.exclude_task = exclude_task
             self.task = config["task"]
-            # decide EM consult ONCE per task (Phase-3 rho-gate)
+            self._realmem_block = ""     # set on the gate arm when driven by the real MemoryManager
+            self._pm_text = ""
             self._consult_em = False
+            self._stm_hit = False
             self._rho_decision = None
-            if real_arch is not None and method != "no_memory":
-                if method == "retrieve_all":
+            self._top_em_sim = 0.0
+            if real_arch is not None:
+                hits = real_arch.search(self.task, k=1)
+                self._top_em_sim = float(hits[0][0]) if hits else 0.0
+
+            gate_arm = method not in ("no_memory", "retrieve_all")
+            if gate_arm and real_mem is not None:
+                # === REAL ARCHITECTURE: MemoryManager.retrieve() full cascade ===
+                # STM-first short-circuit, then rho-gated EM/SM/ENT, PM always-read.
+                text, tr = real_mem.retrieve(self.task, pattern, exclude_task=exclude_task)
+                self._realmem_block = text
+                self.em_trace = {"method": method, "consult_em": tr["consult_em"],
+                                 "stm_hit": tr["stm_hit"], "consult_sm": tr.get("consult_sm"),
+                                 "consult_ent": tr.get("consult_ent"), "pm_used": tr["pm_used"],
+                                 "consulted_stores": tr["consulted_stores"], "injected_tokens": 0,
+                                 "orchestrator_hits": [], "agent_hits": [],
+                                 "top_em_sim": round(self._top_em_sim, 3), "faiss_backed": True}
+            else:
+                # no_memory (nothing) / retrieve_all (always inject EM via _memory_block)
+                if use_pm and real_arch is not None and method != "no_memory":
+                    r = real_arch.pm_rule(self.task)
+                    if r:
+                        self._pm_text = f"##PROCEDURAL RULE (learned from {r['support']} past tasks): {r['text']}\n\n"
+                if real_arch is not None and method == "retrieve_all":
                     self._consult_em = True
-                else:  # pccr -> real router.py rho-gate
-                    self._consult_em, self._rho_decision = real_arch.gate(pattern)
-            self.em_trace = {"method": method, "consult_em": self._consult_em,
-                             "orchestrator_hits": [], "agent_hits": [], "injected_tokens": 0,
-                             "faiss_backed": True}
+                self.em_trace = {"method": method, "consult_em": self._consult_em,
+                                 "orchestrator_hits": [], "agent_hits": [], "injected_tokens": 0,
+                                 "faiss_backed": True, "top_em_sim": round(self._top_em_sim, 3),
+                                 "stm_hit": self._stm_hit,
+                                 "consulted_stores": (["episodic"] if self._consult_em else []),
+                                 "pm_used": bool(self._pm_text)}
+
+        def proc_action(self, action):
+            """Return the FIRST balanced JSON object. The base class takes
+            first-'{' to last-'}', which merges concatenated actions
+            ({...}{...}) into one malformed blob; gpt-oss frequently emits
+            several at once. We brace-match and stop at the first complete one."""
+            i = action.find("{")
+            if i < 0:
+                return action
+            depth, in_str, esc = 0, False, False
+            for j in range(i, len(action)):
+                c = action[j]
+                if in_str:
+                    if esc:        esc = False
+                    elif c == "\\": esc = True
+                    elif c == '"':  in_str = False
+                elif c == '"':      in_str = True
+                elif c == "{":      depth += 1
+                elif c == "}":
+                    depth -= 1
+                    if depth == 0:
+                        return action[i:j + 1]            # first complete object
+            return action[i:]                              # truncated: hand back partial
 
         def build_prompt(self, env):
             base = super().build_prompt(env)
-            mem = self._memory_block(env)
-            if mem:
-                self.em_trace["injected_tokens"] += max(1, len(mem) // 4)
-                return mem + "\n\n" + base
+            # gate arm: the real MemoryManager bundle; else PM(always) + EM(gated)
+            prefix = self._realmem_block if self._realmem_block else (self._pm_text + self._memory_block(env))
+            if prefix:
+                self.em_trace["injected_tokens"] += max(1, len(prefix) // 4)
+                return prefix + "\n\n" + base
             return base
 
         def _memory_block(self, env):

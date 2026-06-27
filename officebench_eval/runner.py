@@ -73,7 +73,7 @@ def _setup():
 
 
 def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="no_memory",
-             pattern=None, max_iter=20, container="ob-run", exclude_task=None):
+             pattern=None, max_iter=20, container="ob-run", exclude_task=None, real_mem=None):
     _setup()
     from utils.env import OfficeAgentEnv
     from utils.policies import LLMPolicy
@@ -88,8 +88,11 @@ def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="
     # native eval layout: cache the INITIAL state (some evaluators diff against
     # tasks/<id>/cache/<sub>/) before the agent acts
     env.cache_docker_status(local_cache_dir=f"tasks/{task_id}/cache/{subtask_id}/")
+    use_pm = method.endswith("_pm")               # legacy approximation flag
+    gate_method = method[:-3] if use_pm else method
     policy = make_pccr_policy(LLMPolicy, model, env, config, real_arch=real_arch,
-                              method=method, pattern=pattern, exclude_task=exclude_task)
+                              method=gate_method, pattern=pattern, exclude_task=exclude_task,
+                              use_pm=use_pm, real_mem=real_mem)   # real_mem -> real MemoryManager gate arm
 
     t0 = time.perf_counter()
     done, n, steps = False, 0, []

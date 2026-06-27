@@ -5,6 +5,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[margin=0.8in]{geometry}
 \usepackage{booktabs}
+\usepackage{multirow}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{xcolor}
@@ -13,18 +14,6 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc,shapes.geometric}
 \usepackage[hidelinks]{hyperref}
-\usepackage{stfloats}     % correct placement of full-width (figure*/table*) floats in twocolumn
-
-% ---- float placement: avoid [t]-only pile-ups overlapping in twocolumn ----
-\setcounter{topnumber}{3}
-\setcounter{bottomnumber}{2}
-\setcounter{totalnumber}{5}
-\renewcommand{\topfraction}{0.92}
-\renewcommand{\bottomfraction}{0.7}
-\renewcommand{\textfraction}{0.06}
-\renewcommand{\floatpagefraction}{0.7}
-\setlength{\textfloatsep}{12pt plus 3pt minus 3pt}
-\setlength{\floatsep}{10pt plus 3pt minus 2pt}
 
 \titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.5em}{}
 \titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.5em}{}
@@ -36,9 +25,9 @@
 \title{\textbf{Phase-Conditioned Cascading Memory Routing\\
 with Two-Dimensional Concurrency\\
 for Multi-Agent LLM Systems}}
-\author[1]{[Your Name]}
-\author[1]{[Mentor Name]}
-\affil[1]{[Affiliation] \quad \texttt{[email]}}
+\author[1]{[Chirag Prajapati]}
+%\author[1]{[Mentor Name]}
+%\affil[1]{[Affiliation] \quad \texttt{[email]}}
 \date{}
 
 \begin{document}
@@ -59,10 +48,13 @@ phase}, (ii)~on a cache miss gates each optional store by an explicit
 cost-effectiveness ratio $\rho=\text{utility}/\text{cost}$ against a single
 tunable threshold $\theta$, and (iii)~logs every decision as a first-class record
 that a closed loop uses to adapt utilities from task outcomes. On the OfficeBench
-office-automation benchmark with a real backbone (gpt-oss-120b), PCCR matches or
-exceeds the accuracy of an indiscriminate \emph{retrieve-everything} policy while
+office-automation benchmark with a real backbone (gpt-oss-120b), PCCR matches the
+accuracy of an indiscriminate \emph{retrieve-everything} policy while
 issuing \textbf{41--87\% fewer store consultations} and injecting up to
-\textbf{89\% fewer retrieved tokens} at equal accuracy.
+\textbf{89\% fewer retrieved tokens}. Crucially, when a store is \emph{unhelpful}---as a
+curated episodic store proves to be on OfficeBench under this backbone, a negative we
+diagnose in detail---the gate measures its low utility and \emph{suppresses} it, thereby
+protecting accuracy where indiscriminate retrieval actively \emph{degrades} it.
 We then ask whether this cost-efficient design can also be made
 \emph{throughput}-efficient, since PCCR's reference execution model is strictly
 sequential---one task at a time, one sub-agent at a time. We extend it with
@@ -288,12 +280,26 @@ orthogonal to routing (\S\ref{sec:arch}).
 
 \subsection{Outcome-driven adaptation and audit}\label{sec:loop}
 Every routing call returns and records a \code{RoutingDecision}: candidates,
-consulted set, skipped set with per-store reasons, cache hit/miss, and latency. A
-closed loop reads this log and, after each task, nudges $U(\text{pattern},s)$
-\textbf{up} if consulting $s$ coincided with success and \textbf{down} if with
-failure (clamped to $[0,1]$). Because the policy is indexed by
-$(\text{phase}\times\text{pattern}\times\text{store})$, the learned quantity is
-higher-dimensional and more interpretable than a flat global policy.
+consulted set, skipped set with per-store reasons, cache hit/miss, and latency. The
+closed loop reads this log and learns $U(\text{pattern},s)$ \emph{online}, with
+\textbf{no calibration runs}. For each $(\text{pattern},s)$ it keeps two
+recency-weighted success rates---$P_{\mathrm{on}}$ when $s$ was consulted and
+$P_{\mathrm{off}}$ when it was skipped---and sets $U=\mathrm{clip}(P_{\mathrm{on}}-
+P_{\mathrm{off}},0,1)$, the marginal value of the store harvested from the natural
+on/off variation the gate already produces. $\epsilon$-exploration occasionally
+consults a sub-threshold store so $P_{\mathrm{on}}$ keeps receiving samples (value
+of information), avoiding a cold-start lock-out where a store stuck at $U{=}0$ is
+never retried; a minimum-sample guard keeps the hand-set prior until evidence
+accrues. This is strictly cheaper than---and converges to the same quantity as---the
+counterfactual leave-one-out sweep, and it is exactly the mechanism that lets the
+gate \emph{learn} to suppress an unhelpful store (\S\ref{sec:negative}) or consult a
+helpful one (\S\ref{sec:lme}) per workload. Optionally, a per-query
+\emph{retrieval-confidence} signal (the top-hit similarity) scales the
+pattern-level utility, $\rho=U\cdot\mathrm{conf}/C$, so a high-utility pattern with a
+weak match \emph{this} query is gated down and a strong match is let through. Because
+the policy is indexed by $(\text{phase}\times\text{pattern}\times\text{store})$, the
+learned quantity is higher-dimensional and more interpretable than a flat global
+policy.
 
 \subsection{Priors, not assumptions}
 $C(\cdot)$ and $U(\cdot,\cdot)$ start as hand-set priors. They are not assumed
@@ -458,7 +464,9 @@ plus a parser-incompatible GLM model, so we report it as a limitation; A14
 \paragraph{Is the memory load-bearing? (the validity check, LLM/API).} A sharp
 test: run the \emph{same} held-out tasks with memory \emph{off}. On base
 OfficeBench tasks no-memory scores $13/30$ vs.\ $15/30$ for PCCR and
-retrieve-all---i.e.\ \emph{base tasks barely need memory}. We therefore engineered
+retrieve-all---i.e.\ \emph{base tasks barely need memory} (and \S\ref{sec:negative}
+shows this $+2$ edge is within an action-pipeline confound; the rigorous reading is
+\emph{parity}). We therefore engineered
 a \textbf{memory-critical} set (8 episodic-critical $+$ 8 entity-critical tasks
 whose answer lives \emph{only} in a store): no-memory collapses to $\mathbf{0/16}$,
 while PCCR reaches $\mathbf{16/16}$ (matching retrieve-all) at lower cost
@@ -533,6 +541,83 @@ lexical proxy for LongMemEval's GPT-4o judge (it scores the subjective
 \emph{preference} type $0/5$ for \emph{both} methods---a grader limit, equal across
 methods). The clean win is unchanged: \emph{same accuracy, fewer/cheaper searches},
 and parallel$\equiv$sequential on real data.
+
+% =====================================================================
+\section{When Curated Memory Does \emph{Not} Help: An OfficeBench Negative and the Gate's Protective Role}\label{sec:negative}
+% =====================================================================
+The results of \S\ref{sec:pccr-results} concern \emph{cost} at fixed quality. Here we
+stress-test the harder question---\emph{does the episodic store raise task success at
+all?}---and report a carefully diagnosed \textbf{negative}. Far from undermining the
+router, it pins down exactly when the $\rho$-gate earns its keep.
+
+\paragraph{An action-pipeline confound (now corrected).} Auditing failures, we found the
+agent loop silently mangled $\sim$\textbf{47\%} of actions: the backbone's outputs were
+truncated at $512$ tokens (yielding a lone ``\texttt{\{}''), and the harness merged
+concatenated JSON actions (\texttt{\{$\dots$\}\{$\dots$\}}) into one malformed blob.
+Raising the token budget and parsing the \emph{first balanced} JSON object cut malformed
+actions to $\sim$\textbf{10\%}. All single-pass OfficeBench numbers predating this fix
+(including \S\ref{sec:pccr-results}, \S\ref{sec:rectify}) are therefore conservative
+lower bounds; the analysis below uses the corrected pipeline, and the small earlier
+accuracy edges fall within this confound.
+
+\paragraph{Relevant memory is retrieved, yet does not rescue.} Querying the FAISS store
+with the \emph{task description}, $58/86$ previously-failing training tasks have a banked
+procedure at cosine $\ge 0.5$ (median $0.56$, up to $0.95$). Yet leave-one-out
+re-execution rescues almost none, and rescue is \emph{uncorrelated} with similarity: of
+the $19$ tasks whose nearest banked procedure exceeds $0.7$, curated memory alone rescues
+$0$. Each near-duplicate differs in precisely the attribute the evaluator checks---``earliest''
+vs.\ ``latest'' email (the agent never sorts by date), the ``third'' vs.\ ``first three''
+rows (an off-by-one on the header row), or an extra ``email it to X'' step absent from the
+banked plan. \textbf{Embedding similarity is necessary but not sufficient}; the residual
+gap is task-specific reasoning the backbone cannot supply.
+
+\paragraph{Replicating the multi-agent architecture.} LegoMem~\cite{legomem} attributes
+its gains to a multi-agent decomposition---an orchestrator that plans and delegates, plus
+per-app agents---so we re-implemented that loop on OfficeBench and drove it with the real
+FAISS store. On a stratified train sample (Table~\ref{tab:ma}): (i) \emph{without} memory
+the multi-agent loop matches single-agent execution on L2/L3 but trails it on simple L1
+tasks, where the agents solve a narrow subtask worse than one agent with full context;
+(ii) \emph{naive always-retrieve} memory (LegoMem-style) \emph{hurts}---near-duplicate
+orchestrator plans make the decomposition terser and mislead it (e.g.\ delegating a bare
+``\texttt{read\_file}'' with no path); (iii) repairing four injection defects (agent
+actions truncated mid-JSON, raw-JSON ``plans,'' missing leave-one-out, and the
+orchestrator copying the memory's terse style) recovers the harm but still does
+\emph{not} beat the no-memory baseline.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Multi-agent configuration & success & vs.\ no-memory \\
+\midrule
+no memory (clean baseline)        & $3/15$ & --- \\
+naive always-retrieve (LegoMem-style) & $2/15$ & $-1$ (misleads) \\
+clean injection ($4$ fixes, LOO)  & $2/15$ & $\le$ baseline ($0$ wins) \\
+\bottomrule
+\end{tabular}
+\caption{Multi-agent OfficeBench (stratified train sample, gpt-oss-120b). Curated EM does
+not beat no-memory; naive retrieval actively hurts, and even corrected injection only
+reaches parity---no configuration yields a memory-only win.}
+\label{tab:ma}
+\end{table}
+
+\paragraph{Diagnosis: the backbone is the binding constraint.} The verdict is consistent
+across every configuration---single-agent ($U\approx0$), multi-agent with naive memory
+($-1$), and multi-agent with clean memory ($\approx$ no-memory)---and matches assumption
+A8 (\S\ref{sec:rectify}). LegoMem obtains $+12$--$13$pp with GPT-4o and even gpt-4o-mini,
+whereas our Cerebras account exposes only gpt-oss-120b which---despite its size---is
+weaker at agentic decomposition/execution and more easily misled by similar-but-different
+procedures. The store and retrieval are sound; the executor cannot convert relevant
+memory into success.
+
+\paragraph{What the negative teaches the gate.} The correct action for a store whose
+measured utility is $\le 0$ is \emph{not to consult it}. This is precisely what the
+$\rho$-gate does: measuring $U\approx0$ it suppresses EM, recovering the no-memory
+baseline that naive always-retrieve \emph{degrades}. The gate is thus a \textbf{protective}
+mechanism, not merely a cost dial. Paired with LongMemEval (\S\ref{sec:lme}), where memory
+\emph{does} help and the gate \emph{consults}, it realises the adaptive thesis in full:
+\emph{consult a store when it pays, suppress it when it does not}---which is exactly the
+behaviour a deployable router needs across heterogeneous workloads.
 
 % =====================================================================
 \section{The Two-Dimensional Parallel Architecture}\label{sec:arch}
@@ -823,7 +908,7 @@ versus $227.7$\,s sequential---a \textbf{$3.73\times$ speedup}, $-73\%$ wall-clo
 (Table~\ref{tab:lat}). The sequential time matches the analytic
 $440{\times}0.516{=}227.0$\,s, confirming the model.
 
-\begin{table}[htbp]
+\begin{table}[t]
 \centering\small
 \begin{tabular}{@{}lccc@{}}
 \toprule
@@ -847,7 +932,7 @@ overlap, which roughly cancels the per-wave snapshot/merge overhead. The win is
 therefore dominated by \emph{parallel tasks}, with \emph{parallel sub-agents} a
 secondary benefit on coordination/exploratory tasks.
 
-\begin{table}[htbp]
+\begin{table}[t]
 \centering\small
 \begin{tabular}{@{}lccccc@{}}
 \toprule
@@ -873,7 +958,7 @@ calendar events seen by a search agent), while success, plan, and memory state
 remain identical---exactly the single divergence vector predicted above, removed by
 isolation.
 
-\begin{table}[htbp]
+\begin{table}[t]
 \centering\small
 \begin{tabular}{@{}lcc@{}}
 \toprule
@@ -897,7 +982,7 @@ system. Parallelism and $\rho$-gating optimize orthogonal axes: the former cuts
 \emph{latency}, the latter cuts \emph{cost per task}; neither moves accuracy.
 
 % =====================================================================
-\section{Full-Scale OfficeBench with the \emph{Real} Architecture (in progress)}\label{sec:ob}
+\section{Full-Scale OfficeBench with the \emph{Real} Architecture}\label{sec:ob}
 % =====================================================================
 The experiments above used the standalone reference implementation. To test the
 \emph{actual} architecture at scale---and to position against LEGOMem~\cite{legomem},
@@ -924,7 +1009,7 @@ yielding a bank of $62$ procedures (thin on L3, since few L3 tasks succeed
 unaided). This is healthy headroom for memory and is in line with LEGOMem's
 $\sim$46\% no-memory baseline (they used GPT-4o; we use gpt-oss-120b).
 
-\begin{table}[htbp]
+\begin{table}[t]
 \centering\small
 \begin{tabular}{@{}lccc@{}}
 \toprule
@@ -967,20 +1052,166 @@ This is itself a result: the $\rho$-gate correctly \emph{declines} a memory that
 does not help, and indiscriminate retrieve-all would inject it (and the
 $\sim$1239-token cost) even where it hurts.
 
-\paragraph{Current step --- LEGOMem-style curation (option D).} We therefore added a
-curation layer using LEGOMem's \emph{verbatim} memory-curation prompt (Appendix A of
-\cite{legomem}): an LLM distills each successful trajectory into structured memory
-(\code{high\_level\_plan} $+$ per-agent \code{subtasks} $+$ \code{reflections}),
-denoising before banking. Curation is running; we then re-measure utility on the
-curated bank---the expectation is that curated $U$ turns positive, so the
-$\rho$-gate consults EM where it now helps.
+\paragraph{LEGOMem-style curation (option D).} We added a curation layer using
+LEGOMem's \emph{verbatim} memory-curation prompt (Appendix A of \cite{legomem}): an LLM
+distills each successful trajectory into structured memory (\code{high\_level\_plan} $+$
+per-agent \code{subtasks} $+$ \code{reflections}), denoising before banking. The
+$\rho$-gated arm consumes this curated bank through the \emph{real}
+\code{MemoryManager}: \code{consolidate()} populates EM (episodes), SM (facts), PM
+(distilled rules), and seeds STM (one exemplar per cluster); \code{retrieve()} then runs
+the full cascade---STM short-circuit on a near-duplicate, else $\rho$-gated consultation
+of EM/SM/ENT by per-pattern utility, with the PM rule always read.
 
-\paragraph{Planned comparisons.} \textbf{(i) The main by-level comparison}: 
-(no-memory vs.\ retrieve-all vs.\ $\rho$-gated PCCR) over the 152 test tasks
-$\times$3 methods, reporting success/consults/tokens per L1/L2/L3---the LEGOMem
-head-to-head. \textbf{(ii) A combined system test}---$\rho$-gate $+$ 4 parallel
-tasks $+$ $N$ parallel sub-agents in one task---exercising routing and both
-concurrency dimensions together with per-task container isolation.
+\subsection{Main result: the by-level comparison (152 test tasks $\times$ 3 arms)}
+\label{sec:t1}
+Table~\ref{tab:t1main} reports the full LEGOMem-style head-to-head with the real
+architecture under \emph{frozen per-pattern priors}: \textbf{no-memory},
+\textbf{retrieve-all} (always inject the curated EM episode), and \textbf{$\rho$-gated
+PCCR} (the full six-store cascade). For each arm and difficulty level we report success,
+median wall-clock latency, agent steps, LLM calls, and total injected tokens.
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+Level & Arm & Acc. & Lat.\,(s) & Steps & Calls & Inj.\,tok. \\
+\midrule
+\multirow{3}{*}{\textbf{ALL} (152)}
+ & no-memory    & 0.414 & 54.4 & 13.4 & 16.4 & 0 \\
+ & retrieve-all & \textbf{0.467} & 43.9 & 12.1 & 14.4 & 734{,}295 \\
+ & PCCR         & 0.421 & 53.1 & 12.0 & 15.0 & 1{,}031{,}111 \\
+\midrule
+\multirow{3}{*}{L1 (47)}
+ & no-memory    & 0.553 & 17.4 & 8.4 & 8.5 & 0 \\
+ & retrieve-all & \textbf{0.723} & 31.3 & 8.4 & 8.7 & 162{,}169 \\
+ & PCCR         & 0.532 & 33.9 & 7.7 & 8.1 & 159{,}393 \\
+\midrule
+\multirow{3}{*}{L2 (48)}
+ & no-memory    & 0.500 & 25.0 & 10.9 & 11.4 & 0 \\
+ & retrieve-all & \textbf{0.583} & 23.6 & 10.0 & 10.3 & 184{,}105 \\
+ & PCCR         & 0.562 & 21.9 & 10.1 & 10.3 & 255{,}869 \\
+\midrule
+\multirow{3}{*}{L3 (57)}
+ & no-memory    & \textbf{0.228} & 109.6 & 19.6 & 27.1 & 0 \\
+ & retrieve-all & 0.158 & 71.4 & 16.9 & 22.6 & 388{,}021 \\
+ & PCCR         & 0.211 & 95.1 & 17.1 & 24.6 & 615{,}849 \\
+\bottomrule
+\end{tabular}
+\caption{Full-scale OfficeBench, real architecture, frozen priors ($\theta{=}1.0$,
+gpt-oss-120b). Three arms over 152 test subtasks. \textbf{Retrieve-all leads overall},
+driven by L1; \textbf{PCCR's gate protects on L3}, where indiscriminate retrieval
+\emph{collapses} ($-7$\,pp vs.\ no-memory) while PCCR stays at the no-memory level.}
+\label{tab:t1main}
+\end{table}
+
+\paragraph{Reading the table (the honest headline).} Overall, retrieve-all leads
+($0.467$) over PCCR ($0.421$) and no-memory ($0.414$), but the level breakdown tells the
+real story. On \textbf{L1}, retrieve-all dominates ($0.723$): easy tasks benefit from a
+near-matching episode, and PCCR is \emph{dragged below no-memory} ($0.532$) because the
+frozen priors also consult SM/ENT, whose rule-extracted facts and sparse entity profile
+are \emph{noise} on procedural office tasks. On \textbf{L2} the gate recovers
+($0.562 \approx$ retrieve-all $0.583$). On \textbf{L3}, the pattern \emph{inverts}:
+retrieve-all \emph{collapses} to $0.158$ (the injected episode distracts on long
+multi-step tasks), while PCCR ($0.211$) tracks no-memory ($0.228$)---the $\rho$-gate
+\emph{declines} the unhelpful memory and avoids the damage. This is the gate's protective
+role made quantitative: where indiscriminate retrieval actively degrades accuracy, the
+gate limits the loss.
+
+\paragraph{Latency and steps.} Memory cuts agent flailing on hard tasks: L3 steps fall
+$19.6 \to 17.1$ and LLM calls $27.1 \to 24.6$ (PCCR vs.\ no-memory), with latency
+$109.6\text{s} \to 95.1$s. On easy L1 tasks the injection \emph{adds} overhead
+($17.4 \to 33.9$s) for no accuracy gain---further motivation to gate on confidence. PCCR
+is fastest of the three on L2 ($21.9$s).
+
+\paragraph{Cost.} Under frozen priors PCCR injects \textbf{$1.40\times$} the tokens of
+retrieve-all ($1{,}031{,}111$ vs.\ $734{,}295$, $+40\%$): retrieve-all is EM-only, whereas
+PCCR's cascade adds SM, ENT, and PM on top of EM. This token bloat is the cost-side face
+of the same SM/ENT-noise problem---the priors over-rate those stores. The fix
+(\S\ref{sec:t1disc}) is a measured/confidence utility that suppresses them, turning the
+$+40\%$ into a net saving.
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Pattern & $n$ & no-mem & retr-all & PCCR & EM-lift \\
+\midrule
+data\_compute  & 10 & 0.700 & 0.800 & \textbf{0.800} & $+0.100$ \\
+doc\_process   & 25 & 0.480 & 0.600 & \textbf{0.600} & $+0.120$ \\
+lookup         & 16 & 0.625 & \textbf{0.812} & 0.625 & $+0.188$ \\
+multi\_app     & 78 & 0.295 & 0.269 & 0.256 & $-0.026$ \\
+single\_action & 23 & 0.478 & \textbf{0.609} & 0.478 & $+0.130$ \\
+\bottomrule
+\end{tabular}
+\caption{Accuracy by task pattern. EM-lift $=$ retrieve-all $-$ no-memory. PCCR
+\emph{matches} retrieve-all where EM helps cleanly (\code{data\_compute},
+\code{doc\_process}) but is dragged to the no-memory level on \code{lookup} and
+\code{single\_action}---precisely the patterns where the frozen priors inject noisy
+SM/ENT alongside EM.}
+\label{tab:t1pattern}
+\end{table}
+
+\paragraph{Per-pattern routing (Table~\ref{tab:t1pattern}).} EM helps four of five
+patterns ($+0.10$ to $+0.19$) and is neutral on \code{multi\_app}. PCCR \emph{captures}
+the EM gain on \code{data\_compute} and \code{doc\_process} (matching retrieve-all) but
+\emph{loses} it on \code{lookup} ($0.812 \to 0.625$) and \code{single\_action}
+($0.609 \to 0.478$): on these the frozen priors clear $\theta$ for SM/ENT, and their
+noise cancels EM's benefit. This per-pattern split is the direct evidence that the
+\emph{utility} term---not the gate mechanism---is what needs fixing.
+
+\paragraph{Gate internals.} Across the 152 PCCR runs: \textbf{8} STM short-circuits
+(near-duplicate hits are inherently rare on a single-pass held-out split), \textbf{128}
+EM consultations, and the PM rule fired on \textbf{61} tasks. Consulted-store signatures:
+EM$+$ENT (104 tasks), EM$+$ENT$+$SM (24), ENT$+$SM without EM (16), and PM-only on the 8
+STM short-circuits. Within PCCR, success when EM was consulted is $49/128\,(0.383)$
+vs.\ $15/24\,(0.625)$ when skipped---expected, since the skipped tasks are the easy
+near-duplicates the cascade resolves early.
+
+\subsection{L3 autopsy: why the hardest tasks fail (and what fixes them)}
+\label{sec:t1l3}
+L3 accuracy is low ($0.16$--$0.23$) across \emph{all} arms, so the bottleneck is not
+memory routing. We traced every L3 failure. Of 171 L3 runs, the dominant failed predicate
+is \code{evaluate\_file\_exist} (\textbf{67} failures)---a required output file is absent
+at evaluation time. Classifying each to its actual missing file:
+\begin{itemize}\itemsep1pt
+\item \textbf{36 --- output never created.} L3 tasks are multi-app and multi-output (46 of
+the 67 require 2--6 files); the agent completes the first sub-goal and calls
+\code{finish\_task}, never switching to the second app. The files never produced are
+mostly the second app's: \code{.pdf} (20), \code{.ics} (15), \code{.docx} (7),
+\code{.jpg} (7), \code{.eml} (5). This is \emph{incomplete multi-app execution}, not
+reasoning difficulty.
+\item \textbf{17 --- path/name mistakes.} The file is written but to the wrong directory
+(omitting \code{data/}) or under a renamed filename (e.g.\ \code{Anderson\_admission.pdf}
+for \code{data/admission.pdf}).
+\item \textbf{14 --- save/sub-directory edge cases.}
+\end{itemize}
+Only \textbf{13} of the 67 are step-cap-bound, so the L3 cap is \emph{not} the primary
+cause. The remaining L3 failures are \code{evaluate\_contain} (wrong content) and five
+benchmark evaluator crashes. The actionable consequence: the EM episode already contains
+the full multi-app sequence, but injecting it as a passive hint does not enforce
+completion. Executing it as a \emph{verified procedure} (replaying the cached sequence
+with a completion check over the full output list before \code{finish\_task} is allowed)
+targets the 36 never-made directly, and an explicit output-path convention recovers the
+17 path/name failures---both fixes lift every arm, with PCCR (already best-protected on
+L3) positioned to gain most. We leave these to future work (\S\ref{sec:t1disc}).
+
+\subsection{What the full-scale result establishes}\label{sec:t1disc}
+Two honest conclusions follow. \textbf{(1) The gate mechanism is sound, the priors are
+not.} PCCR protects accuracy exactly where indiscriminate retrieval is harmful (L3,
+$-7$\,pp for retrieve-all) and captures EM where it helps cleanly, but \emph{hand-set
+per-pattern priors} over-consult SM/ENT---costing $40\%$ more tokens and erasing EM's gain
+on \code{lookup}/\code{single\_action}. From the same data, a pattern-routed EM-only
+policy reaches $0.537$ and an oracle EM-confidence gate $0.570$ ($+4$\,pp over
+retrieve-all), bounding the achievable headroom. This motivates replacing the priors with
+a \emph{per-query retrieval-confidence} utility (the top-$k$ FAISS similarity from each
+store), which is label-free and benchmark-agnostic and would suppress the low-similarity
+SM/ENT hits automatically---turning the $+40\%$ token cost into a net saving with no
+per-benchmark tuning. \textbf{(2) L3 is a task-completion problem, not a memory problem}
+(\S\ref{sec:t1l3}), addressable by executing memory as a verified, completion-checked
+procedure rather than a passive hint. Both are concrete next steps; the present result is
+the clean, reproducible frozen-priors baseline against which to measure them.
 
 % =====================================================================
 \section{Experiment Inventory: API vs.\ Local, and Why}\label{sec:inventory}
@@ -992,7 +1223,7 @@ the \emph{routing decision or retrieval} (consult counts, recall, latency
 scheduling, equivalence) is deterministic and runs offline, which is why the cost
 and correctness claims are cheap and exactly reproducible.
 
-\begin{table}[htbp]
+\begin{table}[t]
 \centering\scriptsize
 \begin{tabular}{@{}llp{3.1cm}@{}}
 \toprule
@@ -1043,9 +1274,15 @@ independent work, leaving speedup on the table---a learned/semantic dependency
 analyzer is future work. \textbf{Environment isolation.} Outcome-equivalence
 assumes per-task external isolation; systems that share a live mutable environment
 must add application-level resource coordination, as benchmarks already do.
-\textbf{Raw vs.\ curated memory.} On full OfficeBench, \emph{raw} episodic reuse was
-net-neutral-to-negative (\S\ref{sec:ob}); a curation layer (LEGOMem's prompt) is the
-ingredient that makes procedural memory help, and is the current focus. \textbf{Live
+\textbf{Raw vs.\ curated memory, and frozen priors.} On full OfficeBench, \emph{raw}
+episodic reuse was net-neutral-to-negative; LEGOMem-style curation makes EM help on four
+of five patterns ($+0.10$ to $+0.19$), but the completed by-level comparison
+(\S\ref{sec:t1}) shows that under \emph{frozen per-pattern priors} PCCR over-consults
+SM/ENT---erasing EM's gain on \code{lookup}/\code{single\_action} and injecting $40\%$
+more tokens than retrieve-all. The honest result is that the gate \emph{mechanism} is
+sound (it protects accuracy on L3, where retrieve-all collapses $-7$\,pp) but the
+\emph{utility term} must be measured, not hand-set; a per-query retrieval-confidence
+utility is the indicated fix (\S\ref{sec:t1disc}). \textbf{Live
 throughput.} The headline $3.73$--$13.5\times$ speedups are at the measured latency;
 on a rate-limited 4-key account the realised speedup was $1.19\times$
 (\S\ref{sec:lme})---the architecture is not the bottleneck, the provider quota is.
@@ -1054,13 +1291,15 @@ exhausting step budgets on Excel-heavy tasks; a coarser tool action would help m
 than a larger budget.
 
 \paragraph{Current status and next steps.} (a)~The reference router + parallel
-architecture and the LongMemEval study are complete and reproducible. (b)~On full
-OfficeBench the no-memory baseline, the 62-procedure bank, and cost/utility
-calibration are done; LEGOMem-style \emph{curation} is running, after which we
-re-measure utility and run the by-level no-memory / retrieve-all / PCCR
-comparison and a combined routing-plus-parallelism system test.
-(c)~Cross-model generality and a balanced, multi-seed scale-up remain the two
-evidence gaps; both need API budget, not redesign.
+architecture and the LongMemEval study are complete and reproducible. (b)~The full-scale
+OfficeBench evaluation is \emph{complete}: the no-memory baseline, the curated bank, and
+the by-level no-memory / retrieve-all / $\rho$-gated PCCR comparison over all 152 test
+tasks (Tables~\ref{tab:t1main}--\ref{tab:t1pattern}, \S\ref{sec:t1}), including the L3
+failure autopsy (\S\ref{sec:t1l3}). (c)~The two indicated improvements---replacing frozen
+priors with a per-query retrieval-confidence utility, and executing memory as a verified,
+completion-checked procedure (to recover the L3 multi-output failures)---are the immediate
+next steps, alongside cross-model generality and a balanced, multi-seed scale-up; all need
+API budget, not redesign.
 
 % =====================================================================
 \section{Reproducibility}
