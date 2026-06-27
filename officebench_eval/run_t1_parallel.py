@@ -227,13 +227,14 @@ def main():
     ap.add_argument("--stm-threshold", type=float, default=0.85, dest="stm_threshold_lookup",
                     help="STM short-circuit similarity threshold (default 0.85)")
     ap.add_argument("--improved", action="store_true",
-                    help="the validated novelty arm: A1 confidence gate + B1 verified replay + cap 45. "
-                         "EXCLUDES the heavy-injection add-ons D1/D3/B3 (curate-pm/convention/step-hint) "
-                         "and B2 (plan) -- measured to make gpt-oss emit malformed actions (44/45 vs "
-                         "baseline 0) and thrash, regressing L3. Add those flags explicitly to ablate.")
+                    help="full improved bundle: A1 confidence gate + B1 verified replay + D1 curated-PM "
+                         "+ D3 convention + B3 step-hint + cap 45. (B2 --plan and A2 --online stay separate.) "
+                         "NOTE: the prior 'D1/D3/B2 cause malformed actions' finding was a confound of the "
+                         "intercode signal-timeout thread-safety bug -- fixed; these features are innocent.")
     args = ap.parse_args()
-    if args.improved:                                  # validated novelty arm: A1 + B1 + cap45 ONLY
+    if args.improved:                                  # full improved bundle (B2/A2 excluded by design)
         args.confidence = args.replay = True
+        args.curate_pm = args.convention = args.step_hint = True
         if args.l3_cap == 30:
             args.l3_cap = 45
     asyncio.run(main_async(args))
