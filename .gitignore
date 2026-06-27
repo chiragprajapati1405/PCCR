@@ -56,3 +56,7 @@ officebench_eval/t1_pccr_noSTM.json
 officebench_eval/t1_progress_prefix.json
 .claude/scheduled_tasks.lock
 explanation/
+
+# Parallel/improved-arm eval artifacts (regenerable)
+officebench_eval/t1_parallel_progress.json
+officebench_eval/traces/t1_par/
