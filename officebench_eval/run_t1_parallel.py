@@ -63,14 +63,27 @@ def _lock_encode(embedder):
 
 def _record(prog, key, it, pat, r):
     em = r["em"]
+    rl = r.get("rate_limit_wait_s", 0.0)
     prog[key] = {"success": r["success"], "level": it["level"], "pattern": pat,
                  "consults": int(em["consult_em"]), "tokens": em["injected_tokens"],
                  "steps": r["steps"], "llm_calls": r["llm_calls"], "wall_s": r["wall_s"],
+                 "rate_limit_wait_s": rl, "compute_s": round(r["wall_s"] - rl, 1),   # 429-neglected
+                 "rate_limit_hits": r.get("rate_limit_hits", 0),
                  "stm_hit": int(em.get("stm_hit", False)), "top_em_sim": em.get("top_em_sim", 0.0),
                  "stores": em.get("consulted_stores", []), "pm_used": bool(em.get("pm_used", False)),
                  "failed_predicate": r.get("failed_predicate"), "replay": em.get("replay"),
                  "batch_calls": em.get("batch_calls"), "batch_actions": em.get("batch_actions"),
                  "container": r.get("_container"), "worker_t0": r.get("_t0"), "worker_t1": r.get("_t1")}
+
+
+def _save_trace(it, m, r):
+    base = f"{TRACE_DIR}/{it['task']}_{it['subtask']}_{m}"
+    json.dump(r, open(f"{base}.json", "w"), indent=2, default=str)
+    with open(f"{base}.txt", "w") as fh:
+        fh.write(f"TASK {it['task']}/{it['subtask']} [{r.get('pattern')}] {m}  success={r['success']}  "
+                 f"steps={r['steps']} llm_calls={r['llm_calls']} wall={r['wall_s']}s "
+                 f"compute(no-429)={round(r['wall_s']-r.get('rate_limit_wait_s',0.0),1)}s\n"
+                 f"  {r['task_text']}\n" + "=" * 70 + "\n" + "\n".join(r["sequence"]) + "\n")
 
 
 async def main_async(args):
@@ -127,14 +140,17 @@ async def main_async(args):
             r["_container"], r["_t0"], r["_t1"] = container, round(t0, 1), round(time.perf_counter() - t_start, 1)
         finally:
             pool.put_nowait(container)                     # release
+        _save_trace(it, METHOD, r)                       # record EVERY trace (json + readable txt)
         async with write_lock:
             if args.online:                              # A2: learn utility from this outcome
                 realmem.record_outcome(pat, r["em"].get("consulted_stores", []), r["success"])
             _record(prog, key, it, pat, r)
             json.dump(prog, open(PROGRESS, "w"))
             done = sum(1 for v in prog.values() if "level" in v)
+            cs = round(r["wall_s"] - r.get("rate_limit_wait_s", 0.0), 1)
             print(f"  [{done}/{len(test)}] {it['task']}/{it['subtask']} L{it['level']} "
-                  f"[{container}] success={r['success']} wall={r['wall_s']}s", flush=True)
+                  f"[{container}] success={r['success']} wall={r['wall_s']}s "
+                  f"compute(no-429)={cs}s 429s={r.get('rate_limit_hits',0)}", flush=True)
         return r
 
     queue = AsyncTaskQueue(pipeline, max_concurrency=N)
@@ -148,11 +164,20 @@ def _report(prog, test, wall, N):
     runs = [v for v in prog.values() if "level" in v]
     succ = sum(int(v["success"]) for v in runs)
     seq_wall = sum(v.get("wall_s", 0.0) for v in runs)     # sum of per-task wall = ~sequential total
+    seq_compute = sum(v.get("compute_s", v.get("wall_s", 0.0)) for v in runs)   # 429 neglected
+    rl_total = sum(v.get("rate_limit_wait_s", 0.0) for v in runs)
+    calls = sum(v.get("llm_calls", 0) for v in runs)
     print(f"\n{'='*72}\nT1 PARALLEL (PCCR arm, C={N})\n{'='*72}")
     print(f"tasks: {len(runs)} | success: {succ}/{len(runs)} ({succ/max(len(runs),1):.3f})")
-    print(f"wall-clock PARALLEL: {wall/60:.1f} min ({wall:.0f}s)")
-    print(f"sum of per-task wall (~sequential): {seq_wall/60:.1f} min ({seq_wall:.0f}s)")
-    print(f"observed speedup: {seq_wall/wall:.2f}x  (ideal ceiling = {N}x)")
+    print(f"total LLM calls: {calls}  ({calls/max(len(runs),1):.1f}/task)")
+    print(f"wall-clock PARALLEL (raw, incl 429): {wall/60:.1f} min ({wall:.0f}s)")
+    print(f"-- TIME WITH 429 NEGLECTED (user metric) --")
+    print(f"sum per-task COMPUTE (429 removed): {seq_compute/60:.1f} min ({seq_compute:.0f}s)  "
+          f"[sequential-equivalent work]")
+    print(f"sum per-task wall (incl 429):       {seq_wall/60:.1f} min ({seq_wall:.0f}s)  "
+          f"(429 stall = {rl_total:.0f}s, {100*rl_total/max(seq_wall,1):.0f}%)")
+    print(f"ideal parallel COMPUTE @ C={N}:      {seq_compute/N/60:.1f} min ({seq_compute/N:.0f}s)")
+    print(f"observed speedup (raw wall):        {seq_wall/wall:.2f}x  (ideal ceiling = {N}x)")
 
     # Equivalence check vs the sequential pccr results
     if os.path.exists(SEQ_PROGRESS):

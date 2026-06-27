@@ -132,6 +132,10 @@ def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="
         "task": task_id, "subtask": subtask_id, "level": int(task_id.split("-")[0]),
         "pattern": pattern, "method": method, "success": ok, "failed_predicate": failed,
         "steps": n, "llm_calls": policy.llm.calls, "wall_s": round(time.perf_counter() - t0, 1),
+        # 429 accounting: compute_s = wall minus time lost to rate-limit stalls (user wants
+        # latency with 429s neglected). rate_limit_wait_s = failed round-trips + pacing sleeps.
+        "rate_limit_wait_s": round(getattr(policy.llm, "rate_limit_wait_s", 0.0), 1),
+        "rate_limit_hits": getattr(policy.llm, "rate_limit_hits", 0),
         "em": policy.em_trace,
         # FULL action (untruncated) so the EM bank's plans + agent-index parse are
         # lossless on long actions (email bodies, multi-field creates); observations

@@ -31,6 +31,8 @@ class CerebrasLLM:
         self._lock = threading.Lock()
         self.calls = 0
         self.max_tokens = 512                  # raise for long outputs (e.g. curation)
+        self.rate_limit_wait_s = 0.0           # cumulative time lost to 429s (failed round-trip + pacing sleep)
+        self.rate_limit_hits = 0
 
     def _next(self):
         with self._lock:
@@ -43,6 +45,7 @@ class CerebrasLLM:
         n = len(self.clients)
         for attempt in range(n + 4):                 # one sweep over keys + a little slack
             c = self._next()
+            t0 = time.perf_counter()
             try:
                 r = c.chat.completions.create(
                     model=self.model_name, temperature=0, max_tokens=self.max_tokens,
@@ -56,6 +59,10 @@ class CerebrasLLM:
                 if "401" in s or "organization" in s or "invalid_api_key" in s:
                     continue                         # DEAD key -> skip instantly, next key
                 if "429" in s or "rate" in s:
+                    # time LOST to rate limiting = the failed round-trip + the pacing sleep.
+                    # Tracked so the run can report compute time with 429 stalls neglected.
+                    self.rate_limit_wait_s += (time.perf_counter() - t0) + 0.4
+                    self.rate_limit_hits += 1
                     time.sleep(0.4)                  # PACED rotation (no burst, no 60s block)
                     continue
                 time.sleep(0.5)                      # other transient -> brief pause, next key
