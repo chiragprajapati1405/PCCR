@@ -24,8 +24,10 @@ def cap_for_level(level):
     """Step budget scaled to difficulty: L3 pipelines (explore -> 3-4 app
     switches -> multi-file ops) legitimately need more steps than L1 edits.
     Measured: L3 successes use up to 16 steps and ~half its failures were
-    budget-bound at a flat 20 cap."""
-    return {1: 15, 2: 22, 3: 30}.get(int(level), 22)
+    budget-bound at a flat 20 cap. NEXT_STEPS B4: L3 raised 30->45 — multi-output
+    L3 tasks (2-6 files across apps) need budget for the SECOND app after a long
+    cell-by-cell Excel build (13 of the 67 L3 file_exist fails were cap-bound)."""
+    return {1: 15, 2: 22, 3: 45}.get(int(level), 22)
 
 
 def _parse_action(a):

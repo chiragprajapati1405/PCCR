@@ -10,6 +10,21 @@ from __future__ import annotations
 
 from .cerebras_llm import CerebrasLLM
 
+# Output-path + completion convention (NEXT_STEPS D3). The agent prompt never told
+# the model WHERE to write outputs or that L3 tasks need MULTIPLE files; tracing the
+# 67 L3 file_exist failures showed 17 wrong-dir/renamed + 36 "second output never made".
+# Applied uniformly to ALL arms (a harness-fairness fix, not a PCCR-only advantage).
+OUTPUT_CONVENTION = (
+    "##OUTPUT RULES (follow exactly):\n"
+    "1. Write EVERY output file under /testbed/data/ using the EXACT filename named in "
+    "the task. Do not add prefixes, do not rename (e.g. if the task says report.pdf, "
+    "write /testbed/data/report.pdf, not /testbed/report.pdf or a renamed file).\n"
+    "2. Many tasks require MULTIPLE outputs across different apps (e.g. an Excel file AND "
+    "calendar .ics events AND a converted PDF AND a sent email). Produce ALL required "
+    "outputs before you finish — do NOT stop after the first one. Re-read the task and "
+    "confirm every requested file/action is done before calling finish_task.\n"
+)
+
 
 def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="no_memory",
                      pattern=None, exclude_task=None, use_pm=False, real_mem=None):
@@ -86,6 +101,9 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
             base = super().build_prompt(env)
             # gate arm: the real MemoryManager bundle; else PM(always) + EM(gated)
             prefix = self._realmem_block if self._realmem_block else (self._pm_text + self._memory_block(env))
+            # D3: output-path + completion convention on EVERY arm (not counted as
+            # injected memory tokens — it is a static harness instruction, like the system prompt)
+            base = OUTPUT_CONVENTION + "\n" + base
             if prefix:
                 self.em_trace["injected_tokens"] += max(1, len(prefix) // 4)
                 return prefix + "\n\n" + base
