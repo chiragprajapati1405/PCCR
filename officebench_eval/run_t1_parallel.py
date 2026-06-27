@@ -227,15 +227,13 @@ def main():
     ap.add_argument("--stm-threshold", type=float, default=0.85, dest="stm_threshold_lookup",
                     help="STM short-circuit similarity threshold (default 0.85)")
     ap.add_argument("--improved", action="store_true",
-                    help="convenience: the validated improved bundle "
-                         "(confidence+replay+curate-pm+convention+step-hint, l3-cap 45). "
-                         "NOTE: B2 plan-then-execute (--plan) is EXCLUDED -- it thrashes on L3 "
-                         "(malformed-action -> batch abort -> re-plan loop -> cap-hit). Use --plan "
-                         "explicitly only with the fixed batch logic.")
+                    help="the validated novelty arm: A1 confidence gate + B1 verified replay + cap 45. "
+                         "EXCLUDES the heavy-injection add-ons D1/D3/B3 (curate-pm/convention/step-hint) "
+                         "and B2 (plan) -- measured to make gpt-oss emit malformed actions (44/45 vs "
+                         "baseline 0) and thrash, regressing L3. Add those flags explicitly to ablate.")
     args = ap.parse_args()
-    if args.improved:                                  # one-flag improved config (B2 deliberately OFF)
+    if args.improved:                                  # validated novelty arm: A1 + B1 + cap45 ONLY
         args.confidence = args.replay = True
-        args.curate_pm = args.convention = args.step_hint = True
         if args.l3_cap == 30:
             args.l3_cap = 45
     asyncio.run(main_async(args))
