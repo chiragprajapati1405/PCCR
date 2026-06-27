@@ -71,7 +71,38 @@ def _setup():
     sys.path.insert(0, OB)
     sys.path.insert(0, REPO)
     os.chdir(OB)
+    _patch_intercode_timeout()
     _READY = True
+
+
+def _patch_intercode_timeout():
+    """Make intercode's signal-based `timeout` thread-safe (version-controlled here
+    because OfficeBench is a gitignored external clone). env.step wraps every action
+    in `with timeout()`, which uses signal.alarm -- main-thread only. Under the parallel
+    driver's asyncio.to_thread (worker thread) it raises 'signal only works in main
+    thread', which env.step catches and reports as 'Malformed action!' on EVERY action
+    (89% malformed -> cap-hit failures). We replace __enter__/__exit__ with main-thread
+    guards: main thread keeps the exact timeout (sequential/baseline unchanged); worker
+    threads skip it (Docker exec + the step cap are the backstop)."""
+    import threading
+    try:
+        from intercode.utils.utils import timeout as _t
+    except Exception:
+        return
+    if getattr(_t, "_thread_safe", False):
+        return
+    import signal as _sig
+
+    def _enter(self):
+        if threading.current_thread() is threading.main_thread():
+            _sig.signal(_sig.SIGALRM, self.handle_timeout)
+            _sig.alarm(self.seconds)
+
+    def _exit(self, *a):
+        if threading.current_thread() is threading.main_thread():
+            _sig.alarm(0)
+
+    _t.__enter__, _t.__exit__, _t._thread_safe = _enter, _exit, True
 
 
 def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="no_memory",
