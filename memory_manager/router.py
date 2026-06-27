@@ -156,6 +156,13 @@ class MemoryRouter:
     store_cost: dict[MemoryType, float] = field(default_factory=lambda: dict(STORE_COST))
     decision_log: list[RoutingDecision] = field(default_factory=list)
     online: OnlineUtility | None = None        # closed loop: learns utility from outcomes (opt-in)
+    # A1: when True, the gate is a single global similarity threshold on the per-query
+    # retrieval confidence (consult iff conf[store] >= consult_threshold), bypassing the
+    # per-pattern utility table and the cost division. Measured: cost-division does NOT
+    # separate EM from SM (SM's lower cost cancels its lower similarity); a pure
+    # confidence threshold does. Label-free and benchmark-agnostic -- the A1 novelty.
+    confidence_only: bool = False
+    confidence_sim_threshold: float = 0.55     # the global theta_sim for confidence_only mode
 
     # -- Phase 1: BOOTSTRAP --------------------------------------------------
 
@@ -208,12 +215,25 @@ class MemoryRouter:
         else:
             utilities = self.pattern_utility.get(pattern, {})
             for store in OPTIONAL_ON_MISS:
+                conf = 1.0 if confidence is None else float(confidence.get(store, 0.0))
+                if self.confidence_only:
+                    # A1: pure retrieval-confidence gate -- consult iff this query's top-k
+                    # similarity for the store clears a single global threshold. No
+                    # per-pattern utility, no cost division (which fails to separate EM/SM).
+                    if conf >= self.confidence_sim_threshold:
+                        consulted.append(store)
+                    elif self.online is not None and self.online.explore():
+                        consulted.append(store)
+                    else:
+                        skipped[store] = (
+                            f"retrieval confidence {conf:.2f} < theta_sim "
+                            f"{self.confidence_sim_threshold:.2f} (A1 confidence gate)")
+                    continue
                 utility = utilities.get(store, 0.0)
                 cost = self.store_cost.get(store, 1.0)
                 # per-query retrieval confidence (e.g. top-hit similarity) scales the
                 # pattern-level utility: a high-utility pattern with a weak match THIS
                 # query is gated down, and vice versa. Defaults to 1.0 (= prior behavior).
-                conf = 1.0 if confidence is None else float(confidence.get(store, 0.0))
                 ratio = (utility * conf) / cost if cost > 0 else float("inf")
                 if ratio >= self.consult_threshold:
                     consulted.append(store)

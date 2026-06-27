@@ -34,5 +34,10 @@ class Settings:
     em_sm_similarity_threshold: float = float(os.environ.get("EM_SM_SIMILARITY_THRESHOLD", "0.55"))
     max_episodes_per_query: int = int(os.environ.get("MAX_EPISODES_PER_QUERY", "3"))
 
+    # A1: per-query retrieval-confidence gate. When True, retrieve() pre-searches
+    # each optional store and the router consults it iff its top-k similarity
+    # clears a single global threshold (label-free, no per-pattern utility table).
+    confidence_gate: bool = os.environ.get("CONFIDENCE_GATE", "0") == "1"
+
 
 SETTINGS = Settings()

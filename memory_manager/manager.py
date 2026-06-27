@@ -197,7 +197,35 @@ class MemoryManager:
         pattern = ctx.pattern or Pattern.SINGLE_ACTION
 
         cache_hit = self.stm.lookup(ctx.description)
-        decision = self.router.plan_retrieval(ctx.task_id, pattern, stm_hit=cache_hit is not None)
+        stm_hit = cache_hit is not None
+        k = self.settings.max_episodes_per_query
+
+        # A1: per-query retrieval-confidence gate. Pre-search each optional store
+        # (cheap FAISS, ms) so the router can gate on this query's top-k similarity;
+        # the EXPENSIVE part (injecting tokens into the prompt) still happens only for
+        # consulted stores. The pre-fetched hits are reused below (no double search).
+        confidence = None
+        pre_em = pre_sm = None
+        pre_profile = None
+        if getattr(self.settings, "confidence_gate", False) and not stm_hit:
+            pre_em = self.em.search(ctx.description, k=k)
+            pre_sm = self.sm.search(ctx.description, k=k)
+            ent_conf = 0.0
+            prof = self.ent.get(ctx.username)
+            if prof and prof.facts:
+                ptxt = ", ".join(f"{a}={b}" for a, b in prof.facts.items())
+                qv = self.embedder.encode([ctx.description])[0]
+                pv = self.embedder.encode([ptxt])[0]
+                ent_conf = float(sum(x * y for x, y in zip(qv, pv)))   # cosine (normalized vectors)
+                pre_profile = dict(prof.facts)
+            confidence = {
+                MemoryType.EM: float(pre_em[0][0]) if pre_em else 0.0,
+                MemoryType.SM: float(pre_sm[0][0]) if pre_sm else 0.0,
+                MemoryType.ENT: ent_conf,
+            }
+
+        decision = self.router.plan_retrieval(ctx.task_id, pattern, stm_hit=stm_hit,
+                                              confidence=confidence)
 
         bundle = RetrievalBundle(
             orchestrator_prompt=self.pm.get_orchestrator_prompt(),
@@ -207,12 +235,15 @@ class MemoryManager:
         if cache_hit is not None:
             bundle.cached_bundle = cache_hit[0]
         if MemoryType.EM in decision.consulted_stores:
-            bundle.episodes = self.em.search(ctx.description, k=self.settings.max_episodes_per_query)
+            bundle.episodes = pre_em if pre_em is not None else self.em.search(ctx.description, k=k)
         if MemoryType.SM in decision.consulted_stores:
-            bundle.facts = self.sm.search(ctx.description, k=self.settings.max_episodes_per_query)
+            bundle.facts = pre_sm if pre_sm is not None else self.sm.search(ctx.description, k=k)
         if MemoryType.ENT in decision.consulted_stores:
-            profile = self.ent.get(ctx.username)
-            bundle.profile = dict(profile.facts) if profile else None
+            if pre_profile is not None:
+                bundle.profile = pre_profile
+            else:
+                profile = self.ent.get(ctx.username)
+                bundle.profile = dict(profile.facts) if profile else None
         return bundle
 
     # =====================================================================

@@ -29,12 +29,18 @@ AGENT_PROFILES = {a: {} for a in APPS}
 class RealMem:
     """The real MemoryManager wired for OfficeBench (EM/SM/PM/STM all live)."""
 
-    def __init__(self, bank_path, theta=1.0, stm_threshold=0.92, username="user", date="2026-06-08"):
+    def __init__(self, bank_path, theta=1.0, stm_threshold=0.92, username="user", date="2026-06-08",
+                 confidence_gate=False, sim_threshold=0.55):
         s = config.Settings(embedding_backend="sentence-transformers", llm_backend="stub",
-                            stm_cache_threshold=stm_threshold)
+                            stm_cache_threshold=stm_threshold, confidence_gate=confidence_gate)
         self.mgr = MemoryManager(s)
         self.mgr.bootstrap(ORCH_PROMPT, AGENT_PROMPTS, TASK_RULES, AGENT_PROFILES)
         self.mgr.router.consult_threshold = theta
+        # A1: per-query retrieval-confidence gate (single global similarity threshold)
+        self.confidence_gate = confidence_gate
+        if confidence_gate:
+            self.mgr.router.confidence_only = True
+            self.mgr.router.confidence_sim_threshold = sim_threshold
         self.username, self.date = username, date
         emb = self.mgr.embedder
         for i, rec in enumerate(json.load(open(bank_path))):

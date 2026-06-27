@@ -77,11 +77,14 @@ async def main_async(args):
     if args.priors:
         util, cost = {}, {}
     real = RealArch(BANK, cost, util, theta=args.theta)
-    realmem = RealMem(BANK, theta=args.theta, stm_threshold=0.85)
+    realmem = RealMem(BANK, theta=args.theta, stm_threshold=0.85,
+                      confidence_gate=args.confidence, sim_threshold=args.sim_threshold)
     _lock_encode(real.embedder)
     _lock_encode(realmem.mgr.embedder)
+    gate = f"A1 confidence (theta_sim={args.sim_threshold})" if args.confidence else \
+           ("frozen priors" if args.priors else "calibrated")
     print(f"loaded real FAISS EM: {len(real)} procedures | theta={args.theta} | "
-          f"concurrency={args.concurrency} | utility={'frozen priors' if args.priors else 'calibrated'}")
+          f"concurrency={args.concurrency} | gate={gate}")
 
     test = json.load(open(SPLIT))["test"]
     pats = {(p["task"], p["subtask"]): p["pattern"] for p in json.load(open(PATTERNS))}
@@ -167,6 +170,9 @@ def main():
     ap.add_argument("--model", default="gpt-oss-120b")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--priors", action="store_true")
+    ap.add_argument("--confidence", action="store_true",
+                    help="A1: per-query retrieval-confidence gate (single global theta_sim)")
+    ap.add_argument("--sim-threshold", type=float, default=0.55, dest="sim_threshold")
     args = ap.parse_args()
     asyncio.run(main_async(args))
 
