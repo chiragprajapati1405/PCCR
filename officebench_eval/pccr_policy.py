@@ -8,7 +8,10 @@ injects only when the real rho-gate consults EM.
 """
 from __future__ import annotations
 
+import json
+
 from .cerebras_llm import CerebrasLLM
+from .real_mem import is_action_failure
 
 # Output-path + completion convention (NEXT_STEPS D3). The agent prompt never told
 # the model WHERE to write outputs or that L3 tasks need MULTIPLE files; tracing the
@@ -26,8 +29,65 @@ OUTPUT_CONVENTION = (
 )
 
 
+def _adapt_prompt(past_desc, past_actions, cur_task):
+    seq = "\n".join(f"  {i+1}. {a}" for i, a in enumerate(past_actions))
+    return (
+        "You previously solved a SIMILAR task. Adapt its action sequence to the CURRENT task.\n\n"
+        f"PAST TASK: {past_desc}\n"
+        f"PAST SUCCESSFUL ACTION SEQUENCE (in order):\n{seq}\n\n"
+        f"CURRENT TASK: {cur_task}\n\n"
+        "Rewrite the sequence to solve the CURRENT task:\n"
+        "- change parameters (file names, values, cell refs, recipients, dates) to match the current task;\n"
+        "- ADD any steps the current task needs that the past one didn't;\n"
+        "- REMOVE steps the current task doesn't need;\n"
+        "- KEEP every output-producing step across ALL apps -- if the task needs an Excel file AND "
+        "calendar events AND a PDF, the sequence must produce ALL of them (do not drop the 2nd/3rd app);\n"
+        "- write outputs under /testbed/data with the EXACT filenames named in the task;\n"
+        "- end with {\"app\":\"system\",\"action\":\"finish_task\",\"answer\":\"...\"}.\n\n"
+        "Output ONLY a JSON array of action objects, in order, nothing else. Example:\n"
+        '[{"app":"shell","action":"run","command":"ls /testbed/data"}, '
+        '{"app":"system","action":"switch_app","target_app":"excel"}, ...]\n'
+    )
+
+
+def _parse_action_array(text):
+    """Extract an ordered list of action-object JSON STRINGS from the adapt reply.
+    Robust to prose around the array and to a stream of bare {..}{..} objects."""
+    i = text.find("[")
+    if i >= 0:
+        try:
+            arr = json.loads(text[i:text.rfind("]") + 1])
+            if isinstance(arr, list):
+                return [json.dumps(a) for a in arr if isinstance(a, dict) and a.get("app")]
+        except Exception:
+            pass
+    # fallback: scan balanced top-level objects
+    out, depth, start, in_str, esc = [], 0, -1, False, False
+    for j, c in enumerate(text):
+        if in_str:
+            if esc: esc = False
+            elif c == "\\": esc = True
+            elif c == '"': in_str = False
+            continue
+        if c == '"': in_str = True
+        elif c == "{":
+            if depth == 0: start = j
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0 and start >= 0:
+                try:
+                    o = json.loads(text[start:j + 1])
+                    if isinstance(o, dict) and o.get("app"):
+                        out.append(json.dumps(o))
+                except Exception:
+                    pass
+    return out
+
+
 def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="no_memory",
-                     pattern=None, exclude_task=None, use_pm=False, real_mem=None):
+                     pattern=None, exclude_task=None, use_pm=False, real_mem=None,
+                     replay=False, replay_threshold=0.75):
 
     class PCCRPolicy(LLMPolicyCls):
         def __init__(self):
@@ -46,6 +106,16 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
             if real_arch is not None:
                 hits = real_arch.search(self.task, k=1)
                 self._top_em_sim = float(hits[0][0]) if hits else 0.0
+
+            # B1+B5: adaptive+verified replay state (high-confidence hits only)
+            self._replay_on = bool(replay) and method not in ("no_memory", "retrieve_all") and real_mem is not None
+            self._replay_cand = None
+            self._replay_q = []           # remaining adapted actions to execute
+            self._replay_adapted = False
+            self._replay_aborted = False
+            if self._replay_on:
+                self._replay_cand = real_mem.replay_candidate(
+                    self.task, exclude_task=exclude_task, min_sim=replay_threshold)
 
             gate_arm = method not in ("no_memory", "retrieve_all")
             if gate_arm and real_mem is not None:
@@ -73,6 +143,43 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
                                  "stm_hit": self._stm_hit,
                                  "consulted_stores": (["episodic"] if self._consult_em else []),
                                  "pm_used": bool(self._pm_text)}
+
+        def forward(self, env):
+            """B1: adaptive+VERIFIED replay. On a high-confidence EM hit, adapt the
+            cached action sequence in ONE LLM call, then execute it WITHOUT per-step
+            LLM reasoning -- but verify each prior action by the tool's own success/
+            error signal; on any failure, ABORT replay and hand back to the normal
+            LLM loop from that point (never blind). Falls through to super().forward
+            when not replaying."""
+            if not self._replay_on or self._replay_cand is None or self._replay_aborted:
+                return super().forward(env)
+
+            # First entry: 1 adapt call -> the executable plan (handles the "11th step").
+            if not self._replay_adapted:
+                self._replay_adapted = True
+                sim, past_desc, past_actions = self._replay_cand
+                reply = self.llm.generate(_adapt_prompt(past_desc, past_actions, self.task))
+                self._replay_q = _parse_action_array(reply)
+                self.em_trace["replay"] = {"used": bool(self._replay_q), "sim": round(sim, 3),
+                                           "planned": len(self._replay_q), "executed": 0, "aborted": False}
+                if not self._replay_q:                       # adapt failed -> normal loop
+                    self._replay_aborted = True
+                    return super().forward(env)
+
+            # Verify the PREVIOUS replayed action by the env's own signal.
+            if env.history:
+                last_obs = env.history[-1][1]
+                if is_action_failure(last_obs):
+                    self._replay_aborted = True
+                    self.em_trace["replay"]["aborted"] = True
+                    return super().forward(env)              # recover from here with the LLM
+
+            if self._replay_q:
+                action = self._replay_q.pop(0)
+                self.em_trace["replay"]["executed"] += 1
+                return action
+            self._replay_aborted = True                       # sequence exhausted -> let LLM finish/verify
+            return super().forward(env)
 
         def proc_action(self, action):
             """Return the FIRST balanced JSON object. The base class takes

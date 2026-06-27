@@ -25,6 +25,26 @@ AGENT_PROMPTS = {a: f"You are the {a} agent." for a in APPS}
 TASK_RULES: dict[str, str] = {}
 AGENT_PROFILES = {a: {} for a in APPS}
 
+# OfficeBench tool failure signals (the env's own per-action success/error strings).
+_FAIL_SIGNALS = ("Malformed action", "does not exist", "Failed", "Error", "No such file")
+
+
+def is_action_failure(obs: str) -> bool:
+    o = str(obs or "")
+    return any(sig in o for sig in _FAIL_SIGNALS)
+
+
+def _ok_actions(rec) -> list[str]:
+    """The ordered action strings from a banked trajectory whose tool result did
+    NOT signal failure -- the clean, executable sequence to replay/adapt."""
+    out = []
+    for st in rec.get("steps", []):
+        if not is_action_failure(st.get("obs", "")):
+            a = st.get("action", "")
+            if a:
+                out.append(a)
+    return out
+
 
 class RealMem:
     """The real MemoryManager wired for OfficeBench (EM/SM/PM/STM all live)."""
@@ -43,11 +63,26 @@ class RealMem:
             self.mgr.router.confidence_sim_threshold = sim_threshold
         self.username, self.date = username, date
         emb = self.mgr.embedder
+        self._clean_actions: dict[str, list[str]] = {}             # desc -> ordered SUCCESSFUL actions (for replay, B1)
         for i, rec in enumerate(json.load(open(bank_path))):
             ft = _to_full(rec, i)                                   # outcome="success"
             ft.embedding = emb.encode([ft.description])[0]          # needed for clustering
             self.mgr._task_log.append(ft)
+            self._clean_actions[rec["task"]] = _ok_actions(rec)
         self.stats = self.mgr.consolidate()                        # fills EM/SM/PM/STM (as designed)
+
+    def replay_candidate(self, task_desc, exclude_task=None, min_sim=0.75):
+        """B1: the best EM episode's ORDERED SUCCESSFUL action sequence, IF the top
+        match clears min_sim (a small, safe delta to adapt-and-replay). Returns
+        (sim, matched_description, [action_json_str, ...]) or None."""
+        for sc, m in self.mgr.em.search(task_desc, k=3):
+            if exclude_task and m.description == exclude_task:
+                continue
+            if sc < min_sim:
+                return None
+            acts = self._clean_actions.get(m.description, [])
+            return (float(sc), m.description, acts) if acts else None
+        return None
 
     def retrieve(self, task_desc, ob_pattern, exclude_task=None):
         """Real retrieve() cascade -> (injected memory block, trace)."""

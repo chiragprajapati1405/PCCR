@@ -68,7 +68,7 @@ def _record(prog, key, it, pat, r):
                  "steps": r["steps"], "llm_calls": r["llm_calls"], "wall_s": r["wall_s"],
                  "stm_hit": int(em.get("stm_hit", False)), "top_em_sim": em.get("top_em_sim", 0.0),
                  "stores": em.get("consulted_stores", []), "pm_used": bool(em.get("pm_used", False)),
-                 "failed_predicate": r.get("failed_predicate"),
+                 "failed_predicate": r.get("failed_predicate"), "replay": em.get("replay"),
                  "container": r.get("_container"), "worker_t0": r.get("_t0"), "worker_t1": r.get("_t1")}
 
 
@@ -117,7 +117,8 @@ async def main_async(args):
             r = await asyncio.to_thread(
                 run_task, it["task"], it["subtask"], model=args.model, real_arch=real,
                 real_mem=realmem, method=METHOD, pattern=pat,
-                max_iter=cap_for_level(it["level"]), container=container)
+                max_iter=cap_for_level(it["level"]), container=container,
+                replay=args.replay, replay_threshold=args.replay_threshold)
             r["_container"], r["_t0"], r["_t1"] = container, round(t0, 1), round(time.perf_counter() - t_start, 1)
         finally:
             pool.put_nowait(container)                     # release
@@ -173,6 +174,9 @@ def main():
     ap.add_argument("--confidence", action="store_true",
                     help="A1: per-query retrieval-confidence gate (single global theta_sim)")
     ap.add_argument("--sim-threshold", type=float, default=0.55, dest="sim_threshold")
+    ap.add_argument("--replay", action="store_true",
+                    help="B1+B5: adaptive+verified procedure replay on high-confidence hits")
+    ap.add_argument("--replay-threshold", type=float, default=0.75, dest="replay_threshold")
     args = ap.parse_args()
     asyncio.run(main_async(args))
 
