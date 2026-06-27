@@ -33,12 +33,27 @@ Win/Loss/Tie vs baseline: **W13 / L21 / T118**.
 | single_action | 23 | 0.391 | 0.478 | −0.087 |
 | data_compute | 10 | 0.500 | 0.800 | −0.300 |
 
+## Accuracy vs RETRIEVE-ALL (strongest baseline arm; LegoMem-style always-inject)
+
+| Level | Improved | Retrieve-all | Δ |
+|---|---|---|---|
+| **Overall** | **0.368** | **0.467** | **−0.099** ❌ |
+| L1 (n=47) | 0.468 | 0.723 | −0.255 |
+| L2 (n=48) | 0.479 | 0.583 | −0.104 |
+| L3 (n=57) | 0.193 | 0.158 | **+0.035 ✅** (gate protects; retrieve-all collapses) |
+
+W/L/T = 11/26/115. By pattern: doc_process tie; multi_app −0.051; lookup −0.188;
+single_action −0.217; data_compute −0.300. Tokens: improved 878K vs retrieve_all 734K (**+20%**).
+NB: both the accuracy gap and the +20% tokens are amplified by the parallel malformed-loops
+(re-inject per step); the clean offline A1 token figure vs the full cascade was −26%.
+
 ## Cost
 
-| Metric | Improved | Baseline | Δ |
+| Metric | Improved | Baseline (pccr) | Δ |
 |---|---|---|---|
 | **Injected tokens (total)** | **878,470** | **1,031,111** | **−15%** ✅ |
-| (offline per-retrieval) | — | — | −26% (A1 suppresses SM/ENT) |
+| vs retrieve-all | 878,470 | 734,295 | +20% (parallel-inflated; offline A1 −26%) |
+| (offline per-retrieval vs cascade) | — | — | −26% (A1 suppresses SM/ENT) |
 
 ## Latency / throughput
 
