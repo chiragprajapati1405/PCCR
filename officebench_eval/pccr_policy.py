@@ -196,9 +196,12 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
             B2 is off or a batch can't be parsed."""
             if not self._b2_on:
                 return super().forward(env)
-            # verify the previous batched action; on failure, drop the rest and re-plan
-            if self._batch_q and env.history and is_action_failure(env.history[-1][1]):
+            # If the PREVIOUS action failed, recover with a SINGLE LLM step instead of
+            # re-planning a whole batch -- otherwise a malformed action -> batch abort ->
+            # re-plan (also malformed) loop thrashes the step budget (observed on L3).
+            if env.history and is_action_failure(env.history[-1][1]):
                 self._batch_q = []
+                return super().forward(env)
             if not self._batch_q:
                 prompt = self.build_prompt(env) + (
                     f"\n\n##PLAN-THEN-EXECUTE: output the NEXT up to {self._batch_k} actions you will take, "

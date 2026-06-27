@@ -227,11 +227,14 @@ def main():
     ap.add_argument("--stm-threshold", type=float, default=0.85, dest="stm_threshold_lookup",
                     help="STM short-circuit similarity threshold (default 0.85)")
     ap.add_argument("--improved", action="store_true",
-                    help="convenience: turn on the full improved bundle "
-                         "(confidence+replay+plan+curate-pm+convention+step-hint, l3-cap 45)")
+                    help="convenience: the validated improved bundle "
+                         "(confidence+replay+curate-pm+convention+step-hint, l3-cap 45). "
+                         "NOTE: B2 plan-then-execute (--plan) is EXCLUDED -- it thrashes on L3 "
+                         "(malformed-action -> batch abort -> re-plan loop -> cap-hit). Use --plan "
+                         "explicitly only with the fixed batch logic.")
     args = ap.parse_args()
-    if args.improved:                                  # one-flag improved config
-        args.confidence = args.replay = args.plan = True
+    if args.improved:                                  # one-flag improved config (B2 deliberately OFF)
+        args.confidence = args.replay = True
         args.curate_pm = args.convention = args.step_hint = True
         if args.l3_cap == 30:
             args.l3_cap = 45
