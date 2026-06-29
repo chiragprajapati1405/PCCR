@@ -102,7 +102,15 @@ async def main_async(args):
     print(f"loaded real FAISS EM: {len(real)} procedures | theta={args.theta} | "
           f"concurrency={args.concurrency} | gate={gate}")
 
-    test = json.load(open(SPLIT))["test"]
+    global PROGRESS, TRACE_DIR
+    if args.tasks_file:                                    # isolated smoke on a task subset
+        test = json.load(open(args.tasks_file))
+        tag = args.tag or os.path.splitext(os.path.basename(args.tasks_file))[0]
+        PROGRESS = os.path.join(_PKG, f"par_{tag}_progress.json")
+        TRACE_DIR = os.path.join(_PKG, f"traces/par_{tag}")
+        print(f"SUBSET run: {len(test)} tasks from {os.path.basename(args.tasks_file)} -> {os.path.basename(PROGRESS)}")
+    else:
+        test = json.load(open(SPLIT))["test"]
     pats = {(p["task"], p["subtask"]): p["pattern"] for p in json.load(open(PATTERNS))}
     # LPT: longest-first (L3 -> L2 -> L1) so the long tasks don't tail (H3.3)
     test.sort(key=lambda it: -int(it["level"]))
@@ -137,7 +145,8 @@ async def main_async(args):
                 replay=args.replay, replay_threshold=args.replay_threshold,
                 plan_then_execute=args.plan, batch_size=args.batch_size,
                 output_convention=args.convention,
-                completion_gate=args.completion_gate, self_verify=args.self_verify)
+                completion_gate=args.completion_gate, self_verify=args.self_verify,
+                inject_once=args.inject_once)
             r["_container"], r["_t0"], r["_t1"] = container, round(t0, 1), round(time.perf_counter() - t_start, 1)
         finally:
             pool.put_nowait(container)                     # release
@@ -229,6 +238,12 @@ def main():
                     help="STM short-circuit similarity threshold (default 0.85)")
     ap.add_argument("--completion-gate", action="store_true", dest="completion_gate")
     ap.add_argument("--self-verify", action="store_true", dest="self_verify")
+    ap.add_argument("--inject-once", action="store_true", dest="inject_once",
+                    help="token fix: inject heavy PM-rule/examples only for the first K steps, "
+                         "light plan-roadmap every step (cuts the per-step re-injection cost)")
+    ap.add_argument("--tasks-file", default="", dest="tasks_file",
+                    help="run only the [{task,subtask,level}] in this JSON (isolated progress/traces under <tag>)")
+    ap.add_argument("--tag", default="", help="suffix for isolated progress/trace dir when using --tasks-file")
     ap.add_argument("--improved", action="store_true",
                     help="full validated recipe: A1(0.45) + B1 replay + D1 curated-PM + D3 convention "
                          "+ completion-gate + self-verify + malformed-recovery (always on) + clean EM, cap 45.")
@@ -236,6 +251,7 @@ def main():
     if args.improved:                                  # full validated recipe (B2/B3/A2 excluded by design)
         args.confidence = args.replay = args.curate_pm = args.convention = True
         args.completion_gate = args.self_verify = True
+        args.inject_once = True
         args.step_hint = args.plan = False
         if args.sim_threshold == 0.55:
             args.sim_threshold = 0.45

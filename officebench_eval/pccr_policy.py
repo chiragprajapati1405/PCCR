@@ -22,6 +22,15 @@ def _is_finish(action) -> bool:
     return '"finish_task"' in a or "'finish_task'" in a
 
 
+def _is_giveup(action) -> bool:
+    """The agent's own give-up signal. By construction the completion gate (which only
+    intercepts finish_task) NEVER sees these -- yet got_stuck is the DOMINANT failure
+    termination for multi_app (43/64). We intercept it too: don't let the agent quit
+    while a required output is still missing."""
+    a = str(action or "")
+    return '"got_stuck"' in a or "'got_stuck'" in a
+
+
 def _filenames(text) -> set:
     """Output filenames mentioned in a task/action (basename, lowercased)."""
     return {m.split("/")[-1].lower() for m in _FNAME_RE.findall(str(text or ""))}
@@ -105,7 +114,7 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
                      pattern=None, exclude_task=None, use_pm=False, real_mem=None,
                      replay=False, replay_threshold=0.75,
                      plan_then_execute=False, batch_size=4, output_convention=False,
-                     completion_gate=False, self_verify=False):
+                     completion_gate=False, self_verify=False, inject_once=False, heavy_steps=3):
 
     class PCCRPolicy(LLMPolicyCls):
         def __init__(self):
@@ -116,6 +125,10 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
             self.exclude_task = exclude_task
             self.task = config["task"]
             self._realmem_block = ""     # set on the gate arm when driven by the real MemoryManager
+            self._heavy_block = self._light_block = ""
+            self._inject_once = bool(inject_once) and method not in ("no_memory", "retrieve_all")
+            self._heavy_steps = max(1, int(heavy_steps))   # inject heavy guidance for the first K calls
+            self._prompt_n = 0                              # build_prompt (≈ LLM-call) counter
             self._pm_text = ""
             self._consult_em = False
             self._stm_hit = False
@@ -154,6 +167,11 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
                 # STM-first short-circuit, then rho-gated EM/SM/ENT, PM always-read.
                 text, tr = real_mem.retrieve(self.task, pattern, exclude_task=exclude_task)
                 self._realmem_block = text
+                # inject-once: heavy procedural guidance (PM rule + examples) only for the first
+                # few steps; the light roadmap (plan steps) every step. Cuts the per-step token
+                # cost (root cause of the 2x vs retrieve-all) without losing planning guidance.
+                self._heavy_block = tr.get("heavy_block", "")
+                self._light_block = tr.get("light_block", "")
                 self.em_trace = {"method": method, "consult_em": tr["consult_em"],
                                  "stm_hit": tr["stm_hit"], "consult_sm": tr.get("consult_sm"),
                                  "consult_ent": tr.get("consult_ent"), "pm_used": tr["pm_used"],
@@ -182,8 +200,13 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
             reflection when all files exist. Both target the 'quit early / wrong
             content' failure modes."""
             action = self._decide_action(env)
-            if (self._completion_gate or self._self_verify) and _is_finish(action) and self._gate_tries < 4:
-                corrective = self._finish_gate(env)
+            # Intercept BOTH "I'm done" (finish_task) AND "I give up" (got_stuck): in either
+            # case, if a required output is still missing, redirect instead of ending. got_stuck
+            # gets a larger try budget -- quitting with work left is strictly worse than retrying.
+            stopping = _is_finish(action) or _is_giveup(action)
+            cap = 6 if _is_giveup(action) else 4
+            if (self._completion_gate or self._self_verify) and stopping and self._gate_tries < cap:
+                corrective = self._finish_gate(env, giveup=_is_giveup(action))
                 if corrective is not None:
                     self._gate_tries += 1
                     return corrective
@@ -253,27 +276,64 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
                     return super().forward(env)
             return self._batch_q.pop(0)
 
-        def _created_files(self, env):
-            """Output filenames the agent has SUCCESSFULLY created so far (from the
-            env's own success observations) -- no eval-oracle, no container probe."""
-            made = set()
+        def _input_files(self, env):
+            """Filenames that already existed before the agent created anything -- i.e. the
+            task's INPUTS, read from the earliest directory-listing observations. Required
+            OUTPUTS must exclude these, or the gate demands the agent 'create' a file it is
+            only meant to read (observed on agenda.jpg, hw1.docx, ...)."""
+            inputs = set()
             for a, o in (env.history or []):
-                if "Success" in str(o) and not is_action_failure(o):   # a successful create/write/convert
+                os_ = str(o or "")
+                if "Success" in os_ and not is_action_failure(os_):
+                    break                                    # stop at first creation: later listings
+                                                             # may echo OUTPUTS the agent just made
+                inputs |= _filenames(os_)                    # pre-creation listings = task inputs
+            return inputs
+
+        def _created_files(self, env):
+            """Output filenames the agent has SUCCESSFULLY produced so far. Files come from
+            success observations on create/write/convert actions; emails (.eml) and calendar
+            events (.ics) leave NO filename in their success text, so we credit those by their
+            extension whenever a send_email / create_event action succeeds."""
+            made = set()
+            req = self._req_files
+            for a, o in (env.history or []):
+                o_ = str(o or "")
+                if is_action_failure(o_):
+                    continue
+                if "Success" in o_:
                     made |= _filenames(a)
+                a_ = str(a)
+                if ('"send_email"' in a_ or "email sent" in o_.lower()) and "fail" not in o_.lower():
+                    made |= {f for f in req if f.endswith(".eml")}          # credit email outputs
+                if '"create_event"' in a_ and ("event" in o_.lower() and "fail" not in o_.lower()):
+                    made |= {f for f in req if f.endswith(".ics")}          # credit calendar outputs
             return made
 
-        def _finish_gate(self, env):
-            """Step 1 (completion gate): block finish while a task-named output file
-            has NOT been created. Step 2 (self-verify): one reflection when all files
-            exist. Returns a corrective action to run instead of finishing, or None to
-            allow the finish."""
-            if self._completion_gate and self._req_files:
-                missing = sorted(self._req_files - self._created_files(env))
+        def _finish_gate(self, env, giveup=False):
+            """Step 1 (completion gate): block stopping while a required OUTPUT file (task
+            files minus inputs) has NOT been produced -- now also intercepts got_stuck, with
+            schema-aware guidance for .eml/.ics outputs (which need send_email/create_event,
+            not a file write). Step 2 (self-verify): one reflection when all outputs exist."""
+            required = self._req_files - self._input_files(env)
+            if self._completion_gate and required:
+                missing = sorted(required - self._created_files(env))
                 if missing:
-                    prompt = (self.build_prompt(env) +
-                              f"\n\n##NOT DONE -- do NOT finish yet. These required output files do not "
-                              f"exist yet: {missing}. Create each one under /testbed/data with that EXACT "
-                              f"name (extract/compute the needed content first), then finish.")
+                    hints = []
+                    for f in missing:
+                        if f.endswith(".eml"):
+                            hints.append(f'{f}: send the email with email:send_email '
+                                         '(fields: sender, recipient, subject, content)')
+                        elif f.endswith(".ics"):
+                            hints.append(f'{f}: create the calendar event with calendar:create_event '
+                                         '(fields: user, summary, time_start, time_end)')
+                        else:
+                            hints.append(f'{f}: create it under /testbed/data with that EXACT name')
+                    lead = ("##DO NOT GIVE UP -- you are not stuck; required work remains."
+                            if giveup else "##NOT DONE -- do NOT finish yet.")
+                    prompt = (self.build_prompt(env) + "\n\n" + lead +
+                              " These required outputs do not exist yet -- produce each, then finish:\n  - " +
+                              "\n  - ".join(hints))
                     return self.proc_action(self.llm.generate(prompt))
             if self._self_verify and not self._verified:
                 self._verified = True
@@ -335,7 +395,16 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
                              + (f"Correct example: {ex} " if ex else "")
                              + "Re-issue using one of these EXACT action names (or switch_app).")
             # gate arm: the real MemoryManager bundle; else PM(always) + EM(gated)
-            prefix = self._realmem_block if self._realmem_block else (self._pm_text + self._memory_block(env))
+            if self._realmem_block:
+                if self._inject_once:
+                    # heavy procedural guidance only for the first K calls; light roadmap always.
+                    self._prompt_n += 1
+                    prefix = ((self._heavy_block if self._prompt_n <= self._heavy_steps else "")
+                              + self._light_block)
+                else:
+                    prefix = self._realmem_block
+            else:
+                prefix = self._pm_text + self._memory_block(env)
             # D3: output-path + completion convention -- opt-in (default off so the baseline
             # arms reproduce the paper). When on, applied to every arm (a static harness
             # instruction like the system prompt; not counted as injected memory tokens).

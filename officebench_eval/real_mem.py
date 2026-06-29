@@ -46,6 +46,48 @@ def _ok_actions(rec) -> list[str]:
     return out
 
 
+# Valid OfficeBench app/action names. Past-action *examples* are sanitised to these so the
+# bank's STALE malformed steps (pre-fix traces emitted shell action "run"/"list_directory",
+# which do not exist) are never injected as "successful past actions" for the agent to imitate.
+_VALID_ACTIONS = {
+    "shell": {"command"},
+    "excel": {"convert_to_pdf", "create_new_file", "delete_cell", "read_file", "set_cell"},
+    "word": {"convert_to_pdf", "create_new_file", "read_file", "write_to_file"},
+    "pdf": {"image_convert_to_pdf", "convert_to_image", "convert_to_word", "read_file"},
+    "ocr": {"recognize_file"},
+    "calendar": {"create_event", "delete_event", "list_events"},
+    "email": {"list_emails", "read_email", "send_email"},
+}
+_ACTION_ALIAS = {  # stale/hallucinated name -> correct name (shell only ever needs `command`)
+    "run": "command", "list_directory": "command", "list_dir": "command",
+    "list_files": "command", "list": "command", "execute": "command", "ls": "command",
+}
+
+
+def _clean_past_action(action_str: str, agent: str):
+    """Extract the executable action JSON from a banked step blob (which may be wrapped in
+    <think>...</think><action>{...}</action>) and keep it ONLY if its action name is valid
+    for the agent's app, remapping a few known stale aliases. Returns a compact one-line
+    string, or None to DROP a poisoned/unparseable example (so it is never injected)."""
+    import re
+    m = re.search(r"\{.*\}", str(action_str or ""), re.S)   # the action JSON (largest brace span)
+    if not m:
+        return None
+    try:
+        obj = json.loads(m.group(0))
+    except Exception:
+        return None
+    act = str(obj.get("action", ""))
+    valid = _VALID_ACTIONS.get(agent, set())
+    if act not in valid:
+        act = _ACTION_ALIAS.get(act, "")
+        if act not in valid:
+            return None                                     # genuinely invalid -> drop
+        obj["action"] = act
+    obj.pop("app", None)                                    # app is already the block header
+    return json.dumps(obj, separators=(",", ":"))[:160]
+
+
 class RealMem:
     """The real MemoryManager wired for OfficeBench (EM/SM/PM/STM all live)."""
 
@@ -182,14 +224,20 @@ class RealMem:
         b = self.mgr.retrieve()
         consulted = [s.value for s in b.decision.consulted_stores]
         stm_hit = b.cached_bundle is not None
-        blocks = []
+        # Split the cascade into a HEAVY procedural part (PM rule + concrete past-action
+        # examples + facts/profile) and a LIGHT roadmap part (the plan steps). The heavy part
+        # is STATIC guidance, most useful while planning -- re-sending it on every step is the
+        # root cause of the 2x token cost vs retrieve-all. The policy injects `heavy` only for
+        # the first few steps (inject-once) and `light` every step (the episode roadmap, at
+        # parity with retrieve-all). `blocks` (heavy+light combined) is kept for compatibility.
+        heavy, light = [], []
         # PM: the learned procedural rule for this pattern (always-read)
         pm_rule = self.mgr.pm.get_rule_for_pattern(self.mgr.wm.current.pattern.value)
         if pm_rule:
-            blocks.append(f"##PROCEDURAL RULE: {pm_rule}")
+            heavy.append(f"##PROCEDURAL RULE: {pm_rule}")
         if stm_hit:                                                # STM HIT -> cached plan, EM skipped
             cb = b.cached_bundle
-            blocks.append("##CACHED PLAN (near-identical past task): " + " ; ".join(cb.plan[:8]))
+            light.append("##CACHED PLAN (near-identical past task): " + " ; ".join(cb.plan[:8]))
         else:
             if b.episodes:                                          # EM (rho-gated)
                 # B3: memory-guided step budget -- the closest past episode's length is a
@@ -197,31 +245,37 @@ class RealMem:
                 top_sc, top_m = b.episodes[0]
                 n_exp = len(self._clean_actions.get(top_m.description, [])) or len(top_m.plan)
                 if self.step_hint and top_sc >= 0.6 and n_exp:
-                    blocks.append(f"##STEP BUDGET: a near-identical past task finished in ~{n_exp} "
-                                  "actions; plan efficiently and avoid unnecessary exploration.")
-                blocks.append("##RELEVANT PAST TASK PLANS:")
+                    light.append(f"##STEP BUDGET: a near-identical past task finished in ~{n_exp} "
+                                 "actions; plan efficiently and avoid unnecessary exploration.")
+                light.append("##RELEVANT PAST TASK PLANS:")               # the roadmap (cheap, every step)
                 for sc, m in b.episodes:
                     if exclude_task and m.description == exclude_task:
                         continue
-                    blocks.append(f" - ({sc:.2f}) {m.description[:70]} | {' ; '.join(m.plan[:6])}")
-                # agent-level actions grouped by app
+                    light.append(f" - ({sc:.2f}) {m.description[:70]} | {' ; '.join(m.plan[:6])}")
+                # agent-level concrete action examples grouped by app (heavy: planning aid)
                 by_app = defaultdict(list)
                 for _sc, m in b.episodes:
                     if exclude_task and m.description == exclude_task:
                         continue
                     for sm in m.subtask_memories:
                         if sm.agent in APPS and len(by_app[sm.agent]) < 3:
-                            by_app[sm.agent].append(sm.action[:140])
+                            clean = _clean_past_action(sm.action, sm.agent)
+                            if clean:                          # drop poisoned/invalid examples
+                                by_app[sm.agent].append(clean)
                 for app, acts in by_app.items():
-                    blocks.append(f"##PAST {app} ACTIONS: " + " | ".join(acts))
+                    if acts:
+                        heavy.append(f"##PAST {app} ACTIONS: " + " | ".join(acts))
             if b.facts:                                            # SM (rho-gated)
-                blocks.append("##RELEVANT FACTS: " + " ; ".join(f for _s, f in b.facts[:5]))
+                heavy.append("##RELEVANT FACTS: " + " ; ".join(f for _s, f in b.facts[:5]))
             if b.profile:                                          # ENT (rho-gated)
-                blocks.append("##USER PROFILE: " + ", ".join(f"{k}={v}" for k, v in b.profile.items()))
-        text = ("\n".join(blocks) + "\n\n") if blocks else ""
+                heavy.append("##USER PROFILE: " + ", ".join(f"{k}={v}" for k, v in b.profile.items()))
+        heavy_text = ("\n".join(heavy) + "\n") if heavy else ""
+        light_text = ("\n".join(light) + "\n") if light else ""
+        text = (heavy_text + light_text + "\n") if (heavy_text or light_text) else ""
         trace = {"stm_hit": stm_hit, "consulted_stores": consulted,
                  "consult_em": MemoryType.EM in b.decision.consulted_stores,
                  "consult_sm": MemoryType.SM in b.decision.consulted_stores,
                  "consult_ent": MemoryType.ENT in b.decision.consulted_stores,
-                 "pm_used": bool(pm_rule), "injected_tokens": max(1, len(text) // 4)}
+                 "pm_used": bool(pm_rule), "injected_tokens": max(1, len(text) // 4),
+                 "heavy_block": heavy_text, "light_block": light_text}
         return text, trace

@@ -108,7 +108,7 @@ def _patch_intercode_timeout():
 def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="no_memory",
              pattern=None, max_iter=20, container="ob-run", exclude_task=None, real_mem=None,
              replay=False, replay_threshold=0.75, plan_then_execute=False, batch_size=4,
-             output_convention=False, completion_gate=False, self_verify=False):
+             output_convention=False, completion_gate=False, self_verify=False, inject_once=False):
     _setup()
     from utils.env import OfficeAgentEnv
     from utils.policies import LLMPolicy
@@ -131,7 +131,8 @@ def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="
                               replay=replay, replay_threshold=replay_threshold,
                               plan_then_execute=plan_then_execute, batch_size=batch_size,
                               output_convention=output_convention,
-                              completion_gate=completion_gate, self_verify=self_verify)
+                              completion_gate=completion_gate, self_verify=self_verify,
+                              inject_once=inject_once)
 
     t0 = time.perf_counter()
     done, n, steps = False, 0, []
