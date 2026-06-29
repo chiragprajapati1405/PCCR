@@ -93,10 +93,11 @@ class RealMem:
 
     def __init__(self, bank_path, theta=1.0, stm_threshold=0.92, username="user", date="2026-06-08",
                  confidence_gate=False, sim_threshold=0.55, curate_pm=False, model="gpt-oss-120b",
-                 stm_capacity=0, online=False, step_hint=False):
+                 stm_capacity=0, online=False, step_hint=False, online_stm=False):
         s = config.Settings(embedding_backend="sentence-transformers", llm_backend="stub",
                             stm_cache_threshold=stm_threshold, confidence_gate=confidence_gate,
                             stm_capacity=stm_capacity)
+        self.online_stm = bool(online_stm)             # continual STM: cache successes during the run
         # CRITICAL: MemoryManager's EM/SM use config.FAISS_DIR, which is a SHARED PERSISTENT
         # directory -- every RealMem build LOADED the existing index and ADDED 62 more vectors
         # (62 -> 124 -> 186 ...), polluting EM with duplicate/stale vectors AND corrupting the
@@ -216,6 +217,33 @@ class RealMem:
         consulted = {MemoryType(s) for s in consulted_stores if s in (
             MemoryType.EM.value, MemoryType.SM.value, MemoryType.ENT.value)}
         self.mgr.router.record_outcome(PAT_MAP.get(ob_pattern, Pattern.COORDINATION), consulted, bool(success))
+
+    def cache_success(self, task_text, ob_pattern, trajectory):
+        """Continual STM: after a task SUCCEEDS, cache its executed plan as a future
+        short-circuit. Success-only (never poisons); written into the BOUNDED STM
+        (cap + LFU/LRU eviction) so it stays short-term -- one-offs are evicted, only
+        genuine near-duplicates (>= stm_threshold, 0.85) ever short-circuit. The plan
+        is keyed by app-signature so sibling tasks SHARE one bundle. Returns True if cached."""
+        if not self.online_stm:
+            return False
+        from officebench_eval.real_arch import _app_of
+        acts, apps = [], []
+        for a, o in (trajectory or []):
+            if is_action_failure(o):
+                continue                                   # skip failed/malformed steps
+            app = _app_of(a)
+            if app in ("system", "", None):
+                continue
+            clean = _clean_past_action(a, app) or str(a)
+            acts.append(clean)
+            apps.append(app)
+        if not acts:
+            return False
+        P = PAT_MAP.get(ob_pattern, Pattern.COORDINATION)
+        sig = " -> ".join(apps)                             # app-signature: siblings dedup to one bundle
+        emb = self.mgr.embedder.encode([task_text])[0]      # keyed on the TASK wording (lookup matches this)
+        self.mgr.stm.put(sig, acts[:10], [], emb, P)
+        return True
 
     def retrieve(self, task_desc, ob_pattern, exclude_task=None):
         """Real retrieve() cascade -> (injected memory block, trace)."""

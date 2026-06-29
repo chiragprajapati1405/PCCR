@@ -94,7 +94,7 @@ async def main_async(args):
     realmem = RealMem(BANK, theta=args.theta, stm_threshold=args.stm_threshold_lookup,
                       confidence_gate=args.confidence, sim_threshold=args.sim_threshold,
                       curate_pm=args.curate_pm, model=args.model, stm_capacity=args.stm_capacity,
-                      online=args.online, step_hint=args.step_hint)
+                      online=args.online, step_hint=args.step_hint, online_stm=args.online_stm)
     _lock_encode(real.embedder)
     _lock_encode(realmem.mgr.embedder)
     gate = f"A1 confidence (theta_sim={args.sim_threshold})" if args.confidence else \
@@ -154,6 +154,8 @@ async def main_async(args):
         async with write_lock:
             if args.online:                              # A2: learn utility from this outcome
                 realmem.record_outcome(pat, r["em"].get("consulted_stores", []), r["success"])
+            if r["success"]:                             # continual STM: cache the proven plan
+                realmem.cache_success(r.get("task_text", ""), pat, r.get("trajectory", []))
             _record(prog, key, it, pat, r)
             json.dump(prog, open(PROGRESS, "w"))
             done = sum(1 for v in prog.values() if "level" in v)
@@ -241,6 +243,9 @@ def main():
     ap.add_argument("--inject-once", action="store_true", dest="inject_once",
                     help="token fix: inject heavy PM-rule/examples only for the first K steps, "
                          "light plan-roadmap every step (cuts the per-step re-injection cost)")
+    ap.add_argument("--online-stm", action="store_true", dest="online_stm",
+                    help="continual STM: cache each SUCCESSFUL task's plan into the bounded STM "
+                         "(cap 12, LFU/LRU) so later near-duplicates (>=0.85) short-circuit the cascade")
     ap.add_argument("--tasks-file", default="", dest="tasks_file",
                     help="run only the [{task,subtask,level}] in this JSON (isolated progress/traces under <tag>)")
     ap.add_argument("--tag", default="", help="suffix for isolated progress/trace dir when using --tasks-file")
@@ -251,8 +256,10 @@ def main():
     if args.improved:                                  # full validated recipe (B2/B3/A2 excluded by design)
         args.confidence = args.replay = args.curate_pm = args.convention = True
         args.completion_gate = args.self_verify = True
-        args.inject_once = True
+        args.inject_once = args.online_stm = True
         args.step_hint = args.plan = False
+        if args.stm_capacity == 0:                        # bound STM so it stays short-term
+            args.stm_capacity = 24    # 12 backfires (evicts a plan before its follower arrives: 6<8 frozen); 24 -> 9
         if args.sim_threshold == 0.55:
             args.sim_threshold = 0.45
         if args.l3_cap == 30:
