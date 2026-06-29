@@ -9,9 +9,22 @@ injects only when the real rho-gate consults EM.
 from __future__ import annotations
 
 import json
+import re
 
 from .cerebras_llm import CerebrasLLM
 from .real_mem import is_action_failure
+
+_FNAME_RE = re.compile(r"[\w\-/]+\.(?:pdf|docx|xlsx|ics|txt|eml|csv|jpg|jpeg|png|md)", re.I)
+
+
+def _is_finish(action) -> bool:
+    a = str(action or "")
+    return '"finish_task"' in a or "'finish_task'" in a
+
+
+def _filenames(text) -> set:
+    """Output filenames mentioned in a task/action (basename, lowercased)."""
+    return {m.split("/")[-1].lower() for m in _FNAME_RE.findall(str(text or ""))}
 
 # Output-path + completion convention (NEXT_STEPS D3). The agent prompt never told
 # the model WHERE to write outputs or that L3 tasks need MULTIPLE files; tracing the
@@ -42,6 +55,9 @@ def _adapt_prompt(past_desc, past_actions, cur_task):
         "- REMOVE steps the current task doesn't need;\n"
         "- KEEP every output-producing step across ALL apps -- if the task needs an Excel file AND "
         "calendar events AND a PDF, the sequence must produce ALL of them (do not drop the 2nd/3rd app);\n"
+        "- RE-VERIFY all data positions against the CURRENT task -- row/column indices, cell refs, "
+        "filenames and which record to act on are almost always DIFFERENT from the past task; never "
+        "reuse the past indices blindly (e.g. read the table and find the row that actually matches);\n"
         "- write outputs under /testbed/data with the EXACT filenames named in the task;\n"
         "- end with {\"app\":\"system\",\"action\":\"finish_task\",\"answer\":\"...\"}.\n\n"
         "Output ONLY a JSON array of action objects, in order, nothing else. Example:\n"
@@ -88,7 +104,8 @@ def _parse_action_array(text):
 def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="no_memory",
                      pattern=None, exclude_task=None, use_pm=False, real_mem=None,
                      replay=False, replay_threshold=0.75,
-                     plan_then_execute=False, batch_size=4, output_convention=False):
+                     plan_then_execute=False, batch_size=4, output_convention=False,
+                     completion_gate=False, self_verify=False):
 
     class PCCRPolicy(LLMPolicyCls):
         def __init__(self):
@@ -124,6 +141,12 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
             self._batch_q = []
             self._batch_k = max(2, int(batch_size))
             self._use_convention = bool(output_convention)   # D3: opt-in (default off = baseline)
+            # finish-gate state: completion gate (required files exist) + self-verify reflection
+            self._completion_gate = bool(completion_gate) and method not in ("no_memory", "retrieve_all")
+            self._self_verify = bool(self_verify) and method not in ("no_memory", "retrieve_all")
+            self._req_files = _filenames(self.task)           # output files named in the task
+            self._gate_tries = 0
+            self._verified = False
 
             gate_arm = method not in ("no_memory", "retrieve_all")
             if gate_arm and real_mem is not None:
@@ -153,6 +176,21 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
                                  "pm_used": bool(self._pm_text)}
 
         def forward(self, env):
+            """Decide the next action, then apply the FINISH GATE before letting the
+            agent stop: (1) hard completion gate -- block finish_task while a required
+            output file named in the task hasn't been created; (2) one self-verify
+            reflection when all files exist. Both target the 'quit early / wrong
+            content' failure modes."""
+            action = self._decide_action(env)
+            if (self._completion_gate or self._self_verify) and _is_finish(action) and self._gate_tries < 4:
+                corrective = self._finish_gate(env)
+                if corrective is not None:
+                    self._gate_tries += 1
+                    return corrective
+            return action
+
+        # -- the original B1/B2 action decision (unchanged) ---------------------
+        def _decide_action(self, env):
             """B1: adaptive+VERIFIED replay. On a high-confidence EM hit, adapt the
             cached action sequence in ONE LLM call, then execute it WITHOUT per-step
             LLM reasoning -- but verify each prior action by the tool's own success/
@@ -215,6 +253,38 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
                     return super().forward(env)
             return self._batch_q.pop(0)
 
+        def _created_files(self, env):
+            """Output filenames the agent has SUCCESSFULLY created so far (from the
+            env's own success observations) -- no eval-oracle, no container probe."""
+            made = set()
+            for a, o in (env.history or []):
+                if "Success" in str(o) and not is_action_failure(o):   # a successful create/write/convert
+                    made |= _filenames(a)
+            return made
+
+        def _finish_gate(self, env):
+            """Step 1 (completion gate): block finish while a task-named output file
+            has NOT been created. Step 2 (self-verify): one reflection when all files
+            exist. Returns a corrective action to run instead of finishing, or None to
+            allow the finish."""
+            if self._completion_gate and self._req_files:
+                missing = sorted(self._req_files - self._created_files(env))
+                if missing:
+                    prompt = (self.build_prompt(env) +
+                              f"\n\n##NOT DONE -- do NOT finish yet. These required output files do not "
+                              f"exist yet: {missing}. Create each one under /testbed/data with that EXACT "
+                              f"name (extract/compute the needed content first), then finish.")
+                    return self.proc_action(self.llm.generate(prompt))
+            if self._self_verify and not self._verified:
+                self._verified = True
+                prompt = (self.build_prompt(env) +
+                          "\n\n##VERIFY before finishing: re-read the task and check that EVERY requested "
+                          "file, value and item is present and CORRECT (all rows/items included, computations "
+                          "right, exact filenames). If anything is missing or wrong, issue the action to fix "
+                          "it now. Only if everything is truly complete, re-issue finish_task.")
+                return self.proc_action(self.llm.generate(prompt))
+            return None
+
         def proc_action(self, action):
             """Return the FIRST balanced JSON object. The base class takes
             first-'{' to last-'}', which merges concatenated actions
@@ -240,6 +310,30 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
 
         def build_prompt(self, env):
             base = super().build_prompt(env)
+            # MALFORMED-RECOVERY: gpt-oss frequently invents WRONG action names
+            # (e.g. shell `command`/excel `append_row`) -> OfficeBench replies with a generic
+            # "Malformed action!" and the model keeps guessing wrong names, looping to the cap.
+            # When the last action was malformed, show the EXACT valid action names for the
+            # current app so it corrects in one step. Applied on every arm (a format aid, not
+            # memory) -- breaks the single biggest failure mode (malformed-loops).
+            if env.history and "Malformed action" in str(env.history[-1][1]):
+                app = getattr(env, "current_app", None)
+                try:
+                    valid = env.get_available_actions() if app else None
+                except Exception:
+                    valid = None
+                if valid:
+                    ex = {"shell": '{"app":"shell","action":"command","command":"ls /testbed/data"} '
+                                   '(there is NO list_directory/list/run action -- use "command")',
+                          "excel": '{"app":"excel","action":"read_file","file_path":"/testbed/data/x.xlsx"}',
+                          "word": '{"app":"word","action":"write_to_file","file_path":"/testbed/data/x.docx","content":"..."}',
+                          "pdf": '{"app":"pdf","action":"read_file","pdf_file_path":"/testbed/data/x.pdf"}',
+                          "ocr": '{"app":"ocr","action":"recognize_file","image_path":"/testbed/data/x.png"}',
+                          }.get(app, "")
+                    base += (f"\n\n##IMPORTANT: your last action used an INVALID action name. "
+                             f"The ONLY valid actions for app '{app}' are: {valid}. "
+                             + (f"Correct example: {ex} " if ex else "")
+                             + "Re-issue using one of these EXACT action names (or switch_app).")
             # gate arm: the real MemoryManager bundle; else PM(always) + EM(gated)
             prefix = self._realmem_block if self._realmem_block else (self._pm_text + self._memory_block(env))
             # D3: output-path + completion convention -- opt-in (default off so the baseline

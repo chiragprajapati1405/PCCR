@@ -55,6 +55,13 @@ class RealMem:
         s = config.Settings(embedding_backend="sentence-transformers", llm_backend="stub",
                             stm_cache_threshold=stm_threshold, confidence_gate=confidence_gate,
                             stm_capacity=stm_capacity)
+        # CRITICAL: MemoryManager's EM/SM use config.FAISS_DIR, which is a SHARED PERSISTENT
+        # directory -- every RealMem build LOADED the existing index and ADDED 62 more vectors
+        # (62 -> 124 -> 186 ...), polluting EM with duplicate/stale vectors AND corrupting the
+        # file under concurrent (process) builds. Point each RealMem at a FRESH, ISOLATED temp
+        # dir so it holds EXACTLY this bank's 62 procedures, clean (mirrors RealArch's tempdir).
+        import tempfile
+        config.FAISS_DIR = tempfile.mkdtemp(prefix="rm_faiss_")
         self.mgr = MemoryManager(s)
         self.mgr.bootstrap(ORCH_PROMPT, AGENT_PROMPTS, TASK_RULES, AGENT_PROFILES)
         self.mgr.router.consult_threshold = theta
@@ -110,13 +117,27 @@ class RealMem:
                     f"TASK: {r['task']}\nPLAN: {' ; '.join(r.get('plan', [])[:8])}\n"
                     f"LESSON: {str(r.get('reflections',''))[:280]}" for r in ex)
                 prompt = (
+                    "The agent may ONLY use these EXACT app/action names (anything else is rejected as a "
+                    "'Malformed action'):\n"
+                    "  shell: command   (to list files, action='command' with command='ls /testbed/data' -- "
+                    "there is NO 'list_directory', 'list', or 'run' action)\n"
+                    "  excel: read_file, set_cell, delete_cell, create_new_file, convert_to_pdf\n"
+                    "  word: read_file, write_to_file, create_new_file, convert_to_pdf\n"
+                    "  pdf: read_file, convert_to_word, convert_to_image\n"
+                    "  ocr: recognize_file        calendar: create_event, delete_event, list_events\n"
+                    "  email: list_emails, read_email, send_email        llm: complete_text\n"
+                    "When the rule mentions an action, use ONLY a name from this list. NEVER invent names "
+                    "like list_directory, run, list, write_text, extract_text, recognize.\n\n"
                     f"Below are {len(ex)} SUCCESSFUL examples of the same kind of task (pattern: {pat}).\n\n"
                     f"{body}\n\n"
                     "Write ONE reusable PROCEDURAL RULE an agent should follow for this kind of task. Cover: "
                     "the canonical step order across apps; the key parameters to get exactly right (file paths "
                     "under /testbed/data, exact filenames, cell refs); the common failure modes to AVOID "
-                    "(cautions); and IF these tasks produce multiple output files across apps, an explicit "
-                    "checklist of ALL outputs to produce before finishing. 2-4 imperative sentences, no preamble.")
+                    "(cautions -- ALWAYS re-read the current data to find the actual row/cell/record positions "
+                    "rather than assuming fixed indices; include ALL matching items; save the file after "
+                    "editing; verify the output before finishing); and IF these tasks produce multiple output "
+                    "files across apps, an explicit checklist of ALL outputs to produce before finishing. "
+                    "2-4 imperative sentences, no preamble.")
                 curated[pat] = (llm.generate(prompt) or "").strip()
             try:
                 json.dump(curated, open(cache_path, "w"), indent=2)

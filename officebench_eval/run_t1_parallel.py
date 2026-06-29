@@ -136,7 +136,8 @@ async def main_async(args):
                 max_iter=cap_for_level(it["level"], l3_cap=args.l3_cap), container=container,
                 replay=args.replay, replay_threshold=args.replay_threshold,
                 plan_then_execute=args.plan, batch_size=args.batch_size,
-                output_convention=args.convention)
+                output_convention=args.convention,
+                completion_gate=args.completion_gate, self_verify=args.self_verify)
             r["_container"], r["_t0"], r["_t1"] = container, round(t0, 1), round(time.perf_counter() - t_start, 1)
         finally:
             pool.put_nowait(container)                     # release
@@ -226,15 +227,18 @@ def main():
                     help="B4: L3 step cap (default 30 = paper baseline; 45 = improved)")
     ap.add_argument("--stm-threshold", type=float, default=0.85, dest="stm_threshold_lookup",
                     help="STM short-circuit similarity threshold (default 0.85)")
+    ap.add_argument("--completion-gate", action="store_true", dest="completion_gate")
+    ap.add_argument("--self-verify", action="store_true", dest="self_verify")
     ap.add_argument("--improved", action="store_true",
-                    help="full improved bundle: A1 confidence gate + B1 verified replay + D1 curated-PM "
-                         "+ D3 convention + B3 step-hint + cap 45. (B2 --plan and A2 --online stay separate.) "
-                         "NOTE: the prior 'D1/D3/B2 cause malformed actions' finding was a confound of the "
-                         "intercode signal-timeout thread-safety bug -- fixed; these features are innocent.")
+                    help="full validated recipe: A1(0.45) + B1 replay + D1 curated-PM + D3 convention "
+                         "+ completion-gate + self-verify + malformed-recovery (always on) + clean EM, cap 45.")
     args = ap.parse_args()
-    if args.improved:                                  # full improved bundle (B2/A2 excluded by design)
-        args.confidence = args.replay = True
-        args.curate_pm = args.convention = args.step_hint = True
+    if args.improved:                                  # full validated recipe (B2/B3/A2 excluded by design)
+        args.confidence = args.replay = args.curate_pm = args.convention = True
+        args.completion_gate = args.self_verify = True
+        args.step_hint = args.plan = False
+        if args.sim_threshold == 0.55:
+            args.sim_threshold = 0.45
         if args.l3_cap == 30:
             args.l3_cap = 45
     asyncio.run(main_async(args))

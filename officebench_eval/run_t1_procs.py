@@ -60,7 +60,8 @@ def _run_one(spec):
                  max_iter=cap_for_level(spec["level"], l3_cap=cfg["l3_cap"]), container=container,
                  replay=cfg["replay"], replay_threshold=cfg["replay_threshold"],
                  plan_then_execute=cfg["plan"], batch_size=cfg["batch_size"],
-                 output_convention=cfg["convention"])
+                 output_convention=cfg["convention"],
+                 completion_gate=cfg["completion_gate"], self_verify=cfg["self_verify"])
     r["_container"], r["_dur"] = container, round(time.perf_counter() - t0, 1)
     return spec, r
 
@@ -106,17 +107,34 @@ def main():
     ap.add_argument("--l3-cap", type=int, default=45, dest="l3_cap")
     ap.add_argument("--lean", action="store_true",
                     help="cost-optimal arm: A1 confidence + B1 replay ONLY (drop D1/D3/B3 token overhead)")
+    ap.add_argument("--completion-gate", action="store_true", dest="completion_gate")
+    ap.add_argument("--self-verify", action="store_true", dest="self_verify")
+    ap.add_argument("--best", action="store_true",
+                    help="the full validated recipe: A1(0.45)+B1+D1+D3+completion-gate+self-verify "
+                         "+ malformed-recovery (always on) + clean EM, l3_cap 45")
+    ap.add_argument("--only-file", default="", dest="only_file",
+                    help="json list of 'task/subtask' keys to run ONLY (targeted subset test)")
     args = ap.parse_args()
     if args.lean:
         args.confidence = args.replay = True
         args.curate_pm = args.convention = args.step_hint = args.plan = False
+    if args.best:
+        args.confidence = args.replay = args.curate_pm = args.convention = True
+        args.completion_gate = args.self_verify = True
+        args.plan = args.step_hint = False
+        if args.sim_threshold == 0.55:
+            args.sim_threshold = 0.45
 
     cfg = {k: getattr(args, k) for k in ("theta", "model", "sim_threshold", "replay_threshold",
-            "batch_size", "confidence", "replay", "curate_pm", "convention", "step_hint", "plan", "l3_cap")}
+            "batch_size", "confidence", "replay", "curate_pm", "convention", "step_hint", "plan", "l3_cap",
+            "completion_gate", "self_verify")}
 
     test = json.load(open(SPLIT))["test"]
     pats = {(p["task"], p["subtask"]): p["pattern"] for p in json.load(open(PATTERNS))}
     test.sort(key=lambda it: -int(it["level"]))            # LPT: longest first
+    if args.only_file:                                     # run ONLY a targeted subset
+        only = set(json.load(open(args.only_file)))
+        test = [it for it in test if f"{it['task']}/{it['subtask']}" in only]
     if args.limit:
         test = test[:args.limit]
     os.makedirs(TRACE_DIR, exist_ok=True)

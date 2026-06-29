@@ -10,6 +10,13 @@ import os
 import threading
 import time
 
+# GLOBAL round-robin key index shared across ALL CerebrasLLM instances. Without this,
+# every instance started at key 0, so N concurrent tasks marched in LOCKSTEP and hit the
+# SAME key simultaneously every step -> 429 storms. A shared counter hands consecutive
+# keys to concurrent callers, spreading load across all keys.
+_GLOBAL_LOCK = threading.Lock()
+_GLOBAL_I = 0
+
 
 class CerebrasLLM:
     def __init__(self, model_name: str = "gpt-oss-120b", system_message: str | None = None):
@@ -35,11 +42,15 @@ class CerebrasLLM:
         self.rate_limit_hits = 0
 
     def _next(self):
+        # GLOBAL round-robin: concurrent tasks get DIFFERENT keys instead of colliding
+        # on the same one. Falls back to this instance's clients (the key set is shared).
+        global _GLOBAL_I
+        with _GLOBAL_LOCK:
+            idx = _GLOBAL_I
+            _GLOBAL_I += 1
         with self._lock:
-            c = self.clients[self._i % len(self.clients)]
-            self._i += 1
             self.calls += 1
-            return c
+        return self.clients[idx % len(self.clients)]
 
     def generate(self, prompt: str) -> str:
         n = len(self.clients)
