@@ -40,6 +40,10 @@ class CerebrasLLM:
         self.max_tokens = 512                  # raise for long outputs (e.g. curation)
         self.rate_limit_wait_s = 0.0           # cumulative time lost to 429s (failed round-trip + pacing sleep)
         self.rate_limit_hits = 0
+        # REAL token accounting from the API's usage field (the actual billed cost: the WHOLE
+        # prompt -- system + history + memory -- plus the completion, not just injected memory).
+        self.prompt_tokens = 0
+        self.completion_tokens = 0
 
     def _next(self):
         # GLOBAL round-robin: concurrent tasks get DIFFERENT keys instead of colliding
@@ -62,6 +66,10 @@ class CerebrasLLM:
                     model=self.model_name, temperature=0, max_tokens=self.max_tokens,
                     messages=[{"role": "system", "content": self.system_message or ""},
                               {"role": "user", "content": prompt}])
+                u = getattr(r, "usage", None)         # real billed tokens (whole prompt + completion)
+                if u is not None:
+                    self.prompt_tokens += int(getattr(u, "prompt_tokens", 0) or 0)
+                    self.completion_tokens += int(getattr(u, "completion_tokens", 0) or 0)
                 txt = (r.choices[0].message.content or "").strip()
                 if txt:
                     return txt

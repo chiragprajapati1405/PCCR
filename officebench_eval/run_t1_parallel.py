@@ -66,6 +66,8 @@ def _record(prog, key, it, pat, r):
     rl = r.get("rate_limit_wait_s", 0.0)
     prog[key] = {"success": r["success"], "level": it["level"], "pattern": pat,
                  "consults": int(em["consult_em"]), "tokens": em["injected_tokens"],
+                 "prompt_tokens": r.get("prompt_tokens", 0),          # REAL billed input tokens
+                 "completion_tokens": r.get("completion_tokens", 0),  # REAL billed output tokens
                  "steps": r["steps"], "llm_calls": r["llm_calls"], "wall_s": r["wall_s"],
                  "rate_limit_wait_s": rl, "compute_s": round(r["wall_s"] - rl, 1),   # 429-neglected
                  "rate_limit_hits": r.get("rate_limit_hits", 0),
@@ -252,10 +254,17 @@ def main():
     ap.add_argument("--improved", action="store_true",
                     help="full validated recipe: A1(0.45) + B1 replay + D1 curated-PM + D3 convention "
                          "+ completion-gate + self-verify + malformed-recovery (always on) + clean EM, cap 45.")
+    ap.add_argument("--lean", action="store_true",
+                    help="gate-LIGHT arm: confidence gate + replay + inject-once + F1 sanitiser + online STM, "
+                         "but NO completion gate / self-verify -- the call-multipliers. Fewer LLM calls "
+                         "(near retrieve-all), to settle the net token-cost ledger.")
+    ap.add_argument("--method", default="pccr", choices=["pccr", "retrieve_all", "no_memory"],
+                    help="arm to run (default pccr). retrieve_all/no_memory: baselines through the SAME "
+                         "harness for a fair real-token comparison.")
     args = ap.parse_args()
-    if args.improved:                                  # full validated recipe (B2/B3/A2 excluded by design)
+    globals()["METHOD"] = args.method                  # all arms run through the same N=4 driver
+    if args.improved or args.lean:                     # shared base of both arms
         args.confidence = args.replay = args.curate_pm = args.convention = True
-        args.completion_gate = args.self_verify = True
         args.inject_once = args.online_stm = True
         args.step_hint = args.plan = False
         if args.stm_capacity == 0:                        # bound STM so it stays short-term
@@ -264,6 +273,8 @@ def main():
             args.sim_threshold = 0.45
         if args.l3_cap == 30:
             args.l3_cap = 45
+    # improved adds the two call-multipliers; lean is exactly improved MINUS them (clean ablation).
+    args.completion_gate = args.self_verify = bool(args.improved)
     asyncio.run(main_async(args))
 
 
