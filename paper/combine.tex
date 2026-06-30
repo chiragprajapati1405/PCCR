@@ -601,6 +601,7 @@ orchestrator copying the memory's terse style) recovers the harm but still does
 
 \begin{table}[htbp]
 \centering\small
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcc@{}}
 \toprule
 Multi-agent configuration & success & vs.\ no-memory \\
@@ -609,7 +610,8 @@ no memory (clean baseline)        & $3/15$ & --- \\
 naive always-retrieve (LegoMem-style) & $2/15$ & $-1$ (misleads) \\
 clean injection ($4$ fixes, LOO)  & $2/15$ & $\le$ baseline ($0$ wins) \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{Multi-agent OfficeBench (stratified train sample, gpt-oss-120b). Curated EM does
 not beat no-memory; naive retrieval actively hurts, and even corrected injection only
 reaches parity---no configuration yields a memory-only win.}
@@ -975,6 +977,7 @@ isolation.
 
 \begin{table}[t]
 \centering\small
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcc@{}}
 \toprule
 Environment & Outcomes identical & Memory state identical\\
@@ -982,7 +985,8 @@ Environment & Outcomes identical & Memory state identical\\
 Per-task isolated & \textbf{60/60} & \textbf{yes}\\
 Shared world      & 58/60\textsuperscript{$\ast$} & yes\\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{Parallel vs.\ sequential outcome equivalence ($C{=}4$, 60 tasks).
 \textsuperscript{$\ast$}The two differ only on an incidental observation count of a
 shared mutable resource; success/plan/memory identical.}
@@ -1026,13 +1030,15 @@ $\sim$46\% no-memory baseline (they used GPT-4o; we use gpt-oss-120b).
 
 \begin{table}[t]
 \centering\small
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lccc@{}}
 \toprule
 Level & L1 & L2 & L3 \\
 \midrule
 no-memory success & 32/46 (70\%) & 24/47 (51\%) & 6/55 (11\%) \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{No-memory baseline on the 148 training tasks (the bank-building run),
 by difficulty level. Overall $\sim$42\%; bank $=62$ procedures.}
 \label{tab:ob}
@@ -1085,7 +1091,7 @@ architecture under \emph{frozen per-pattern priors}: \textbf{no-memory},
 PCCR} (the full six-store cascade). For each arm and difficulty level we report success,
 median wall-clock latency, agent steps, LLM calls, and total injected tokens.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering\small
 \setlength{\tabcolsep}{4.5pt}
 \begin{tabular}{@{}llccccc@{}}
@@ -1118,7 +1124,7 @@ gpt-oss-120b). Three arms over 152 test subtasks. \textbf{Retrieve-all leads ove
 driven by L1; \textbf{PCCR's gate protects on L3}, where indiscriminate retrieval
 \emph{collapses} ($-7$\,pp vs.\ no-memory) while PCCR stays at the no-memory level.}
 \label{tab:t1main}
-\end{table}
+\end{table*}
 
 \paragraph{Reading the table (the honest headline).} Overall, retrieve-all leads
 ($0.467$) over PCCR ($0.421$) and no-memory ($0.414$), but the level breakdown tells the
@@ -1146,7 +1152,7 @@ of the same SM/ENT-noise problem---the priors over-rate those stores. The fix
 (\S\ref{sec:t1disc}) is a measured/confidence utility that suppresses them, turning the
 $+40\%$ into a net saving.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering\small
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{@{}lccccc@{}}
@@ -1166,7 +1172,7 @@ single\_action & 23 & 0.478 & \textbf{0.609} & 0.478 & $+0.130$ \\
 \code{single\_action}---precisely the patterns where the frozen priors inject noisy
 SM/ENT alongside EM.}
 \label{tab:t1pattern}
-\end{table}
+\end{table*}
 
 \paragraph{Per-pattern routing (Table~\ref{tab:t1pattern}).} EM helps four of five
 patterns ($+0.10$ to $+0.19$) and is neutral on \code{multi\_app}. PCCR \emph{captures}
@@ -1362,7 +1368,7 @@ router experiments (\S\ref{sec:pccr-results}, up to $89\%$ fewer injected tokens
 per-call injection reduction here. Capturing true prompt$+$completion usage and a lean (gate-light) arm
 are the outstanding measurements.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering\small
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{@{}lccccc@{}}
@@ -1381,9 +1387,9 @@ $64/152$ runs; \textbf{PCCR-improved} is the fully-fixed run (F1--F4, \S\ref{sec
 reaches \textbf{$0.474$ (72/152)}---parity with retrieve-all's $0.467$. Real gpt-oss-120b,
 $\theta_{\text{sim}}{=}0.45$.}
 \label{tab:cg-level}
-\end{table}
+\end{table*}
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering\small
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{@{}lcccccc@{}}
@@ -1405,7 +1411,7 @@ keeps the \code{doc\_process} win ($0.680>0.600$), reaching $0.474$ overall---pa
 retrieve-all. Injected-memory tokens: retrieve-all $734$K, PCCR-improved $628$K (net API cost
 unresolved, \S\ref{sec:confgate}).}
 \label{tab:cg-pat}
-\end{table}
+\end{table*}
 
 \paragraph{Parallel throughput on real tasks.} The $N{=}4$ parallel run gave a measured
 \textbf{$\sim$2.35--3.3$\times$} real-LLM speedup (vs.\ the $3.73\times$ modeled on the deterministic
