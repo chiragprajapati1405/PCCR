@@ -1225,13 +1225,63 @@ a \emph{per-query retrieval-confidence} utility (the top-$k$ FAISS similarity fr
 store), which is label-free and benchmark-agnostic and suppresses the low-similarity
 SM/ENT hits automatically. \textbf{(2) L3 is a task-completion problem, not a memory problem}
 (\S\ref{sec:t1l3}), addressable by executing memory as a verified, completion-checked
-procedure rather than a passive hint. We implemented and evaluated both, run on the real
+procedure rather than a passive hint. We implemented and evaluated both---and, as the run itself
+exposed deeper memory-fidelity defects, the four refinements of \S\ref{sec:fidelity}---on the real
 parallel architecture (\S\ref{sec:confgate}).
+
+\subsection{Architectural refinements: four execution-fidelity mechanisms}\label{sec:fidelity}
+The diagnosis above (\S\ref{sec:t1disc}, \S\ref{sec:t1l3}) showed that, with the backbone fixed,
+accuracy is gated not by \emph{which} store is consulted but by the \emph{fidelity} of what the
+cascade injects and by whether the agent is allowed to stop prematurely. We therefore extend the
+router's read/write path---without touching the $\rho$-gate or the ten-phase lifecycle---with four
+mechanisms. They are the changes that move OfficeBench from $0.421$ to $0.474$ (\S\ref{sec:confgate}).
+
+\paragraph{(F1) Schema-validated episodic injection.} Episodic memories store raw banked
+trajectories, whose action strings can contain \emph{invalid} tool calls (a malformed step that the
+agent later corrected). Injecting these verbatim as ``past successful actions'' teaches the backbone
+to imitate invalid calls. We interpose a sanitiser on the EM$\to$prompt path that parses each
+candidate action, keeps it only if its \texttt{(app, action)} pair is schema-valid, remaps a small
+set of known aliases (e.g.\ a non-existent \texttt{shell/run} to the real \texttt{shell/command}),
+and drops the rest. Storage is unchanged; only what reaches the prompt is constrained to the tool
+schema.
+
+\paragraph{(F2) Inject-once context scheduling.} The cascade's output has two parts with different
+temporal value: \emph{static procedural guidance} (the PM rule and concrete action exemplars), which
+is most useful while planning, and a \emph{task roadmap} (the matched plan steps). The reference
+design re-sends the whole block on every step. We split it: the heavy procedural part is injected only
+for the first $K{=}3$ steps, the light roadmap on every step. This is a pure read-path schedule---no
+store changes---and cuts per-call memory injection $5\times$ (709\,$\to$\,146 tokens) while preserving
+the planning-time guidance.
+
+\paragraph{(F3) Completion gate over \emph{both} stop signals.} A procedural agent ends a task with
+either ``done'' (\texttt{finish\_task}) or ``give up'' (\texttt{got\_stuck}). The reference completion
+check intercepted only the former, but on OfficeBench multi-application tasks the dominant failure is
+\emph{abandonment} (the agent quits with required outputs unmade), so the check rarely engaged. We
+make it intercept both signals: when a stop is requested while a required output file is missing, the
+gate blocks it and re-prompts. The required set excludes task \emph{inputs} (files present before the
+first write), and missing email/calendar artifacts (\texttt{.eml}/\texttt{.ics}) yield
+\emph{schema-aware} guidance (the exact \texttt{send\_email}/\texttt{create\_event} field names) since
+those outputs are produced by tool actions, not file writes. Engagement on the hard subset rose from
+${\sim}9$ to $35$ of $64$ tasks.
+
+\paragraph{(F4) Continual short-term cache.} The STM short-circuit makes a near-duplicate recurrence
+nearly free (one cached plan, the rest of the cascade skipped), but a held-out split prefilled only
+from training rarely recurs. F4 is not a new mechanism: it simply \emph{exercises the lifecycle's own}
+success$\to$STM write (Phase~9, W2: $\text{pattern}\to$STM under the per-pattern lock, \S\ref{sec:arch})
+\emph{during} evaluation rather than only at consolidation. On each \emph{successful} task the executed
+plan is written to STM (the success gate W1 ensures a failed plan never poisons future tasks), keyed by
+task wording so genuine recurrences match. STM stays \emph{short-term} by its existing bounded capacity
+(cap $24$, LFU/LRU eviction, assumption~A12) and high short-circuit threshold ($0.85$); one-offs are
+evicted unused, only true near-duplicates fire. This is the architecture's \emph{continual} arm (memory
+accumulates within a deployment, and---per \S\ref{sec:correct}---a task may read before a concurrent
+task's write lands, an ordering the lock manager already governs), distinct from the i.i.d.\
+frozen-prefill arm.
 
 \subsection{Executing the confidence gate: the real-architecture parallel run}\label{sec:confgate}
 We replaced the frozen priors with the per-query confidence gate ($\theta_{\text{sim}}{=}0.45$),
-added verified procedure replay, LLM-curated procedural rules, a programmatic completion gate, a
-self-verification pass, and a malformed-action recovery aid, and ran all 152 test tasks through the
+added verified procedure replay, LLM-curated procedural rules, the completion gate (F3), a
+self-verification pass, a malformed-action recovery aid, schema-validated injection (F1), inject-once
+scheduling (F2), and the continual cache (F4), and ran all 152 test tasks through the
 \emph{parallel} adapter at $N{=}4$ (real gpt-oss-120b, isolated Docker containers).
 
 \paragraph{Four implementation bugs, found and fixed.} Scaling to a live parallel loop surfaced
@@ -1283,19 +1333,14 @@ structured and hard tasks, rescues tasks both baselines miss, and---via the shor
 recurrences nearly free, while the remaining overall gap is a backbone-stability problem on open-ended
 tasks rather than a routing flaw.}
 
-\paragraph{Closing the gap: the fully-fixed run.} The $64/152$ analysis above exposed two further
-defects beyond the curated-rule schema bug, which we then fixed. \textbf{(1)~Residual memory poison:}
-the episodic bank's injected ``past actions'' still contained \emph{stale} invalid action names
-(\code{shell/run}, \code{list\_directory}) from pre-fix traces, served back as ``successful examples''
-to imitate; a sanitiser that keeps only schema-valid action names (remapping known aliases) removed
-them. \textbf{(2)~The completion gate barely fired:} it intercepted only \code{finish\_task}, but
-$43/64$ \code{multi\_app} failures \emph{gave up} via \code{got\_stuck} rather than false-finishing, so
-the gate never engaged. Intercepting \code{got\_stuck} as well (with input-file exclusion and
-schema-aware correctives for the \code{.eml}/\code{.ics} email/calendar outputs that dominate the
-missing-file failures) raised gate engagement from ${\sim}9$ to $35$ of those $64$. We further added
-\emph{inject-once} (the static procedural rule and action examples are injected only for the first few
-planning steps, not re-sent every step) and a bounded \emph{continual} short-term cache (success-only,
-cap $12$--$24$, threshold $0.85$). The full $N{=}4$ parallel run with all fixes reaches
+\paragraph{Closing the gap: the fully-fixed run.} The $64/152$ analysis above motivated the four
+execution-fidelity mechanisms of \S\ref{sec:fidelity}. Their diagnostic origins: schema-validated
+injection (F1) removed the \emph{stale} invalid action names (\code{shell/run},
+\code{list\_directory}) the bank still served as ``successful examples''; the completion gate (F3),
+which originally fired only on \code{finish\_task}, was extended to \code{got\_stuck} because $43/64$
+\code{multi\_app} failures \emph{gave up} rather than false-finishing---raising engagement from
+${\sim}9$ to $35$ of those $64$; inject-once (F2) removed the per-step re-injection; and the continual
+cache (F4) lifts the live STM hit rate ($8\to12$). The full $N{=}4$ parallel run with all four reaches
 \textbf{$0.474$ (72/152)}---now \emph{level with} retrieve-all's $0.467$ (71/152), a difference within
 the $\sim$$19/125$ run-to-run backbone variance and therefore best read as \emph{parity}, not a win
 (Table~\ref{tab:cg-final}). The pattern story is the substantive result: \code{multi\_app} recovers
