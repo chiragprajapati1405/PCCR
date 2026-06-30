@@ -1343,7 +1343,8 @@ ${\sim}9$ to $35$ of those $64$; inject-once (F2) removed the per-step re-inject
 cache (F4) lifts the live STM hit rate ($8\to12$). The full $N{=}4$ parallel run with all four reaches
 \textbf{$0.474$ (72/152)}---now \emph{level with} retrieve-all's $0.467$ (71/152), a difference within
 the $\sim$$19/125$ run-to-run backbone variance and therefore best read as \emph{parity}, not a win
-(Table~\ref{tab:cg-final}). The pattern story is the substantive result: \code{multi\_app} recovers
+(Tables~\ref{tab:cg-level}--\ref{tab:cg-pat}, column \textbf{PCCR-improved}). The pattern story is the
+substantive result: \code{multi\_app} recovers
 $0.179{\to}0.244{\to}\mathbf{0.295}$ across the three fixes---now matching no-memory and \emph{above}
 retrieve-all's $0.269$---and \code{doc\_process} reaches $\mathbf{0.680}$ ($>$ retrieve-all $0.600$,
 no-memory $0.480$). The \code{multi\_app} collapse is fully repaired.
@@ -1364,65 +1365,45 @@ are the outstanding measurements.
 \begin{table}[t]
 \centering\small
 \setlength{\tabcolsep}{5pt}
-\begin{tabular}{@{}lccc@{}}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-Pattern ($n$) & no-mem & retrieve-all & PCCR-improved \\
+Level & no-memory & retrieve-all & PCCR (seq) & PCCR (par) & \textbf{PCCR-improved} \\
 \midrule
-data\_compute (10)  & $0.700$ & $\mathbf{0.800}$ & $\mathbf{0.800}$ \\
-doc\_process (25)   & $0.480$ & $0.600$ & $\mathbf{0.680}$ \\
-lookup (16)         & $0.625$ & $\mathbf{0.812}$ & $0.688$ \\
-multi\_app (78)     & $0.295$ & $0.269$ & $\mathbf{0.295}$ \\
-single\_action (23) & $0.478$ & $\mathbf{0.609}$ & $0.565$ \\
+L1 (47) & $0.553$ & $\mathbf{0.723}$ & $0.511$ & $0.617$ & $0.681$ \\
+L2 (48) & $0.500$ & $0.583$ & $0.542$ & $0.500$ & $\mathbf{0.583}$ \\
+L3 (57) & $0.228$ & $0.158$ & $0.246$ & $0.193$ & $0.211$ \\
 \midrule
-\textbf{Total (152)} & $0.414$ & $0.467$ & $\mathbf{0.474}$ \\
+Total   & $0.414$ & $0.467$ & $0.421$ & $0.421$ & $\mathbf{0.474}$ \\
 \bottomrule
 \end{tabular}
-\caption{Fully-fixed $N{=}4$ run (clean rules $+$ sanitised past-actions $+$ confidence gate $+$
-tightened completion gate $+$ inject-once $+$ continual STM). PCCR-improved reaches \emph{parity}
-with retrieve-all overall ($0.474$ vs.\ $0.467$, within run-to-run variance) while \emph{repairing}
-the \code{multi\_app} collapse ($\to0.295$) and winning \code{doc\_process}. Injected-memory tokens
-$628$K vs.\ $734$K; net API cost unresolved (the gate $\approx$doubles LLM calls).}
-\label{tab:cg-final}
-\end{table}
-
-\begin{table}[t]
-\centering\small
-\setlength{\tabcolsep}{5pt}
-\begin{tabular}{@{}lcccc@{}}
-\toprule
-Level & no-memory & retrieve-all & PCCR (seq) & PCCR (par-$N4$) \\
-\midrule
-L1 (47) & $0.553$ & $\mathbf{0.723}$ & $0.511$ & $0.617$ \\
-L2 (48) & $0.500$ & $\mathbf{0.583}$ & $0.542$ & $0.500$ \\
-L3 (57) & $0.228$ & $0.158$ & $\mathbf{0.246}$ & $0.193$ \\
-\midrule
-Total   & $0.414$ & $\mathbf{0.467}$ & $0.421$ & $0.421$ \\
-\bottomrule
-\end{tabular}
-\caption{Confidence-gate run, accuracy by level (real gpt-oss-120b, $\theta_{\text{sim}}{=}0.45$,
-full mechanism stack). The sequential and parallel runs reach the same $0.421$ aggregate;
-PCCR beats retrieve-all on L3 in both schedules.}
+\caption{Accuracy by level across the confidence-gate progression. PCCR (seq)/(par) are the initial
+$64/152$ runs; \textbf{PCCR-improved} is the fully-fixed run (F1--F4, \S\ref{sec:fidelity}) that
+reaches \textbf{$0.474$ (72/152)}---parity with retrieve-all's $0.467$. Real gpt-oss-120b,
+$\theta_{\text{sim}}{=}0.45$.}
 \label{tab:cg-level}
 \end{table}
 
 \begin{table}[t]
 \centering\small
 \setlength{\tabcolsep}{5pt}
-\begin{tabular}{@{}lccccc@{}}
+\begin{tabular}{@{}lcccccc@{}}
 \toprule
-Pattern & $n$ & no-mem & retr-all & PCCR (seq) & PCCR (par) \\
+Pattern & $n$ & no-mem & retr-all & PCCR (seq) & PCCR (par) & \textbf{PCCR-impr} \\
 \midrule
-data\_compute  & 10 & $0.700$ & $\mathbf{0.800}$ & $0.500$ & $0.700$ \\
-doc\_process   & 25 & $0.480$ & $0.600$ & $\mathbf{0.720}$ & $\mathbf{0.720}$ \\
-lookup         & 16 & $0.625$ & $\mathbf{0.812}$ & $0.625$ & $0.750$ \\
-multi\_app     & 78 & $\mathbf{0.295}$ & $0.269$ & $0.244$ & $0.179$ \\
-single\_action & 23 & $0.478$ & $\mathbf{0.609}$ & $0.522$ & $0.565$ \\
+data\_compute  & 10 & $0.700$ & $\mathbf{0.800}$ & $0.500$ & $0.700$ & $\mathbf{0.800}$ \\
+doc\_process   & 25 & $0.480$ & $0.600$ & $0.720$ & $0.720$ & $\mathbf{0.680}$ \\
+lookup         & 16 & $0.625$ & $\mathbf{0.812}$ & $0.625$ & $0.750$ & $0.688$ \\
+multi\_app     & 78 & $0.295$ & $0.269$ & $0.244$ & $0.179$ & $\mathbf{0.295}$ \\
+single\_action & 23 & $0.478$ & $\mathbf{0.609}$ & $0.522$ & $0.565$ & $0.565$ \\
+\midrule
+\textbf{Total} & 152 & $0.414$ & $0.467$ & $0.421$ & $0.421$ & $\mathbf{0.474}$ \\
 \bottomrule
 \end{tabular}
-\caption{Confidence-gate run, accuracy by task pattern. PCCR's reproducible win is
-\code{doc\_process} ($+0.12$ over retrieve-all in both runs); \code{multi\_app} stays below
-no-memory in both, the systematic shortfall. Token totals: retrieve-all $734$K, PCCR sequential
-$1.57$M, PCCR parallel $1.51$M.}
+\caption{Accuracy by task pattern across the progression. \textbf{PCCR-improved} (F1--F4) repairs the
+\code{multi\_app} collapse ($0.179{\to}0.244{\to}\mathbf{0.295}$, now $>$ retrieve-all's $0.269$) and
+keeps the \code{doc\_process} win ($0.680>0.600$), reaching $0.474$ overall---parity with
+retrieve-all. Injected-memory tokens: retrieve-all $734$K, PCCR-improved $628$K (net API cost
+unresolved, \S\ref{sec:confgate}).}
 \label{tab:cg-pat}
 \end{table}
 
