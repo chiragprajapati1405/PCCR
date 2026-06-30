@@ -1,0 +1,138 @@
+{
+  "task": "3-68",
+  "subtask": "0",
+  "level": 3,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 16,
+  "llm_calls": 19,
+  "wall_s": 42.2,
+  "rate_limit_wait_s": 0.7,
+  "rate_limit_hits": 1,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 5471,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.625,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "Invoice.pdf\nInvoice_2.pdf"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "Invoice.pdf\nInvoice_2.pdf"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":[\"ls\",\"/testbed/data\"]}",
+      "Invoice.pdf\nInvoice_2.pdf"
+    ],
+    [
+      "{\n  \"app\": \"pdf\",\n  \"action\": \"read\",\n  \"file_path\": \"/testbed/data/Invoice.pdf\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"read\",\"file_path\":\"/testbed/data/Invoice.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"pdf\"}",
+      "Successfully switched to app: pdf"
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"read_file\",\"pdf_file_path\":\"/testbed/data/Invoice.pdf\"}",
+      "INVOICE   \n \n333 3rd Ave   \nSeattle, WA 12345    \nPhone:  123 -456 -7890  INVOICE #  100  \nDATE:  1/30/23  \nPURCHASED BY:   \nLiane Cormier   \nThe Social Strategists   \n4321 Maplewood Ave   \nNashville, TN 54321    \nPhone:  111-222 -3333  SHIP TO:  \nLiane Cormier   \nThe Social Strategists   \n4321 Maplewood Ave   \nNashville, TN 54321   \nPhone:  111-222 -3333  \nCOMMENTS OR SPECIAL INSTRUCTIONS:  \nDue "
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"read_file\",\"pdf_file_path\":\"/testbed/data/Invoice_2.pdf\"}",
+      "Earthenware for everyone   \n89 Pacific Ave, San Francisco, CA 45321   \nPhone : (123) 456 -7890  \nFax: (123) 456 -7891  INVOICE  \nINVOICE  #100 \nDATE : 1/1/23  \nBILL TO: \nMollie Grau   \nPerfect Places Interior Design   \n210 Stars Avenue   \nBerkeley, CA 78910   \n(123) 987 -6543  SHIP TO:  \nMollie Grau   \nPerfect Places Interior Design   \n210 Stars Avenue   \nBerkeley, CA 78910   \n(123) 987 -6543   \nC"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"excel\"}",
+      "Successfully switched to app: excel"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"email\"}",
+      "Successfully switched to app: email"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"excel\"}",
+      "Successfully switched to app: excel"
+    ],
+    [
+      "{\"app\":\"excel\",\"action\":\"create_new_file\",\"file_path\":\"/testbed/data/costs.xlsx\"}",
+      "Successfully create new file /testbed/data/costs.xlsx"
+    ],
+    [
+      "{\"app\":\"excel\",\"action\":\"set_cell\",\"file_path\":\"/testbed/data/costs.xlsx\",\"row_idx\":1,\"column_idx\":1,\"text\":\"1494.97\"}",
+      "Successfully write text to /testbed/data/costs.xlsx"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"email\"}",
+      "Successfully switched to app: email"
+    ],
+    [
+      "{\n  \"app\": \"email\",\n  \"action\": \"send_email\",\n  \"sender\": \"assistant@example.com\",\n  \"recipient\": \"bob@example.com\",\n  \"subject\": \"Costs\",\n  \"content\": \"The total cost from the invoices is $1494.97, which exceeds the $1300 threshold.\"\n}",
+      "Successfully sent email to bob@example.com."
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Invoice.pdf\nInvoice_2.pdf",
+    "step  2:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Invoice.pdf\nInvoice_2.pdf",
+    "step  3:   SUBAGENT[shell]  --do-->  command  {\"command\": [\"ls\", \"/testbed/data\"]}",
+    "         OBSERVATION: Invoice.pdf\nInvoice_2.pdf",
+    "step  4:   SUBAGENT[pdf]  --do-->  read  {\"file_path\": \"/testbed/data/Invoice.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  5:   SUBAGENT[pdf]  --do-->  read  {\"file_path\": \"/testbed/data/Invoice.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6: ORCHESTRATOR  --delegate-->  [pdf] agent",
+    "         OBSERVATION: Successfully switched to app: pdf",
+    "step  7:   SUBAGENT[pdf]  --do-->  read_file  {\"pdf_file_path\": \"/testbed/data/Invoice.pdf\"}",
+    "         OBSERVATION: INVOICE   \n \n333 3rd Ave   \nSeattle, WA 12345    \nPhone:  123 -456 -7890  INVOICE #  100  \nDATE:  1/30/23  \nPURCHASED BY:   \nLiane Cormier   \nThe Social Strategists   \n4321 Maplewood Ave   \nNashville,",
+    "step  8:   SUBAGENT[pdf]  --do-->  read_file  {\"pdf_file_path\": \"/testbed/data/Invoice_2.pdf\"}",
+    "         OBSERVATION: Earthenware for everyone   \n89 Pacific Ave, San Francisco, CA 45321   \nPhone : (123) 456 -7890  \nFax: (123) 456 -7891  INVOICE  \nINVOICE  #100 \nDATE : 1/1/23  \nBILL TO: \nMollie Grau   \nPerfect Places ",
+    "step  9: ORCHESTRATOR  --delegate-->  [excel] agent",
+    "         OBSERVATION: Successfully switched to app: excel",
+    "step 10: ORCHESTRATOR  --delegate-->  [email] agent",
+    "         OBSERVATION: Successfully switched to app: email",
+    "step 11: ORCHESTRATOR  --delegate-->  [excel] agent",
+    "         OBSERVATION: Successfully switched to app: excel",
+    "step 12:   SUBAGENT[excel]  --do-->  create_new_file  {\"file_path\": \"/testbed/data/costs.xlsx\"}",
+    "         OBSERVATION: Successfully create new file /testbed/data/costs.xlsx",
+    "step 13:   SUBAGENT[excel]  --do-->  set_cell  {\"file_path\": \"/testbed/data/costs.xlsx\", \"row_idx\": 1, \"column_idx\": 1, \"text\": \"1494.97\"}",
+    "         OBSERVATION: Successfully write text to /testbed/data/costs.xlsx",
+    "step 14: ORCHESTRATOR  --delegate-->  [email] agent",
+    "         OBSERVATION: Successfully switched to app: email",
+    "step 15:   SUBAGENT[email]  --do-->  send_email  {\"sender\": \"assistant@example.com\", \"recipient\": \"bob@example.com\", \"subject\": \"Costs\", \"content\": \"The total cost from ",
+    "         OBSERVATION: Successfully sent email to bob@example.com.",
+    "step 16: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "Extract data from PDF invoices from sales and sum all the costs in file costs.xlsx, if cost in larger than 1300$, email to Bob with subject 'Costs'",
+  "_container": "ob-test-1",
+  "_t0": 496.1,
+  "_t1": 541.7
+}

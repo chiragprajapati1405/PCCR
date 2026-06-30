@@ -1,0 +1,115 @@
+{
+  "task": "1-20",
+  "subtask": "4",
+  "level": 1,
+  "pattern": "lookup",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 11,
+  "llm_calls": 7,
+  "wall_s": 23.2,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 2865,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.765,
+    "faiss_backed": true,
+    "replay": {
+      "used": true,
+      "sim": 0.765,
+      "planned": 11,
+      "executed": 6,
+      "aborted": true
+    }
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"email\"}",
+      "Successfully switched to app: email"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"list_emails\", \"username\": \"Bob\"}",
+      "Successfully list emails for Bob:\nEmail ID: meeting.eml\nFrom: Alice@gmail.com\nTo: Bob123@gmail.com\nSubject: scheduled meeting\nContent: Can we have a zoom m...\n--------------------------------------------------\nEmail ID: scholarship approved.eml\nFrom: office@gmail.com\nTo: Bob123@gmail.com\nSubject: application approved\nContent: Your scholarship app...\n------------------------------------------------"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"shell\"}",
+      "Successfully switched to app: shell"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": [\"ls\", \"-R\", \"/testbed/emails/Bob\"]}",
+      "/testbed/emails/Bob:\ngradescope.eml\nmeeting.eml\nrental.eml\nscholarship approved.eml"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"email\"}",
+      "Successfully switched to app: email"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"read_email\", \"username\": \"Bob\", \"email_id\": \"email1.eml\"}",
+      "Failed to read email email1.eml for Bob."
+    ],
+    [
+      "{\"app\":\"email\",\"action\":\"read_email\",\"username\":\"Bob\",\"email_id\":\"meeting.eml\"}",
+      "Successfully read email meeting.eml for Bob:\nFrom: Alice@gmail.com\nTo: Bob123@gmail.com\nSubject: scheduled meeting\nContent: Can we have a zoom meeting later today?\n\nSent at: 2024-03-23 10:00:00..."
+    ],
+    [
+      "{\"app\":\"email\",\"action\":\"read_email\",\"username\":\"Bob\",\"email_id\":\"gradescope.eml\"}",
+      "Successfully read email gradescope.eml for Bob:\nFrom: gradescope@gmail.com\nTo: Bob123@gmail.com\nSubject: Gradescope\nContent: Your Project 2 has been graded.\n\nSent at: 2024-01-02 03:00:00..."
+    ],
+    [
+      "{\"app\":\"email\",\"action\":\"read_email\",\"username\":\"Bob\",\"email_id\":\"rental.eml\"}",
+      "Successfully read email rental.eml for Bob:\nFrom: Glendon@gmail.com\nTo: Bob123@gmail.com\nSubject: Reminder Rent due\nContent: Just a friendly reminder that rent is due October 1, 2022. Please remember to make your payment for rent and utilities on time to avoid a rent delinquency.\n\nSent at: 2022-09-23 03:00:00..."
+    ],
+    [
+      "{\"app\":\"email\",\"action\":\"read_email\",\"username\":\"Bob\",\"email_id\":\"scholarship approved.eml\"}",
+      "Successfully read email scholarship approved.eml for Bob:\nFrom: office@gmail.com\nTo: Bob123@gmail.com\nSubject: application approved\nContent: Your scholarship application has been approved.\n\nSent at: 2024-04-02 10:00:00..."
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"Spring\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1: ORCHESTRATOR  --delegate-->  [email] agent",
+    "         OBSERVATION: Successfully switched to app: email",
+    "step  2:   SUBAGENT[email]  --do-->  list_emails  {\"username\": \"Bob\"}",
+    "         OBSERVATION: Successfully list emails for Bob:\nEmail ID: meeting.eml\nFrom: Alice@gmail.com\nTo: Bob123@gmail.com\nSubject: scheduled meeting\nContent: Can we have a zoom m...\n-----------------------------------------",
+    "step  3: ORCHESTRATOR  --delegate-->  [shell] agent",
+    "         OBSERVATION: Successfully switched to app: shell",
+    "step  4:   SUBAGENT[shell]  --do-->  command  {\"command\": [\"ls\", \"-R\", \"/testbed/emails/Bob\"]}",
+    "         OBSERVATION: /testbed/emails/Bob:\ngradescope.eml\nmeeting.eml\nrental.eml\nscholarship approved.eml",
+    "step  5: ORCHESTRATOR  --delegate-->  [email] agent",
+    "         OBSERVATION: Successfully switched to app: email",
+    "step  6:   SUBAGENT[email]  --do-->  read_email  {\"username\": \"Bob\", \"email_id\": \"email1.eml\"}",
+    "         OBSERVATION: Failed to read email email1.eml for Bob.",
+    "step  7:   SUBAGENT[email]  --do-->  read_email  {\"username\": \"Bob\", \"email_id\": \"meeting.eml\"}",
+    "         OBSERVATION: Successfully read email meeting.eml for Bob:\nFrom: Alice@gmail.com\nTo: Bob123@gmail.com\nSubject: scheduled meeting\nContent: Can we have a zoom meeting later today?\n\nSent at: 2024-03-23 10:00:00...",
+    "step  8:   SUBAGENT[email]  --do-->  read_email  {\"username\": \"Bob\", \"email_id\": \"gradescope.eml\"}",
+    "         OBSERVATION: Successfully read email gradescope.eml for Bob:\nFrom: gradescope@gmail.com\nTo: Bob123@gmail.com\nSubject: Gradescope\nContent: Your Project 2 has been graded.\n\nSent at: 2024-01-02 03:00:00...",
+    "step  9:   SUBAGENT[email]  --do-->  read_email  {\"username\": \"Bob\", \"email_id\": \"rental.eml\"}",
+    "         OBSERVATION: Successfully read email rental.eml for Bob:\nFrom: Glendon@gmail.com\nTo: Bob123@gmail.com\nSubject: Reminder Rent due\nContent: Just a friendly reminder that rent is due October 1, 2022. Please remember ",
+    "step 10:   SUBAGENT[email]  --do-->  read_email  {\"username\": \"Bob\", \"email_id\": \"scholarship approved.eml\"}",
+    "         OBSERVATION: Successfully read email scholarship approved.eml for Bob:\nFrom: office@gmail.com\nTo: Bob123@gmail.com\nSubject: application approved\nContent: Your scholarship application has been approved.\n\nSent at: 2",
+    "step 11: ORCHESTRATOR  --finish--  answer='Spring'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "In which season does Bob receive most emails?",
+  "_container": "ob-test-3",
+  "_t0": 2817.1,
+  "_t1": 2843.6
+}

@@ -1,0 +1,102 @@
+{
+  "task": "2-38",
+  "subtask": "1",
+  "level": 2,
+  "pattern": "single_action",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 10,
+  "llm_calls": 13,
+  "wall_s": 31.4,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 3867,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.658,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "notification.docx\nparty.pdf"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"email\"}",
+      "Successfully switched to app: email"
+    ],
+    [
+      "{\"app\":\"email\",\"action\":\"send_email\",\"sender\":\"Jane Doe\",\"recipient\":\"Bob\",\"subject\":\"Party Invitation\",\"content\":\"Hi Bob,\\n\\nYou are invited to a party hosted by Jane Doe. Please let me know if you can attend.\\n\\nBest regards,\\nJane\"}",
+      "ERROR: Could not consume arg: Doe\nUsage: email_send_email.py --sender Jane Doe --recipient Bob --subject 'Party Invitation' --content <command>\n  available commands:    capitalize | casefold | center | count | encode |\n                         endswith | expandtabs | find | format | format_map |\n                         index | isalnum | isalpha | isascii | isdecimal |\n                         isd"
+    ],
+    [
+      "{\n  \"app\": \"email\",\n  \"action\": \"send_email\",\n  \"sender\": \"Jane_Doe\",\n  \"recipient\": \"Bob\",\n  \"subject\": \"Party Invitation\",\n  \"content\": \"Hi Bob,\\n\\nYou are invited to a party hosted by Jane Doe. Please let me know if you can attend.\\n\\nBest regards,\\nJane\"\n}",
+      "Successfully sent email to Bob."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"cat > /testbed/data/party.eml <<'EOF'\\nFrom: Jane Doe <jane.doe@example.com>\\nTo: Bob <bob@example.com>\\nSubject: Party Invitation\\n\\nHi Bob,\\n\\nYou are invited to a party hosted by Jane Doe. Please let me know if you can attend.\\n\\nBest regards,\\nJane\\nEOF\"}",
+      "/bin/bash: line 12: warning: here-document at line 1 delimited by end-of-file (wanted `EOF')"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"switch_app\",\n  \"target_app\": \"shell\"\n}",
+      "Successfully switched to app: shell"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"cat <<'EOF' > /testbed/data/party.eml\\nFrom: Jane Doe <jane.doe@example.com>\\nTo: Bob <bob@example.com>\\nSubject: Party Invitation\\n\\nHi Bob,\\n\\nYou are invited to a party hosted by Jane Doe. Please let me know if you can attend.\\n\\nBest regards,\\nJane\\nEOF\"}",
+      "/bin/bash: line 12: warning: here-document at line 1 delimited by end-of-file (wanted `EOF')"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -l /testbed/data/party.eml && cat /testbed/data/party.eml\"}",
+      "-rw-r--r-- 1 root root 210 Jun 29 19:26 /testbed/data/party.eml\nFrom: Jane Doe <jane.doe@example.com>\nTo: Bob <bob@example.com>\nSubject: Party Invitation\n\nHi Bob,\n\nYou are invited to a party hosted by Jane Doe. Please let me know if you can attend.\n\nBest regards,\nJane\nEOF"
+    ],
+    [
+      "{\"app\":\"email\",\"action\":\"send_email\",\"sender\":\"Jane_Doe\",\"recipient\":\"Bob\",\"subject\":\"Party Invitation\",\"content\":\"Hi Bob,\\n\\nYou are invited to a party hosted by Jane Doe. Please let me know if you can attend.\\n\\nBest regards,\\nJane\"}",
+      "Successfully sent email to Bob."
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: notification.docx\nparty.pdf",
+    "step  2: ORCHESTRATOR  --delegate-->  [email] agent",
+    "         OBSERVATION: Successfully switched to app: email",
+    "step  3:   SUBAGENT[email]  --do-->  send_email  {\"sender\": \"Jane Doe\", \"recipient\": \"Bob\", \"subject\": \"Party Invitation\", \"content\": \"Hi Bob,\\n\\nYou are invited to a pa",
+    "         OBSERVATION: ERROR: Could not consume arg: Doe\nUsage: email_send_email.py --sender Jane Doe --recipient Bob --subject 'Party Invitation' --content <command>\n  available commands:    capitalize | casefold | center ",
+    "step  4:   SUBAGENT[email]  --do-->  send_email  {\"sender\": \"Jane_Doe\", \"recipient\": \"Bob\", \"subject\": \"Party Invitation\", \"content\": \"Hi Bob,\\n\\nYou are invited to a pa",
+    "         OBSERVATION: Successfully sent email to Bob.",
+    "step  5:   SUBAGENT[shell]  --do-->  command  {\"command\": \"cat > /testbed/data/party.eml <<'EOF'\\nFrom: Jane Doe <jane.doe@example.com>\\nTo: Bob <bob@example.com>\\nSu",
+    "         OBSERVATION: /bin/bash: line 12: warning: here-document at line 1 delimited by end-of-file (wanted `EOF')",
+    "step  6: ORCHESTRATOR  --delegate-->  [shell] agent",
+    "         OBSERVATION: Successfully switched to app: shell",
+    "step  7:   SUBAGENT[shell]  --do-->  command  {\"command\": \"cat <<'EOF' > /testbed/data/party.eml\\nFrom: Jane Doe <jane.doe@example.com>\\nTo: Bob <bob@example.com>\\nSu",
+    "         OBSERVATION: /bin/bash: line 12: warning: here-document at line 1 delimited by end-of-file (wanted `EOF')",
+    "step  8:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -l /testbed/data/party.eml && cat /testbed/data/party.eml\"}",
+    "         OBSERVATION: -rw-r--r-- 1 root root 210 Jun 29 19:26 /testbed/data/party.eml\nFrom: Jane Doe <jane.doe@example.com>\nTo: Bob <bob@example.com>\nSubject: Party Invitation\n\nHi Bob,\n\nYou are invited to a party hosted by",
+    "step  9:   SUBAGENT[email]  --do-->  send_email  {\"sender\": \"Jane_Doe\", \"recipient\": \"Bob\", \"subject\": \"Party Invitation\", \"content\": \"Hi Bob,\\n\\nYou are invited to a pa",
+    "         OBSERVATION: Successfully sent email to Bob.",
+    "step 10: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "Bob was invited to party hold by Jane Doe, send an email party.eml to Bob to notify Bob",
+  "_container": "ob-test-0",
+  "_t0": 2088.6,
+  "_t1": 2123.3
+}

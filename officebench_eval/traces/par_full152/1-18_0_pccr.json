@@ -1,0 +1,72 @@
+{
+  "task": "1-18",
+  "subtask": "0",
+  "level": 1,
+  "pattern": "doc_process",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 5,
+  "llm_calls": 6,
+  "wall_s": 16.8,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 3090,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.719,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"shell\"}",
+      "Successfully switched to app: shell"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":[\"ls\",\"-R\",\"/testbed/data\"]}",
+      "/testbed/data:\nconcert_post.pdf"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"pdf\"}",
+      "Successfully switched to app: pdf"
+    ],
+    [
+      "{\n  \"app\": \"pdf\",\n  \"action\": \"convert_to_image\",\n  \"pdf_file_path\": \"/testbed/data/concert_post.pdf\",\n  \"image_file_path\": \"/testbed/data/concert_post.jpg\"\n}",
+      "Success"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1: ORCHESTRATOR  --delegate-->  [shell] agent",
+    "         OBSERVATION: Successfully switched to app: shell",
+    "step  2:   SUBAGENT[shell]  --do-->  command  {\"command\": [\"ls\", \"-R\", \"/testbed/data\"]}",
+    "         OBSERVATION: /testbed/data:\nconcert_post.pdf",
+    "step  3: ORCHESTRATOR  --delegate-->  [pdf] agent",
+    "         OBSERVATION: Successfully switched to app: pdf",
+    "step  4:   SUBAGENT[pdf]  --do-->  convert_to_image  {\"pdf_file_path\": \"/testbed/data/concert_post.pdf\", \"image_file_path\": \"/testbed/data/concert_post.jpg\"}",
+    "         OBSERVATION: Success",
+    "step  5: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "extract concert post from pdf file and save as image named 'concert_post.jpg'",
+  "_container": "ob-test-3",
+  "_t0": 2897.0,
+  "_t1": 2917.2
+}

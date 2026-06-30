@@ -1,0 +1,205 @@
+{
+  "task": "3-71",
+  "subtask": "0",
+  "level": 3,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 26,
+  "llm_calls": 21,
+  "wall_s": 30.8,
+  "rate_limit_wait_s": 0.7,
+  "rate_limit_hits": 1,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 5071,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.853,
+    "faiss_backed": true,
+    "replay": {
+      "used": true,
+      "sim": 0.853,
+      "planned": 16,
+      "executed": 13,
+      "aborted": true
+    }
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"shell\"}",
+      "Successfully switched to app: shell"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "meeting_agenda.pdf"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"pdf\"}",
+      "Successfully switched to app: pdf"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"read_file\", \"pdf_file_path\": \"/testbed/data/meeting_agenda.pdf\"}",
+      "FINANCIALMEETING\nAGENDADate:September9\nTime:11:00am\nFacilitator:MirjamNilsson\nMirjamNilsson\nPresidentRajeshSantoshi\nCOOElizabethMoore\nSEOStrategist\nFloraBerggren\nCEOGrahamBarne\nVPMarketingRobinKline\nProductDesigner\nMirjamNilsson\nVPProductTakumaHayashi\nContentDeveloper\nTIME ITEM OWNER\n11:00 Welcome MirjamNilsson\n11:05 Fiscalyearreview FloraBerggren\n11:15 Voteonnewsecretary RajeshSantoshi\n11:20 Disc"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"calendar\"}",
+      "Successfully switched to app: calendar"
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Bob\", \"summary\": \"Welcome - Mirjam Nilsson\", \"time_start\": \"2020-05-01 11:00:00\", \"time_end\": \"2020-05-01 11:05:00\"}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Bob\", \"summary\": \"Fiscal year review - Flora Berggren\", \"time_start\": \"2020-05-01 11:05:00\", \"time_end\": \"2020-05-01 11:15:00\"}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Bob\", \"summary\": \"Vote on new secretary - Rajesh Santoshi\", \"time_start\": \"2020-05-01 11:15:00\", \"time_end\": \"2020-05-01 11:20:00\"}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Bob\", \"summary\": \"Discuss advisory committees - Graham Barnes\", \"time_start\": \"2020-05-01 11:20:00\", \"time_end\": \"2020-05-01 11:30:00\"}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Bob\", \"summary\": \"Vote on budget - Rowan Murphy\", \"time_start\": \"2020-05-01 11:30:00\", \"time_end\": \"2020-05-01 11:40:00\"}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Bob\", \"summary\": \"Break - Robin Kline\", \"time_start\": \"2020-05-01 11:40:00\", \"time_end\": \"2020-05-01 11:45:00\"}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Bob\", \"summary\": \"New Business - Mirjam Nilsson\", \"time_start\": \"2020-05-01 11:45:00\", \"time_end\": \"2020-05-01 12:00:00\"}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"export\", \"file_path\": \"/testbed/data/meeting_agenda.ics\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"pdf\"}",
+      "Successfully switched to app: pdf"
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"convert_to_image\",\"pdf_file_path\":\"/testbed/data/meeting_agenda.pdf\",\"image_file_path\":\"/testbed/data/agenda.jpg\"}",
+      "Success"
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"export\",\"user\":\"Bob\",\"file_path\":\"/testbed/data/meeting_agenda.ics\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"calendar\"}",
+      "Successfully switched to app: calendar"
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"export\",\"username\":\"Bob\",\"file_path\":\"/testbed/data/meeting_agenda.ics\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{'app': 'calendar', 'action': 'list_events', 'username': 'Bob'}",
+      "Successfully list events for Bob:\nSummary: Welcome - Mirjam Nilsson\nStart Time: 2020-05-01 11:00:00\nEnd Time: 2020-05-01 11:05:00\nDescription: This is a test event\nLocation: Online\n--------------------------------------------------\nSummary: Fiscal year review - Flora Berggren\nStart Time: 2020-05-01 11:05:00\nEnd Time: 2020-05-01 11:15:00\nDescription: This is a test event\nLocation: Online\n----------"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"shell\"}",
+      "Successfully switched to app: shell"
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"export_ics\",\"username\":\"Bob\",\"file_path\":\"/testbed/data/meeting_agenda.ics\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"cat <<'EOF' > /testbed/data/meeting_agenda.ics\\nBEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//Bob Calendar//EN\\nBEGIN:VEVENT\\nUID:1@bob\\nDTSTAMP:20200501T090000Z\\nDTSTART:20200501T110000\\nDTEND:20200501T110500\\nSUMMARY:Welcome - Mirjam Nilsson\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:2@bob\\nDTSTAMP:20200501T090000Z\\nDTSTART:20200501T110500\\nDTEND:20200501T111500\\nSUMMARY:Fiscal year review - Flora Berggren\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:3@bob\\nDTSTAMP:20200501T090000Z\\nDTSTART:20200501T111500\\nDTEND:20200501T112000\\nSUMMARY:Vote on new secretary - Rajesh Santoshi\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:4@bob\\nDTSTAMP:20200501T090000Z\\nDTSTART:20200501T112000\\nDTEND:20200501T113000\\nSUMMARY:Discuss advisory committees - Graham Barnes\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:5@bob\\nDTSTAMP:20200501T090000Z\\nDTSTART:20200501T113000\\nDTEND:20200501T114000\\nSUMMARY:Vote on budget - Rowan Murphy\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:6@bob\\nDTSTAMP:20200501T090000Z\\nDTSTART:20200501T114000\\nDTEND:20200501T114500\\nSUMMARY:Break - Robin Kline\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:7@bob\\nDTSTAMP:20200501T090000Z\\nDTSTART:20200501T114500\\nDTEND:20200501T120000\\nSUMMARY:New Business - Mirjam Nilsson\\nEND:VEVENT\\nEND:VCALENDAR\\nEOF\"}",
+      "/bin/bash: line 55: warning: here-document at line 1 delimited by end-of-file (wanted `EOF')"
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls -l /testbed/data\"\n}",
+      "total 196\n-rw-r--r-- 1 root root     75790 Jun 29 14:32 agenda.jpg\n-rw-r--r-- 1 root root      1090 Jun 29 14:32 meeting_agenda.ics\n-rw-r--r-- 1 501  dialout 118235 Jun 10 17:38 meeting_agenda.pdf"
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"export_ics\",\"user\":\"Bob\",\"file_path\":\"/testbed/data/meeting_agenda.ics\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"calendar\"}",
+      "Successfully switched to app: calendar"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"finish_task\", \"answer\": \"None\"}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1: ORCHESTRATOR  --delegate-->  [shell] agent",
+    "         OBSERVATION: Successfully switched to app: shell",
+    "step  2:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: meeting_agenda.pdf",
+    "step  3: ORCHESTRATOR  --delegate-->  [pdf] agent",
+    "         OBSERVATION: Successfully switched to app: pdf",
+    "step  4:   SUBAGENT[pdf]  --do-->  read_file  {\"pdf_file_path\": \"/testbed/data/meeting_agenda.pdf\"}",
+    "         OBSERVATION: FINANCIALMEETING\nAGENDADate:September9\nTime:11:00am\nFacilitator:MirjamNilsson\nMirjamNilsson\nPresidentRajeshSantoshi\nCOOElizabethMoore\nSEOStrategist\nFloraBerggren\nCEOGrahamBarne\nVPMarketingRobinKline\nP",
+    "step  5: ORCHESTRATOR  --delegate-->  [calendar] agent",
+    "         OBSERVATION: Successfully switched to app: calendar",
+    "step  6:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Welcome - Mirjam Nilsson\", \"time_start\": \"2020-05-01 11:00:00\", \"time_end\": \"2020-05-01 11:0",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step  7:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Fiscal year review - Flora Berggren\", \"time_start\": \"2020-05-01 11:05:00\", \"time_end\": \"2020",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step  8:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Vote on new secretary - Rajesh Santoshi\", \"time_start\": \"2020-05-01 11:15:00\", \"time_end\": \"",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step  9:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Discuss advisory committees - Graham Barnes\", \"time_start\": \"2020-05-01 11:20:00\", \"time_end",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step 10:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Vote on budget - Rowan Murphy\", \"time_start\": \"2020-05-01 11:30:00\", \"time_end\": \"2020-05-01",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step 11:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Break - Robin Kline\", \"time_start\": \"2020-05-01 11:40:00\", \"time_end\": \"2020-05-01 11:45:00\"",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step 12:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"New Business - Mirjam Nilsson\", \"time_start\": \"2020-05-01 11:45:00\", \"time_end\": \"2020-05-01",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step 13:   SUBAGENT[calendar]  --do-->  export  {\"file_path\": \"/testbed/data/meeting_agenda.ics\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 14: ORCHESTRATOR  --delegate-->  [pdf] agent",
+    "         OBSERVATION: Successfully switched to app: pdf",
+    "step 15:   SUBAGENT[pdf]  --do-->  convert_to_image  {\"pdf_file_path\": \"/testbed/data/meeting_agenda.pdf\", \"image_file_path\": \"/testbed/data/agenda.jpg\"}",
+    "         OBSERVATION: Success",
+    "step 16:   SUBAGENT[calendar]  --do-->  export  {\"user\": \"Bob\", \"file_path\": \"/testbed/data/meeting_agenda.ics\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 17: ORCHESTRATOR  --delegate-->  [calendar] agent",
+    "         OBSERVATION: Successfully switched to app: calendar",
+    "step 18:   SUBAGENT[calendar]  --do-->  export  {\"username\": \"Bob\", \"file_path\": \"/testbed/data/meeting_agenda.ics\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 19:   SUBAGENT[calendar]  --do-->  list_events  {\"username\": \"Bob\"}",
+    "         OBSERVATION: Successfully list events for Bob:\nSummary: Welcome - Mirjam Nilsson\nStart Time: 2020-05-01 11:00:00\nEnd Time: 2020-05-01 11:05:00\nDescription: This is a test event\nLocation: Online\n-------------------",
+    "step 20: ORCHESTRATOR  --delegate-->  [shell] agent",
+    "         OBSERVATION: Successfully switched to app: shell",
+    "step 21:   SUBAGENT[calendar]  --do-->  export_ics  {\"username\": \"Bob\", \"file_path\": \"/testbed/data/meeting_agenda.ics\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 22:   SUBAGENT[shell]  --do-->  command  {\"command\": \"cat <<'EOF' > /testbed/data/meeting_agenda.ics\\nBEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//Bob Calendar//EN\\nB",
+    "         OBSERVATION: /bin/bash: line 55: warning: here-document at line 1 delimited by end-of-file (wanted `EOF')",
+    "step 23:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -l /testbed/data\"}",
+    "         OBSERVATION: total 196\n-rw-r--r-- 1 root root     75790 Jun 29 14:32 agenda.jpg\n-rw-r--r-- 1 root root      1090 Jun 29 14:32 meeting_agenda.ics\n-rw-r--r-- 1 501  dialout 118235 Jun 10 17:38 meeting_agenda.pdf",
+    "step 24:   SUBAGENT[calendar]  --do-->  export_ics  {\"user\": \"Bob\", \"file_path\": \"/testbed/data/meeting_agenda.ics\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 25: ORCHESTRATOR  --delegate-->  [calendar] agent",
+    "         OBSERVATION: Successfully switched to app: calendar",
+    "step 26: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "Extract schedule from PDF and add it to a calendar meeting_agenda.ics, also save it as agenda.jpg",
+  "_container": "ob-test-2",
+  "_t0": 0.0,
+  "_t1": 35.3
+}

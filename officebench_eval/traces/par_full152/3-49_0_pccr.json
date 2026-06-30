@@ -1,0 +1,94 @@
+{
+  "task": "3-49",
+  "subtask": "0",
+  "level": 3,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 9,
+  "llm_calls": 18,
+  "wall_s": 30.6,
+  "rate_limit_wait_s": 4.4,
+  "rate_limit_hits": 6,
+  "em": {
+    "method": "pccr",
+    "consult_em": false,
+    "stm_hit": false,
+    "consult_sm": false,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term"
+    ],
+    "injected_tokens": 843,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.393,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls /testbed/data\"\n}",
+      "team_training_schedule.xlsx"
+    ],
+    [
+      "{\n  \"app\": \"excel\",\n  \"action\": \"read_file\",\n  \"file_path\": \"/testbed/data/team_training_schedule.xlsx\"\n}",
+      "The following is the table from the excel file:\n(1, 1): Name\t(1, 2): Section\t(1, 3): Time\t(1, 4): Score\t\n(2, 1): Alice\t(2, 2): Section A\t(2, 3): 9:00 AM - 11:00 AM\t(2, 4): 100\t\n(3, 1): Bob\t(3, 2): Section B\t(3, 3): 11:00 AM - 1:00 PM\t(3, 4): 95\t\n(4, 1): Carol\t(4, 2): Section C\t(4, 3): 2:00 PM - 4:00 PM\t(4, 4): 86\t\n(5, 1): David\t(5, 2): Section A\t(5, 3): 9:00 AM - 11:00 AM\t(5, 4): 77\t\n(6, 1): Eva\t("
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"calendar\"}",
+      "Successfully switched to app: calendar"
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Alice\", \"summary\": \"Helping session for Alice\", \"time_start\": \"2020-05-01 09:00:00\", \"time_end\": \"2020-05-01 11:00:00\"}",
+      "Successfully create a new event to Alice's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Carol\", \"summary\": \"Helping session for Carol\", \"time_start\": \"2020-05-01 14:00:00\", \"time_end\": \"2020-05-01 16:00:00\"}",
+      "Successfully create a new event to Carol's calendar."
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"email\"}",
+      "Successfully switched to app: email"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"send_email\", \"sender\": \"admin@school.edu\", \"recipient\": \"alice@example.com\", \"subject\": \"Helping session scheduled\", \"content\": \"Dear Alice,\\nYour helping session is scheduled on 2020-05-01 from 09:00 AM to 11:00 AM.\\nPlease attend.\\nBest regards,\\nAdmin\"}",
+      "Successfully sent email to alice@example.com."
+    ],
+    [
+      "{\n  \"app\": \"email\",\n  \"action\": \"send_email\",\n  \"sender\": \"admin@school.edu\",\n  \"recipient\": \"carol@example.com\",\n  \"subject\": \"Helping session scheduled\",\n  \"content\": \"Dear Carol,\\nYour helping session is scheduled on 2020-05-01 from 02:00 PM to 04:00 PM.\\nPlease attend.\\nBest regards,\\nAdmin\"\n}",
+      "Successfully sent email to carol@example.com."
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: team_training_schedule.xlsx",
+    "step  2:   SUBAGENT[excel]  --do-->  read_file  {\"file_path\": \"/testbed/data/team_training_schedule.xlsx\"}",
+    "         OBSERVATION: The following is the table from the excel file:\n(1, 1): Name\t(1, 2): Section\t(1, 3): Time\t(1, 4): Score\t\n(2, 1): Alice\t(2, 2): Section A\t(2, 3): 9:00 AM - 11:00 AM\t(2, 4): 100\t\n(3, 1): Bob\t(3, 2): Sec",
+    "step  3: ORCHESTRATOR  --delegate-->  [calendar] agent",
+    "         OBSERVATION: Successfully switched to app: calendar",
+    "step  4:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Alice\", \"summary\": \"Helping session for Alice\", \"time_start\": \"2020-05-01 09:00:00\", \"time_end\": \"2020-05-01 1",
+    "         OBSERVATION: Successfully create a new event to Alice's calendar.",
+    "step  5:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Carol\", \"summary\": \"Helping session for Carol\", \"time_start\": \"2020-05-01 14:00:00\", \"time_end\": \"2020-05-01 1",
+    "         OBSERVATION: Successfully create a new event to Carol's calendar.",
+    "step  6: ORCHESTRATOR  --delegate-->  [email] agent",
+    "         OBSERVATION: Successfully switched to app: email",
+    "step  7:   SUBAGENT[email]  --do-->  send_email  {\"sender\": \"admin@school.edu\", \"recipient\": \"alice@example.com\", \"subject\": \"Helping session scheduled\", \"content\": \"Dea",
+    "         OBSERVATION: Successfully sent email to alice@example.com.",
+    "step  8:   SUBAGENT[email]  --do-->  send_email  {\"sender\": \"admin@school.edu\", \"recipient\": \"carol@example.com\", \"subject\": \"Helping session scheduled\", \"content\": \"Dea",
+    "         OBSERVATION: Successfully sent email to carol@example.com.",
+    "step  9: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "schedule a helping section, pair one student whose score is in section A/B and one student in section C, create calendar events for each of them using their names, email those students for notification",
+  "_container": "ob-test-0",
+  "_t0": 198.9,
+  "_t1": 232.9
+}

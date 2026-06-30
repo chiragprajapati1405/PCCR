@@ -1,0 +1,65 @@
+{
+  "task": "1-21",
+  "subtask": "2",
+  "level": 1,
+  "pattern": "lookup",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 3,
+  "llm_calls": 2,
+  "wall_s": 11.7,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": false,
+    "stm_hit": true,
+    "consult_sm": false,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term"
+    ],
+    "injected_tokens": 361,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.775,
+    "faiss_backed": true,
+    "replay": {
+      "used": true,
+      "sim": 0.775,
+      "planned": 3,
+      "executed": 3,
+      "aborted": false
+    }
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"email\"}",
+      "Successfully switched to app: email"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"list_emails\", \"username\": \"Bob\"}",
+      "Successfully list emails for Bob:\nEmail ID: meeting.eml\nFrom: Alice@gmail.com\nTo: Bob123@gmail.com\nSubject: scheduled meeting\nContent: Can we have a zoom m...\n--------------------------------------------------\nEmail ID: scholarship approved.eml\nFrom: office@gmail.com\nTo: Bob123@gmail.com\nSubject: application approved\nContent: Your scholarship app...\n------------------------------------------------"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"yes\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1: ORCHESTRATOR  --delegate-->  [email] agent",
+    "         OBSERVATION: Successfully switched to app: email",
+    "step  2:   SUBAGENT[email]  --do-->  list_emails  {\"username\": \"Bob\"}",
+    "         OBSERVATION: Successfully list emails for Bob:\nEmail ID: meeting.eml\nFrom: Alice@gmail.com\nTo: Bob123@gmail.com\nSubject: scheduled meeting\nContent: Can we have a zoom m...\n-----------------------------------------",
+    "step  3: ORCHESTRATOR  --finish--  answer='yes'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "does Bob receive emails in last month? Answer yes or no.",
+  "_container": "ob-test-0",
+  "_t0": 134.1,
+  "_t1": 149.1
+}

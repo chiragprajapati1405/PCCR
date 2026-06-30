@@ -1,0 +1,109 @@
+{
+  "task": "1-22",
+  "subtask": "1",
+  "level": 1,
+  "pattern": "lookup",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 10,
+  "llm_calls": 11,
+  "wall_s": 18.1,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 3471,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.811,
+    "faiss_backed": true,
+    "replay": {
+      "used": true,
+      "sim": 0.811,
+      "planned": 1,
+      "executed": 1,
+      "aborted": false
+    }
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"shell\", \"action\": \"run\", \"command\": \"ls /testbed/data\"}",
+      "Successfully executed command: ls /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"run\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"shell\"}",
+      "Successfully switched to app: shell"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "Successfully executed command: ls /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"email\"}",
+      "Successfully switched to app: email"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"list_emails\", \"username\": \"Bob\"}",
+      "No emails found for Bob."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"run\",\"command\":\"ls -R /testbed\"}",
+      "/testbed:\ncalendar\ndata\nemails\n\n/testbed/calendar:\n\n/testbed/data:\n\n/testbed/emails:\nAlice\nBob\n\n/testbed/emails/Alice:\ngradescope.eml\nmeeting.eml\nrental.eml\nscholarship approved.eml\n\n/testbed/emails/Bob:"
+    ],
+    [
+      "{\"app\":\"email\",\"action\":\"list_emails\",\"username\":\"Alice\"}",
+      "Successfully list emails for Alice:\nEmail ID: meeting.eml\nFrom: Alice@gmail.com\nTo: Bob123@gmail.com\nSubject: scheduled meeting\nContent: Can we have a zoom m...\n--------------------------------------------------\nEmail ID: scholarship approved.eml\nFrom: gradescope@gmail.com\nTo: Bob123@gmail.com\nSubject: application approved\nContent: Your scholarship app...\n------------------------------------------"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"run\",\"command\":\"ls /testbed/emails\"}",
+      "Alice\nBob"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"gradescope@gmail.com\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  run  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].",
+    "step  2:   SUBAGENT[shell]  --do-->  run  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step  3: ORCHESTRATOR  --delegate-->  [shell] agent",
+    "         OBSERVATION: Successfully switched to app: shell",
+    "step  4:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].",
+    "step  5: ORCHESTRATOR  --delegate-->  [email] agent",
+    "         OBSERVATION: Successfully switched to app: email",
+    "step  6:   SUBAGENT[email]  --do-->  list_emails  {\"username\": \"Bob\"}",
+    "         OBSERVATION: No emails found for Bob.",
+    "step  7:   SUBAGENT[shell]  --do-->  run  {\"command\": \"ls -R /testbed\"}",
+    "         OBSERVATION: /testbed:\ncalendar\ndata\nemails\n\n/testbed/calendar:\n\n/testbed/data:\n\n/testbed/emails:\nAlice\nBob\n\n/testbed/emails/Alice:\ngradescope.eml\nmeeting.eml\nrental.eml\nscholarship approved.eml\n\n/testbed/emails/B",
+    "step  8:   SUBAGENT[email]  --do-->  list_emails  {\"username\": \"Alice\"}",
+    "         OBSERVATION: Successfully list emails for Alice:\nEmail ID: meeting.eml\nFrom: Alice@gmail.com\nTo: Bob123@gmail.com\nSubject: scheduled meeting\nContent: Can we have a zoom m...\n---------------------------------------",
+    "step  9:   SUBAGENT[shell]  --do-->  run  {\"command\": \"ls /testbed/emails\"}",
+    "         OBSERVATION: Alice\nBob",
+    "step 10: ORCHESTRATOR  --finish--  answer='gradescope@gmail.com'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "who sent the most email to Bob?",
+  "_container": "ob-test-1",
+  "_t0": 101.5,
+  "_t1": 122.9
+}

@@ -1,0 +1,72 @@
+{
+  "task": "2-40",
+  "subtask": "2",
+  "level": 2,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 5,
+  "llm_calls": 7,
+  "wall_s": 18.2,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 2838,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.479,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "Successfully executed command: ls /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"list_events\",\"username\":\"Bob\"}",
+      "Successfully list events for Bob:\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: nap\nStart Time: 2024-05-01 13:00:00\nEnd Time: 2024-05-01 14:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: lunch\nStart Time: 2024-05-01 12:00:00"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"email\"}",
+      "Successfully switched to app: email"
+    ],
+    [
+      "{\n  \"app\": \"email\",\n  \"action\": \"send_email\",\n  \"sender\": \"Alice\",\n  \"recipient\": \"Bob\",\n  \"subject\": \"Your events for 2024-05-01\",\n  \"content\": \"Hi Bob,\\n\\nHere are your scheduled events for today (excluding sleeping):\\n- class (16:00 - 18:00)\\n- nap (13:00 - 14:00)\\n- lunch (12:00 - 13:00)\\n- dinner (18:30 - 19:30)\\n\\nBest regards,\\nAlice\"\n}",
+      "Successfully sent email to Bob."
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].",
+    "step  2:   SUBAGENT[calendar]  --do-->  list_events  {\"username\": \"Bob\"}",
+    "         OBSERVATION: Successfully list events for Bob:\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSumma",
+    "step  3: ORCHESTRATOR  --delegate-->  [email] agent",
+    "         OBSERVATION: Successfully switched to app: email",
+    "step  4:   SUBAGENT[email]  --do-->  send_email  {\"sender\": \"Alice\", \"recipient\": \"Bob\", \"subject\": \"Your events for 2024-05-01\", \"content\": \"Hi Bob,\\n\\nHere are your sc",
+    "         OBSERVATION: Successfully sent email to Bob.",
+    "step  5: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "read Bob's calendar event and send email to Bob using event names for every event except sleeping",
+  "_container": "ob-test-2",
+  "_t0": 2580.1,
+  "_t1": 2601.6
+}

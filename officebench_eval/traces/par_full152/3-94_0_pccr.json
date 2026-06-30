@@ -1,0 +1,198 @@
+{
+  "task": "3-94",
+  "subtask": "0",
+  "level": 3,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_file_exist",
+  "steps": 26,
+  "llm_calls": 561,
+  "wall_s": 2041.2,
+  "rate_limit_wait_s": 1653.2,
+  "rate_limit_hits": 512,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 6552,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.522,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls /testbed/data\"\n}",
+      "Successfully executed command: ls /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"list_events\",\"username\":\"Bob\"}",
+      "Successfully list events for Bob:\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: nap\nStart Time: 2024-05-01 13:00:00\nEnd Time: 2024-05-01 14:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: lunch\nStart Time: 2024-05-01 12:00:00"
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls /testbed/data\"\n}",
+      "Successfully executed command: ls /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"list_events\",\"username\":\"Tom\"}",
+      "Successfully list events for Tom:\nSummary: lunch with David\nStart Time: 2024-05-01 12:30:00\nEnd Time: 2024-05-01 13:30:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: class\nStart Time: 2024-0"
+    ],
+    [
+      "{\n  \"app\": \"email\",\n  \"action\": \"send_email\",\n  \"to\": [\"Bob\", \"Tom\"],\n  \"subject\": \"Common Calendar Events for 2024-05-01\",\n  \"body\": \"Hi Bob and Tom,\\n\\nHere are the events you both have on your calendars for May 1, 2024:\\n\\n1. Class: 2024-05-01 16:00:00 to 2024-05-01 18:00:00\\n2. Dinner: 2024-05-01 18:30:00 to 2024-05-01 19:30:00\\n\\nLet me know if you need any further coordination.\\n\\nBest,\\nAssistant\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"email\",\n  \"action\": \"send_email\",\n  \"recipients\": [\"Bob\", \"Tom\"],\n  \"subject\": \"Common Calendar Events for 2024-05-01\",\n  \"body\": \"Hi Bob and Tom,\\n\\nHere are the events you both have on your calendars for May 1, 2024:\\n\\n1. Class: 2024-05-01 16:00:00 to 2024-05-01 18:00:00\\n2. Dinner: 2024-05-01 18:30:00 to 2024-05-01 19:30:00\\n\\nLet me know if you need any further coordination.\\n\\nBest,\\nAssistant\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"echo -e \\\"Class: 2024-05-01 16:00:00 to 2024-05-01 18:00:00\\\\nDinner: 2024-05-01 18:30:00 to 2024-05-01 19:30:00\\\" > /testbed/data/common_events.jpg\"\n}",
+      "Class:"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -l /testbed/data\"}",
+      "total 0"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"send\", \"to\": [\"Bob\", \"Tom\"], \"subject\": \"Common Calendar Events for 2024-05-01\", \"body\": \"Hi Bob and Tom,\\n\\nHere are the events you both have on your calendars for May 1, 2024:\\n\\n1. Class: 2024-05-01 16:00:00 to 2024-05-01 18:00:00\\n2. Dinner: 2024-05-01 18:30:00 to 2024-05-01 19:30:00\\n\\nLet me know if you need any further coordination.\\n\\nBest,\\nAssistant\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"llm\",\"action\":\"prompt\",\"prompt\":\"What is the correct JSON format for sending an email using the email app? Include required fields.\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"email\",\"action\":\"send_email\",\"recipients\":[\"Bob\",\"Tom\"],\"subject\":\"Common Calendar Events for 2024-05-01\",\"body\":\"Hi Bob and Tom,\\n\\nHere are the events you both have on your calendars for May 1, 2024:\\n\\n1. Class: 2024-05-01 16:00:00 to 2024-05-01 18:00:00\\n2. Dinner: 2024-05-01 18:30:00 to 2024-05-01 19:30:00\\n\\nLet me know if you need any further coordination.\\n\\nBest,\\nAssistant\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"llm\",\"action\":\"generate\",\"prompt\":\"What is the correct JSON format for sending an email using the email app? Include required fields.\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"printf \\\"Class: 2024-05-01 16:00:00 to 2024-05-01 18:00:00\\\\nDinner: 2024-05-01 18:30:00 to 2024-05-01 19:30:00\\\" > /testbed/data/common_events.jpg\"}",
+      "Class:"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -l /testbed/data\"}",
+      "total 0"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R\"}",
+      ".:\napps\nbin\nboot\ndev\netc\nhome\nlib\nmedia\nopenai_key.txt\nopt\nproc\nroot\nrun\nsbin\nsrv\nsys\ntestbed\nusr\nvar\n\n./apps:\n__init__.py\ncalendar_app\nemail_app\nexcel_app\nllm_app\nocr_app\npdf_app\nshell_app\nsystem_app\nword_app\n\n./apps/calendar_app:\n__init__.py\ncalendar_create_event.py\ncalendar_delete_event.py\ncalendar_list_events.py\n\n./apps/email_app:\n__init__.py\nemail_list_emails.py\nemail_read_email.py\nemail_send"
+    ],
+    [
+      "None",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "None",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "None",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "None",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "None",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "None",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "None",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "None",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "None",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "None",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{'app': 'system', 'action': 'got_stuck'}",
+      "Task failed"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].",
+    "step  2:   SUBAGENT[calendar]  --do-->  list_events  {\"username\": \"Bob\"}",
+    "         OBSERVATION: Successfully list events for Bob:\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSumma",
+    "step  3:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].",
+    "step  4:   SUBAGENT[calendar]  --do-->  list_events  {\"username\": \"Tom\"}",
+    "         OBSERVATION: Successfully list events for Tom:\nSummary: lunch with David\nStart Time: 2024-05-01 12:30:00\nEnd Time: 2024-05-01 13:30:00\nDescription: None\nLocation: None\n---------------------------------------------",
+    "step  5:   SUBAGENT[email]  --do-->  send_email  {\"to\": [\"Bob\", \"Tom\"], \"subject\": \"Common Calendar Events for 2024-05-01\", \"body\": \"Hi Bob and Tom,\\n\\nHere are the even",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6:   SUBAGENT[email]  --do-->  send_email  {\"recipients\": [\"Bob\", \"Tom\"], \"subject\": \"Common Calendar Events for 2024-05-01\", \"body\": \"Hi Bob and Tom,\\n\\nHere are ",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  7:   SUBAGENT[shell]  --do-->  command  {\"command\": \"echo -e \\\"Class: 2024-05-01 16:00:00 to 2024-05-01 18:00:00\\\\nDinner: 2024-05-01 18:30:00 to 2024-05-01 19:",
+    "         OBSERVATION: Class:",
+    "step  8:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -l /testbed/data\"}",
+    "         OBSERVATION: total 0",
+    "step  9:   SUBAGENT[email]  --do-->  send  {\"to\": [\"Bob\", \"Tom\"], \"subject\": \"Common Calendar Events for 2024-05-01\", \"body\": \"Hi Bob and Tom,\\n\\nHere are the even",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 10:   SUBAGENT[llm]  --do-->  prompt  {\"prompt\": \"What is the correct JSON format for sending an email using the email app? Include required fields.\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 11:   SUBAGENT[email]  --do-->  send_email  {\"recipients\": [\"Bob\", \"Tom\"], \"subject\": \"Common Calendar Events for 2024-05-01\", \"body\": \"Hi Bob and Tom,\\n\\nHere are ",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 12:   SUBAGENT[llm]  --do-->  generate  {\"prompt\": \"What is the correct JSON format for sending an email using the email app? Include required fields.\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 13:   SUBAGENT[shell]  --do-->  command  {\"command\": \"printf \\\"Class: 2024-05-01 16:00:00 to 2024-05-01 18:00:00\\\\nDinner: 2024-05-01 18:30:00 to 2024-05-01 19:3",
+    "         OBSERVATION: Class:",
+    "step 14:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -l /testbed/data\"}",
+    "         OBSERVATION: total 0",
+    "step 15:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R\"}",
+    "         OBSERVATION: .:\napps\nbin\nboot\ndev\netc\nhome\nlib\nmedia\nopenai_key.txt\nopt\nproc\nroot\nrun\nsbin\nsrv\nsys\ntestbed\nusr\nvar\n\n./apps:\n__init__.py\ncalendar_app\nemail_app\nexcel_app\nllm_app\nocr_app\npdf_app\nshell_app\nsystem_app",
+    "step 16:   (unparsed) None",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 17:   (unparsed) None",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 18:   (unparsed) None",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 19:   (unparsed) None",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 20:   (unparsed) None",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 21:   (unparsed) None",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 22:   (unparsed) None",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 23:   (unparsed) None",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 24:   (unparsed) None",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 25:   (unparsed) None",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 26:   SUBAGENT[system]  --do-->  got_stuck  {}",
+    "         OBSERVATION: Task failed"
+  ],
+  "task_text": "read Bob's and Tom's calendars, find their common events and send email to them, make a post common_events.jpg",
+  "_container": "ob-test-1",
+  "_t0": 868.1,
+  "_t1": 2912.6
+}

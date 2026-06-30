@@ -1,0 +1,119 @@
+{
+  "task": "2-20",
+  "subtask": "2",
+  "level": 2,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 12,
+  "llm_calls": 12,
+  "wall_s": 30.4,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": false,
+    "stm_hit": true,
+    "consult_sm": false,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term"
+    ],
+    "injected_tokens": 2093,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.887,
+    "faiss_backed": true,
+    "replay": {
+      "used": true,
+      "sim": 0.887,
+      "planned": 8,
+      "executed": 3,
+      "aborted": true
+    }
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"shell\"}",
+      "Successfully switched to app: shell"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": [\"find\", \"/testbed/data\", \"-type\", \"f\", \"-name\", \"CS161_roster.csv\"]}",
+      "Successfully executed command: find /testbed/data -type f -name CS161_roster.csv. The output was []."
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": [\"cat\", \"/testbed/data/CS161_roster.csv\"]}",
+      "cat: /testbed/data/CS161_roster.csv: No such file or directory"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":[\"ls\",\"/testbed/data\"]}",
+      "CS161_Class_Roster.xlsx"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"excel\"}",
+      "Successfully switched to app: excel"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":[\"ls\",\"/testbed/data\"]}",
+      "CS161_Class_Roster.xlsx"
+    ],
+    [
+      "{\"app\":\"excel\",\"action\":\"read_file\",\"file_path\":\"/testbed/data/CS161_Class_Roster.xlsx\"}",
+      "The following is the table from the excel file:\n(1, 1): Student ID\t(1, 2): Last Name\t(1, 3): First Name\t(1, 4): Academic Standing\t(1, 5): HW1\t(1, 6): HW2\t(1, 7): Midterm\t(1, 8): HW3\t(1, 9): Final\t(1, 10): Major\t\n(2, 1): S1000\t(2, 2): Pivozu\t(2, 3): Zoye\t(2, 4): Junior\t(2, 5): 22\t(2, 6): 61\t(2, 7): 68\t(2, 8): 74\t(2, 9): 1\t(2, 10): CS\t\n(3, 1): S1001\t(3, 2): Cixarim\t(3, 3): Sipaq\t(3, 4): Freshman\t(3,"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"word\"}",
+      "Successfully switched to app: word"
+    ],
+    [
+      "{\"app\":\"word\",\"action\":\"create_new_file\",\"file_path\":\"/testbed/data/makeup_exam_list.docx\"}",
+      "Successfully create new file /testbed/data/makeup_exam_list.docx"
+    ],
+    [
+      "{\"app\":\"word\",\"action\":\"write_to_file\",\"file_path\":\"/testbed/data/makeup_exam_list.docx\",\"contents\":\"S1004, Fufowot Dipuj\\nS1007, Jehecat Cani\"}",
+      "Successfully write contents to /testbed/data/makeup_exam_list.docx"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":[\"ls\",\"-R\",\"/testbed/data\"]}",
+      "/testbed/data:\nCS161_Class_Roster.xlsx\nmakeup_exam_list.docx"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1: ORCHESTRATOR  --delegate-->  [shell] agent",
+    "         OBSERVATION: Successfully switched to app: shell",
+    "step  2:   SUBAGENT[shell]  --do-->  command  {\"command\": [\"find\", \"/testbed/data\", \"-type\", \"f\", \"-name\", \"CS161_roster.csv\"]}",
+    "         OBSERVATION: Successfully executed command: find /testbed/data -type f -name CS161_roster.csv. The output was [].",
+    "step  3:   SUBAGENT[shell]  --do-->  command  {\"command\": [\"cat\", \"/testbed/data/CS161_roster.csv\"]}",
+    "         OBSERVATION: cat: /testbed/data/CS161_roster.csv: No such file or directory",
+    "step  4:   SUBAGENT[shell]  --do-->  command  {\"command\": [\"ls\", \"/testbed/data\"]}",
+    "         OBSERVATION: CS161_Class_Roster.xlsx",
+    "step  5: ORCHESTRATOR  --delegate-->  [excel] agent",
+    "         OBSERVATION: Successfully switched to app: excel",
+    "step  6:   SUBAGENT[shell]  --do-->  command  {\"command\": [\"ls\", \"/testbed/data\"]}",
+    "         OBSERVATION: CS161_Class_Roster.xlsx",
+    "step  7:   SUBAGENT[excel]  --do-->  read_file  {\"file_path\": \"/testbed/data/CS161_Class_Roster.xlsx\"}",
+    "         OBSERVATION: The following is the table from the excel file:\n(1, 1): Student ID\t(1, 2): Last Name\t(1, 3): First Name\t(1, 4): Academic Standing\t(1, 5): HW1\t(1, 6): HW2\t(1, 7): Midterm\t(1, 8): HW3\t(1, 9): Final\t(1, ",
+    "step  8: ORCHESTRATOR  --delegate-->  [word] agent",
+    "         OBSERVATION: Successfully switched to app: word",
+    "step  9:   SUBAGENT[word]  --do-->  create_new_file  {\"file_path\": \"/testbed/data/makeup_exam_list.docx\"}",
+    "         OBSERVATION: Successfully create new file /testbed/data/makeup_exam_list.docx",
+    "step 10:   SUBAGENT[word]  --do-->  write_to_file  {\"file_path\": \"/testbed/data/makeup_exam_list.docx\", \"contents\": \"S1004, Fufowot Dipuj\\nS1007, Jehecat Cani\"}",
+    "         OBSERVATION: Successfully write contents to /testbed/data/makeup_exam_list.docx",
+    "step 11:   SUBAGENT[shell]  --do-->  command  {\"command\": [\"ls\", \"-R\", \"/testbed/data\"]}",
+    "         OBSERVATION: /testbed/data:\nCS161_Class_Roster.xlsx\nmakeup_exam_list.docx",
+    "step 12: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "Find all students from CS161_roster.csv whose final_exam is 100, and put their name and student id in makeup_exam_list.docx. Each student should be on seperate lines, with the format `student id, name`.",
+  "_container": "ob-test-2",
+  "_t0": 2289.0,
+  "_t1": 2322.7
+}

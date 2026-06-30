@@ -1,0 +1,173 @@
+{
+  "task": "2-12",
+  "subtask": "0",
+  "level": 2,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 22,
+  "llm_calls": 27,
+  "wall_s": 59.3,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": false,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic"
+    ],
+    "injected_tokens": 5612,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.559,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls /testbed/data\"\n}",
+      "meeting_agenda.pdf"
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"convert_to_images\",\"file_path\":\"/testbed/data/meeting_agenda.pdf\",\"output_dir\":\"/testbed/data/agenda_images\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "meeting_agenda.pdf"
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"convert_to_images\",\"file_path\":\"/testbed/data/meeting_agenda.pdf\",\"output_dir\":\"/testbed/data/agenda_images\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"convert_to_images\",\"input_path\":\"/testbed/data/meeting_agenda.pdf\",\"output_dir\":\"/testbed/data/agenda_images\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"llm\",\"action\":\"generate\",\"prompt\":\"List the available actions for the pdf app, including required parameters.\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"mkdir -p /testbed/data/agenda_images && pdftoppm /testbed/data/meeting_agenda.pdf /testbed/data/agenda_images/page -png\"}",
+      "/bin/bash: line 1: pdftoppm: command not found"
+    ],
+    [
+      "{\"app\":\"llm\",\"action\":\"generate\",\"prompt\":\"List the available actions for the pdf app, including required parameters.\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"file_path\":\"/testbed/data/meeting_agenda.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"llm\",\"action\":\"list_actions\",\"target_app\":\"pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"ocr\",\"action\":\"extract_text\",\"file_path\":\"/testbed/data/meeting_agenda.pdf\",\"output_path\":\"/testbed/data/agenda_text.txt\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"pdf\"}",
+      "Successfully switched to app: pdf"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"calendar\"}",
+      "Successfully switched to app: calendar"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"pdftotext /testbed/data/meeting_agenda.pdf /testbed/data/agenda_text.txt\"}",
+      "/bin/bash: line 1: pdftotext: command not found"
+    ],
+    [
+      "{\"app\":\"ocr\",\"action\":\"extract_text\",\"file_path\":\"/testbed/data/meeting_agenda.pdf\",\"output_path\":\"/testbed/data/agenda_text.txt\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"ocr\"}",
+      "Successfully switched to app: ocr"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"pdf\"}",
+      "Successfully switched to app: pdf"
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"read_file\",\"pdf_file_path\":\"/testbed/data/meeting_agenda.pdf\"}",
+      "FINANCIALMEETING\nAGENDADate:September9\nTime:11:00am\nFacilitator:MirjamNilsson\nMirjamNilsson\nPresidentRajeshSantoshi\nCOOElizabethMoore\nSEOStrategist\nFloraBerggren\nCEOGrahamBarne\nVPMarketingRobinKline\nProductDesigner\nMirjamNilsson\nVPProductTakumaHayashi\nContentDeveloper\nTIME ITEM OWNER\n11:00 Welcome MirjamNilsson\n11:05 Fiscalyearreview FloraBerggren\n11:15 Voteonnewsecretary RajeshSantoshi\n11:20 Disc"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"cat > /testbed/data/meeting.ics <<'EOF'\\nBEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//MeetingAgenda//EN\\nBEGIN:VEVENT\\nUID:20200909-1100-welcome@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T110000\\nDTEND:20200909T110500\\nSUMMARY:Welcome\\nDESCRIPTION:Owner: Mirjam Nilsson\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:20200909-1105-fiscalyearreview@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T110500\\nDTEND:20200909T111500\\nSUMMARY:Fiscal year review\\nDESCRIPTION:Owner: Flora Berggren\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:20200909-1115-voteonnewsecretary@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T111500\\nDTEND:20200909T112000\\nSUMMARY:Vote on new secretary\\nDESCRIPTION:Owner: Rajesh Santoshi\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:20200909-1120-discussadvisorycommittees@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T112000\\nDTEND:20200909T113000\\nSUMMARY:Discuss advisory committees\\nDESCRIPTION:Owner: Graham Barnes\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:20200909-1130-voteonbudget@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T113000\\nDTEND:20200909T114000\\nSUMMARY:Vote on budget\\nDESCRIPTION:Owner: Rowan Murphy\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:20200909-1140-break@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T114000\\nDTEND:20200909T114500\\nSUMMARY:",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"calendar\"}",
+      "Successfully switched to app: calendar"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"cat <<'EOF' > /testbed/data/meeting.ics\\nBEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//HandwrittenAgenda//EN\\nBEGIN:VEVENT\\nUID:20200909T1100-1@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T110000\\nDTEND:20200909T110500\\nSUMMARY:Welcome\\nDESCRIPTION:Owner: Mirjam Nilsson\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:20200909T1105-2@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T110500\\nDTEND:20200909T111500\\nSUMMARY:Fiscal year review\\nDESCRIPTION:Owner: Flora Berggren\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:20200909T1115-3@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T111500\\nDTEND:20200909T112000\\nSUMMARY:Vote on new secretary\\nDESCRIPTION:Owner: Rajesh Santoshi\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:20200909T1120-4@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T112000\\nDTEND:20200909T113000\\nSUMMARY:Discuss advisory committees\\nDESCRIPTION:Owner: Graham Barnes\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:20200909T1130-5@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T113000\\nDTEND:20200909T114000\\nSUMMARY:Vote on budget\\nDESCRIPTION:Owner: Rowan Murphy\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:20200909T1140-6@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T114000\\nDTEND:20200909T114500\\nSUMMARY:Break\\nDESCRIPTION:Owner: Robin Kline\\nEND:VEVENT\\nBEGIN:VEVENT\\nUID:20200909T1145-7@meeting\\nDTSTAMP:20200501T100000Z\\nDTSTART:20200909T114500\\nDTEND:20200909T120000\\nSUMMARY:New Business\\nDESCRIPTION:Owner: Mirjam Nilsson\\nEND:VEVENT\\nEND:VCALENDAR\\nEOF\"}",
+      "/bin/bash: line 62: warning: here-document at line 1 delimited by end-of-file (wanted `EOF')"
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"create_event\",\"user\":\"Alice\",\"summary\":\"Welcome\",\"time_start\":\"2020-09-09 11:00:00\",\"time_end\":\"2020-09-09 11:05:00\"}",
+      "Successfully create a new event to Alice's calendar."
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: meeting_agenda.pdf",
+    "step  2:   SUBAGENT[pdf]  --do-->  convert_to_images  {\"file_path\": \"/testbed/data/meeting_agenda.pdf\", \"output_dir\": \"/testbed/data/agenda_images\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  3:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: meeting_agenda.pdf",
+    "step  4:   SUBAGENT[pdf]  --do-->  convert_to_images  {\"file_path\": \"/testbed/data/meeting_agenda.pdf\", \"output_dir\": \"/testbed/data/agenda_images\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  5:   SUBAGENT[pdf]  --do-->  convert_to_images  {\"input_path\": \"/testbed/data/meeting_agenda.pdf\", \"output_dir\": \"/testbed/data/agenda_images\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6:   SUBAGENT[llm]  --do-->  generate  {\"prompt\": \"List the available actions for the pdf app, including required parameters.\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  7:   SUBAGENT[shell]  --do-->  command  {\"command\": \"mkdir -p /testbed/data/agenda_images && pdftoppm /testbed/data/meeting_agenda.pdf /testbed/data/agenda_imag",
+    "         OBSERVATION: /bin/bash: line 1: pdftoppm: command not found",
+    "step  8:   SUBAGENT[llm]  --do-->  generate  {\"prompt\": \"List the available actions for the pdf app, including required parameters.\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  9:   SUBAGENT[pdf]  --do-->  extract_text  {\"file_path\": \"/testbed/data/meeting_agenda.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 10:   SUBAGENT[llm]  --do-->  list_actions  {\"target_app\": \"pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 11:   SUBAGENT[ocr]  --do-->  extract_text  {\"file_path\": \"/testbed/data/meeting_agenda.pdf\", \"output_path\": \"/testbed/data/agenda_text.txt\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 12: ORCHESTRATOR  --delegate-->  [pdf] agent",
+    "         OBSERVATION: Successfully switched to app: pdf",
+    "step 13: ORCHESTRATOR  --delegate-->  [calendar] agent",
+    "         OBSERVATION: Successfully switched to app: calendar",
+    "step 14:   SUBAGENT[shell]  --do-->  command  {\"command\": \"pdftotext /testbed/data/meeting_agenda.pdf /testbed/data/agenda_text.txt\"}",
+    "         OBSERVATION: /bin/bash: line 1: pdftotext: command not found",
+    "step 15:   SUBAGENT[ocr]  --do-->  extract_text  {\"file_path\": \"/testbed/data/meeting_agenda.pdf\", \"output_path\": \"/testbed/data/agenda_text.txt\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 16: ORCHESTRATOR  --delegate-->  [ocr] agent",
+    "         OBSERVATION: Successfully switched to app: ocr",
+    "step 17: ORCHESTRATOR  --delegate-->  [pdf] agent",
+    "         OBSERVATION: Successfully switched to app: pdf",
+    "step 18:   SUBAGENT[pdf]  --do-->  read_file  {\"pdf_file_path\": \"/testbed/data/meeting_agenda.pdf\"}",
+    "         OBSERVATION: FINANCIALMEETING\nAGENDADate:September9\nTime:11:00am\nFacilitator:MirjamNilsson\nMirjamNilsson\nPresidentRajeshSantoshi\nCOOElizabethMoore\nSEOStrategist\nFloraBerggren\nCEOGrahamBarne\nVPMarketingRobinKline\nP",
+    "step 19:   (unparsed) {\"app\":\"shell\",\"action\":\"command\",\"command\":\"cat > /testbed/data/meeting.ics <<'EOF'\\nBEGIN:VCALENDA",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 20: ORCHESTRATOR  --delegate-->  [calendar] agent",
+    "         OBSERVATION: Successfully switched to app: calendar",
+    "step 21:   SUBAGENT[shell]  --do-->  command  {\"command\": \"cat <<'EOF' > /testbed/data/meeting.ics\\nBEGIN:VCALENDAR\\nVERSION:2.0\\nPRODID:-//HandwrittenAgenda//EN\\nBEG",
+    "         OBSERVATION: /bin/bash: line 62: warning: here-document at line 1 delimited by end-of-file (wanted `EOF')",
+    "step 22:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Alice\", \"summary\": \"Welcome\", \"time_start\": \"2020-09-09 11:00:00\", \"time_end\": \"2020-09-09 11:05:00\"}",
+    "         OBSERVATION: Successfully create a new event to Alice's calendar."
+  ],
+  "task_text": "Scan handwritten notes from a meeting agenda, convert them to text, and add them to a calendar file meeting.ics",
+  "_container": "ob-test-2",
+  "_t0": 2744.7,
+  "_t1": 2807.3
+}

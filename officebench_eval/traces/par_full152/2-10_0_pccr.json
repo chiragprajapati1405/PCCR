@@ -1,0 +1,174 @@
+{
+  "task": "2-10",
+  "subtask": "0",
+  "level": 2,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 22,
+  "llm_calls": 26,
+  "wall_s": 48.9,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 7955,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.668,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "students_ids.jpg\nstudents_scores.jpg"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "students_ids.jpg\nstudents_scores.jpg"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "students_ids.jpg\nstudents_scores.jpg"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"list\",\"path\":\"/testbed/data\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"list\",\"path\":\"/testbed/data\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"shell\"}",
+      "Successfully switched to app: shell"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:\nstudents_ids.jpg\nstudents_scores.jpg"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:\nstudents_ids.jpg\nstudents_scores.jpg"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"ocr\"}",
+      "Successfully switched to app: ocr"
+    ],
+    [
+      "{\"app\":\"ocr\",\"action\":\"recognize_file\",\"file_path\":\"/testbed/data/students_scores.jpg\"}",
+      "The text from /testbed/data/students_scores.jpg is:\nStudents\u2019 Kanes and scores\n\nMice: 100\n\nob: 222\n\ncarol: 932\n\navid: 250\n\neva: 180\n\nFrank: 275\n\nerace: 190\n\nwank: 220\n\nyy: 205\n\nyack: 235\n\nKelly: 200\n\nLee: 270\n\nMona: 290\n\nina: 205\n\noscar: 910\n\npaul: 240\n\nquimm: 255\n\nRick: 990\n\nsara: 240\n\nrom: 360"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "students_ids.jpg\nstudents_scores.jpg"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "students_ids.jpg\nstudents_scores.jpg"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"list\",\"path\":\"/testbed/data\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"excel\"}",
+      "Successfully switched to app: excel"
+    ],
+    [
+      "{\"app\":\"excel\",\"action\":\"create_new_file\",\"file_path\":\"/testbed/data/score.xlsx\"}",
+      "Successfully create new file /testbed/data/score.xlsx"
+    ],
+    [
+      "{\"app\":\"excel\",\"action\":\"set_cell\",\"file_path\":\"/testbed/data/score.xlsx\",\"row_idx\":1,\"column_idx\":1,\"text\":\"Mice\"}",
+      "Successfully write text to /testbed/data/score.xlsx"
+    ],
+    [
+      "{\"app\":\"excel\",\"action\":\"set_cell\",\"file_path\":\"/testbed/data/score.xlsx\",\"row_idx\":1,\"column_idx\":2,\"text\":\"100\"}",
+      "Successfully write text to /testbed/data/score.xlsx"
+    ],
+    [
+      "{\"app\":\"excel\",\"action\":\"set_cell\",\"file_path\":\"/testbed/data/score.xlsx\",\"row_idx\":2,\"column_idx\":1,\"text\":\"ob\"}",
+      "Successfully write text to /testbed/data/score.xlsx"
+    ],
+    [
+      "{\"app\":\"excel\",\"action\":\"set_cell\",\"file_path\":\"/testbed/data/score.xlsx\",\"row_idx\":2,\"column_idx\":2,\"text\":\"222\"}",
+      "Successfully write text to /testbed/data/score.xlsx"
+    ],
+    [
+      "{\"app\":\"excel\",\"action\":\"set_cell\",\"file_path\":\"/testbed/data/score.xlsx\",\"row_idx\":3,\"column_idx\":1,\"text\":\"carol\"}",
+      "Successfully write text to /testbed/data/score.xlsx"
+    ],
+    [
+      "{\"app\":\"excel\",\"action\":\"set_cell\",\"file_path\":\"/testbed/data/score.xlsx\",\"row_idx\":4,\"column_idx\":1,\"text\":\"avid\"}",
+      "Successfully write text to /testbed/data/score.xlsx"
+    ],
+    [
+      "{\"app\":\"excel\",\"action\":\"set_cell\",\"file_path\":\"/testbed/data/score.xlsx\",\"row_idx\":5,\"column_idx\":1,\"text\":\"eva\"}",
+      "Successfully write text to /testbed/data/score.xlsx"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: students_ids.jpg\nstudents_scores.jpg",
+    "step  2:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: students_ids.jpg\nstudents_scores.jpg",
+    "step  3:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: students_ids.jpg\nstudents_scores.jpg",
+    "step  4:   SUBAGENT[shell]  --do-->  list  {\"path\": \"/testbed/data\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  5:   SUBAGENT[shell]  --do-->  list  {\"path\": \"/testbed/data\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6: ORCHESTRATOR  --delegate-->  [shell] agent",
+    "         OBSERVATION: Successfully switched to app: shell",
+    "step  7:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:\nstudents_ids.jpg\nstudents_scores.jpg",
+    "step  8:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:\nstudents_ids.jpg\nstudents_scores.jpg",
+    "step  9: ORCHESTRATOR  --delegate-->  [ocr] agent",
+    "         OBSERVATION: Successfully switched to app: ocr",
+    "step 10:   SUBAGENT[ocr]  --do-->  recognize_file  {\"file_path\": \"/testbed/data/students_scores.jpg\"}",
+    "         OBSERVATION: The text from /testbed/data/students_scores.jpg is:\nStudents\u2019 Kanes and scores\n\nMice: 100\n\nob: 222\n\ncarol: 932\n\navid: 250\n\neva: 180\n\nFrank: 275\n\nerace: 190\n\nwank: 220\n\nyy: 205\n\nyack: 235\n\nKelly: 200\n\n",
+    "step 11:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: students_ids.jpg\nstudents_scores.jpg",
+    "step 12:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: students_ids.jpg\nstudents_scores.jpg",
+    "step 13:   SUBAGENT[shell]  --do-->  list  {\"path\": \"/testbed/data\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 14: ORCHESTRATOR  --delegate-->  [excel] agent",
+    "         OBSERVATION: Successfully switched to app: excel",
+    "step 15:   SUBAGENT[excel]  --do-->  create_new_file  {\"file_path\": \"/testbed/data/score.xlsx\"}",
+    "         OBSERVATION: Successfully create new file /testbed/data/score.xlsx",
+    "step 16:   SUBAGENT[excel]  --do-->  set_cell  {\"file_path\": \"/testbed/data/score.xlsx\", \"row_idx\": 1, \"column_idx\": 1, \"text\": \"Mice\"}",
+    "         OBSERVATION: Successfully write text to /testbed/data/score.xlsx",
+    "step 17:   SUBAGENT[excel]  --do-->  set_cell  {\"file_path\": \"/testbed/data/score.xlsx\", \"row_idx\": 1, \"column_idx\": 2, \"text\": \"100\"}",
+    "         OBSERVATION: Successfully write text to /testbed/data/score.xlsx",
+    "step 18:   SUBAGENT[excel]  --do-->  set_cell  {\"file_path\": \"/testbed/data/score.xlsx\", \"row_idx\": 2, \"column_idx\": 1, \"text\": \"ob\"}",
+    "         OBSERVATION: Successfully write text to /testbed/data/score.xlsx",
+    "step 19:   SUBAGENT[excel]  --do-->  set_cell  {\"file_path\": \"/testbed/data/score.xlsx\", \"row_idx\": 2, \"column_idx\": 2, \"text\": \"222\"}",
+    "         OBSERVATION: Successfully write text to /testbed/data/score.xlsx",
+    "step 20:   SUBAGENT[excel]  --do-->  set_cell  {\"file_path\": \"/testbed/data/score.xlsx\", \"row_idx\": 3, \"column_idx\": 1, \"text\": \"carol\"}",
+    "         OBSERVATION: Successfully write text to /testbed/data/score.xlsx",
+    "step 21:   SUBAGENT[excel]  --do-->  set_cell  {\"file_path\": \"/testbed/data/score.xlsx\", \"row_idx\": 4, \"column_idx\": 1, \"text\": \"avid\"}",
+    "         OBSERVATION: Successfully write text to /testbed/data/score.xlsx",
+    "step 22:   SUBAGENT[excel]  --do-->  set_cell  {\"file_path\": \"/testbed/data/score.xlsx\", \"row_idx\": 5, \"column_idx\": 1, \"text\": \"eva\"}",
+    "         OBSERVATION: Successfully write text to /testbed/data/score.xlsx"
+  ],
+  "task_text": "Put first 5 student scores from scanned PDF file to score.xlsx",
+  "_container": "ob-test-2",
+  "_t0": 2692.4,
+  "_t1": 2744.7
+}

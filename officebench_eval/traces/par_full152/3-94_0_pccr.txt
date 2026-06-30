@@ -1,0 +1,98 @@
+TASK 3-94/0 [multi_app] pccr  success=False  steps=26 llm_calls=561 wall=2041.2s compute(no-429)=388.0s
+  read Bob's and Tom's calendars, find their common events and send email to them, make a post common_events.jpg
+======================================================================
+step  1:   SUBAGENT[shell]  --do-->  command  {"command": "ls /testbed/data"}
+         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].
+step  2:   SUBAGENT[calendar]  --do-->  list_events  {"username": "Bob"}
+         OBSERVATION: Successfully list events for Bob:
+Summary: class
+Start Time: 2024-05-01 16:00:00
+End Time: 2024-05-01 18:00:00
+Description: None
+Location: None
+--------------------------------------------------
+Summa
+step  3:   SUBAGENT[shell]  --do-->  command  {"command": "ls /testbed/data"}
+         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].
+step  4:   SUBAGENT[calendar]  --do-->  list_events  {"username": "Tom"}
+         OBSERVATION: Successfully list events for Tom:
+Summary: lunch with David
+Start Time: 2024-05-01 12:30:00
+End Time: 2024-05-01 13:30:00
+Description: None
+Location: None
+---------------------------------------------
+step  5:   SUBAGENT[email]  --do-->  send_email  {"to": ["Bob", "Tom"], "subject": "Common Calendar Events for 2024-05-01", "body": "Hi Bob and Tom,\n\nHere are the even
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step  6:   SUBAGENT[email]  --do-->  send_email  {"recipients": ["Bob", "Tom"], "subject": "Common Calendar Events for 2024-05-01", "body": "Hi Bob and Tom,\n\nHere are 
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step  7:   SUBAGENT[shell]  --do-->  command  {"command": "echo -e \"Class: 2024-05-01 16:00:00 to 2024-05-01 18:00:00\\nDinner: 2024-05-01 18:30:00 to 2024-05-01 19:
+         OBSERVATION: Class:
+step  8:   SUBAGENT[shell]  --do-->  command  {"command": "ls -l /testbed/data"}
+         OBSERVATION: total 0
+step  9:   SUBAGENT[email]  --do-->  send  {"to": ["Bob", "Tom"], "subject": "Common Calendar Events for 2024-05-01", "body": "Hi Bob and Tom,\n\nHere are the even
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 10:   SUBAGENT[llm]  --do-->  prompt  {"prompt": "What is the correct JSON format for sending an email using the email app? Include required fields."}
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 11:   SUBAGENT[email]  --do-->  send_email  {"recipients": ["Bob", "Tom"], "subject": "Common Calendar Events for 2024-05-01", "body": "Hi Bob and Tom,\n\nHere are 
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 12:   SUBAGENT[llm]  --do-->  generate  {"prompt": "What is the correct JSON format for sending an email using the email app? Include required fields."}
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 13:   SUBAGENT[shell]  --do-->  command  {"command": "printf \"Class: 2024-05-01 16:00:00 to 2024-05-01 18:00:00\\nDinner: 2024-05-01 18:30:00 to 2024-05-01 19:3
+         OBSERVATION: Class:
+step 14:   SUBAGENT[shell]  --do-->  command  {"command": "ls -l /testbed/data"}
+         OBSERVATION: total 0
+step 15:   SUBAGENT[shell]  --do-->  command  {"command": "ls -R"}
+         OBSERVATION: .:
+apps
+bin
+boot
+dev
+etc
+home
+lib
+media
+openai_key.txt
+opt
+proc
+root
+run
+sbin
+srv
+sys
+testbed
+usr
+var
+
+./apps:
+__init__.py
+calendar_app
+email_app
+excel_app
+llm_app
+ocr_app
+pdf_app
+shell_app
+system_app
+step 16:   (unparsed) None
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 17:   (unparsed) None
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 18:   (unparsed) None
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 19:   (unparsed) None
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 20:   (unparsed) None
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 21:   (unparsed) None
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 22:   (unparsed) None
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 23:   (unparsed) None
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 24:   (unparsed) None
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 25:   (unparsed) None
+         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.
+step 26:   SUBAGENT[system]  --do-->  got_stuck  {}
+         OBSERVATION: Task failed

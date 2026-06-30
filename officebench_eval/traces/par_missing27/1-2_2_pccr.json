@@ -1,0 +1,131 @@
+{
+  "task": "1-2",
+  "subtask": "2",
+  "level": 1,
+  "pattern": "lookup",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_calendar_no_overlap",
+  "steps": 15,
+  "llm_calls": 18,
+  "wall_s": 27.2,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": false,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic"
+    ],
+    "injected_tokens": 3320,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.553,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls -R /testbed/data\"\n}",
+      "/testbed/data:"
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls -R /testbed/data\"\n}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"create_event\",\"user\":\"Bob\",\"summary\":\"Shopping\",\"time_start\":\"2024-05-01 10:00:00\",\"time_end\":\"2024-05-01 11:00:00\"}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"list_events\",\"user\":\"Bob\",\"date\":\"2024-05-01\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"calendar\",\n  \"action\": \"list_events\",\n  \"user\": \"Bob\",\n  \"date\": \"2024-05-01\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"calendar\"}",
+      "Successfully switched to app: calendar"
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"list_events\",\"username\":\"Tom\"}",
+      "Successfully list events for Tom:\nSummary: lunch with David\nStart Time: 2024-05-01 12:30:00\nEnd Time: 2024-05-01 13:30:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: class\nStart Time: 2024-0"
+    ],
+    [
+      "{\n  \"app\": \"calendar\",\n  \"action\": \"create_event\",\n  \"user\": \"Tom\",\n  \"summary\": \"Shopping\",\n  \"time_start\": \"2024-05-01 14:30:00\",\n  \"time_end\": \"2024-05-01 15:30:00\"\n}",
+      "Successfully create a new event to Tom's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"list_events\", \"username\": \"Bob\"}",
+      "Successfully list events for Bob:\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: nap\nStart Time: 2024-05-01 13:00:00\nEnd Time: 2024-05-01 14:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: lunch\nStart Time: 2024-05-01 12:00:00"
+    ],
+    [
+      "{\n  \"app\": \"calendar\",\n  \"action\": \"delete_event\",\n  \"user\": \"Bob\",\n  \"summary\": \"Shopping\"\n}",
+      "Failed to delete an event named Shopping from Bob's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"delete_event\", \"user\": \"Bob\", \"summary\": \"Shopping\"}",
+      "Failed to delete an event named Shopping from Bob's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Bob\", \"summary\": \"Shopping\", \"time_start\": \"2024-05-01 14:30:00\", \"time_end\": \"2024-05-01 15:30:00\"}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\n  \"app\": \"calendar\",\n  \"action\": \"create_event\",\n  \"user\": \"Bob\",\n  \"summary\": \"Shopping\",\n  \"time_start\": \"2024-05-01 19:30:00\",\n  \"time_end\": \"2024-05-01 20:30:00\"\n}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\n  \"app\": \"calendar\",\n  \"action\": \"create_event\",\n  \"user\": \"Bob\",\n  \"summary\": \"Shopping together\",\n  \"time_start\": \"2024-05-01 20:30:00\",\n  \"time_end\": \"2024-05-01 21:30:00\"\n}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\n  \"app\": \"calendar\",\n  \"action\": \"create_event\",\n  \"user\": \"Bob\",\n  \"summary\": \"Shopping together\",\n  \"time_start\": \"2024-05-01 21:30:00\",\n  \"time_end\": \"2024-05-01 22:30:00\"\n}",
+      "Successfully create a new event to Bob's calendar."
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step  2:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step  3:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Shopping\", \"time_start\": \"2024-05-01 10:00:00\", \"time_end\": \"2024-05-01 11:00:00\"}",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step  4:   SUBAGENT[calendar]  --do-->  list_events  {\"user\": \"Bob\", \"date\": \"2024-05-01\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  5:   SUBAGENT[calendar]  --do-->  list_events  {\"user\": \"Bob\", \"date\": \"2024-05-01\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6: ORCHESTRATOR  --delegate-->  [calendar] agent",
+    "         OBSERVATION: Successfully switched to app: calendar",
+    "step  7:   SUBAGENT[calendar]  --do-->  list_events  {\"username\": \"Tom\"}",
+    "         OBSERVATION: Successfully list events for Tom:\nSummary: lunch with David\nStart Time: 2024-05-01 12:30:00\nEnd Time: 2024-05-01 13:30:00\nDescription: None\nLocation: None\n---------------------------------------------",
+    "step  8:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Tom\", \"summary\": \"Shopping\", \"time_start\": \"2024-05-01 14:30:00\", \"time_end\": \"2024-05-01 15:30:00\"}",
+    "         OBSERVATION: Successfully create a new event to Tom's calendar.",
+    "step  9:   SUBAGENT[calendar]  --do-->  list_events  {\"username\": \"Bob\"}",
+    "         OBSERVATION: Successfully list events for Bob:\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSumma",
+    "step 10:   SUBAGENT[calendar]  --do-->  delete_event  {\"user\": \"Bob\", \"summary\": \"Shopping\"}",
+    "         OBSERVATION: Failed to delete an event named Shopping from Bob's calendar.",
+    "step 11:   SUBAGENT[calendar]  --do-->  delete_event  {\"user\": \"Bob\", \"summary\": \"Shopping\"}",
+    "         OBSERVATION: Failed to delete an event named Shopping from Bob's calendar.",
+    "step 12:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Shopping\", \"time_start\": \"2024-05-01 14:30:00\", \"time_end\": \"2024-05-01 15:30:00\"}",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step 13:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Shopping\", \"time_start\": \"2024-05-01 19:30:00\", \"time_end\": \"2024-05-01 20:30:00\"}",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step 14:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Shopping together\", \"time_start\": \"2024-05-01 20:30:00\", \"time_end\": \"2024-05-01 21:30:00\"}",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step 15:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Shopping together\", \"time_start\": \"2024-05-01 21:30:00\", \"time_end\": \"2024-05-01 22:30:00\"}",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar."
+  ],
+  "task_text": "Bob and Tom need to shopping, help they find one hour at 5/1/2024",
+  "_container": "ob-test-1",
+  "_t0": 25.0,
+  "_t1": 55.5
+}

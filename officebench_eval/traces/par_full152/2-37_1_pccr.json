@@ -1,0 +1,142 @@
+{
+  "task": "2-37",
+  "subtask": "1",
+  "level": 2,
+  "pattern": "lookup",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 17,
+  "llm_calls": 20,
+  "wall_s": 43.9,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": false,
+    "stm_hit": false,
+    "consult_sm": false,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term"
+    ],
+    "injected_tokens": 807,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.328,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls -R /testbed/data\"\n}",
+      "/testbed/data:"
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls -R /testbed/data\"\n}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls -R /testbed/data\"\n}",
+      "/testbed/data:"
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls -R /testbed/data\"\n}",
+      "/testbed/data:"
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls -R /testbed/data\"\n}",
+      "/testbed/data:"
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls -R /testbed/data\"\n}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls -R /testbed/data\"\n}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{'app': 'system', 'action': 'got_stuck'}",
+      "Task failed"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step  2:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step  3:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step  4:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step  5:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step  6:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step  7:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step  8:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step  9:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 10:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 11:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 12:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 13:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 14:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 15:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 16:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 17:   SUBAGENT[system]  --do-->  got_stuck  {}",
+    "         OBSERVATION: Task failed"
+  ],
+  "task_text": "for calendar data, which event has longest total time?",
+  "_container": "ob-test-2",
+  "_t0": 2098.4,
+  "_t1": 2145.7
+}

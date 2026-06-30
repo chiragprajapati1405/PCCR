@@ -1,0 +1,66 @@
+{
+  "task": "2-3",
+  "subtask": "0",
+  "level": 2,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 4,
+  "llm_calls": 5,
+  "wall_s": 17.9,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 3089,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.452,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "google_form.pdf"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"pdf\"}",
+      "Successfully switched to app: pdf"
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"convert_to_image\",\"pdf_file_path\":\"/testbed/data/google_form.pdf\",\"image_file_path\":\"/testbed/data/welcome.jpg\"}",
+      "Success"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: google_form.pdf",
+    "step  2: ORCHESTRATOR  --delegate-->  [pdf] agent",
+    "         OBSERVATION: Successfully switched to app: pdf",
+    "step  3:   SUBAGENT[pdf]  --do-->  convert_to_image  {\"pdf_file_path\": \"/testbed/data/google_form.pdf\", \"image_file_path\": \"/testbed/data/welcome.jpg\"}",
+    "         OBSERVATION: Success",
+    "step  4: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "read a pdf file google_form.pdf, make an image post welcome.jpg",
+  "_container": "ob-test-2",
+  "_t0": 2454.7,
+  "_t1": 2475.9
+}

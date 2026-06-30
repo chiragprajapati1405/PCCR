@@ -1,0 +1,66 @@
+{
+  "task": "1-1",
+  "subtask": "0",
+  "level": 1,
+  "pattern": "single_action",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 4,
+  "llm_calls": 5,
+  "wall_s": 16.6,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 2731,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.724,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "Successfully executed command: ls /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"create_event\",\"user\":\"Bob\",\"summary\":\"Meeting\",\"time_start\":\"2024-05-17 10:30:00\",\"time_end\":\"2024-05-17 11:00:00\"}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"switch_app\",\n  \"target_app\": \"calendar\"\n}",
+      "Successfully switched to app: calendar"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].",
+    "step  2:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Meeting\", \"time_start\": \"2024-05-17 10:30:00\", \"time_end\": \"2024-05-17 11:00:00\"}",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step  3: ORCHESTRATOR  --delegate-->  [calendar] agent",
+    "         OBSERVATION: Successfully switched to app: calendar",
+    "step  4: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "Add a meeting to Bob's calendar at 5/17/2024 10:30 a.m to 11:00 a.m",
+  "_container": "ob-test-2",
+  "_t0": 2835.7,
+  "_t1": 2855.6
+}

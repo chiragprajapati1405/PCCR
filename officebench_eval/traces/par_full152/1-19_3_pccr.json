@@ -1,0 +1,82 @@
+{
+  "task": "1-19",
+  "subtask": "3",
+  "level": 1,
+  "pattern": "doc_process",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 7,
+  "llm_calls": 10,
+  "wall_s": 15.2,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": false,
+    "stm_hit": false,
+    "consult_sm": false,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term"
+    ],
+    "injected_tokens": 525,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.332,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\"app\":\"shell\",\"action\":\"list_directory\",\"path\":\"/testbed/data\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"list_directory\",\"path\":\"/testbed/data\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"shell\"}",
+      "Successfully switched to app: shell"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":[\"ls\",\"-R\",\"/testbed/data\"]}",
+      "/testbed/data:\ncontract_agreement.pdf\npaper.pdf"
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"pdf\"}",
+      "Successfully switched to app: pdf"
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"read_file\",\"pdf_file_path\":\"/testbed/data/contract_agreement.pdf\"}",
+      "Contract Agreement\nTerms and Conditions\n1. Introduction\nThis Contract Agreement (hereafter referred to as 'Agreement') is entered into by and between the\nfollowing parties:\n2. Terms\nThe parties agree to the following terms and conditions:\n- The service provider will offer the described services to the client for the specified period.\n- Payment will be made according to the agreed schedule.\n- Confi"
+    ],
+    [
+      "{'app': 'system', 'action': 'finish_task', 'answer': '2024-05-29'}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  list_directory  {\"path\": \"/testbed/data\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  2:   SUBAGENT[shell]  --do-->  list_directory  {\"path\": \"/testbed/data\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  3: ORCHESTRATOR  --delegate-->  [shell] agent",
+    "         OBSERVATION: Successfully switched to app: shell",
+    "step  4:   SUBAGENT[shell]  --do-->  command  {\"command\": [\"ls\", \"-R\", \"/testbed/data\"]}",
+    "         OBSERVATION: /testbed/data:\ncontract_agreement.pdf\npaper.pdf",
+    "step  5: ORCHESTRATOR  --delegate-->  [pdf] agent",
+    "         OBSERVATION: Successfully switched to app: pdf",
+    "step  6:   SUBAGENT[pdf]  --do-->  read_file  {\"pdf_file_path\": \"/testbed/data/contract_agreement.pdf\"}",
+    "         OBSERVATION: Contract Agreement\nTerms and Conditions\n1. Introduction\nThis Contract Agreement (hereafter referred to as 'Agreement') is entered into by and between the\nfollowing parties:\n2. Terms\nThe parties agree ",
+    "step  7: ORCHESTRATOR  --finish--  answer='2024-05-29'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "what is the effective date from agreement pdf file?",
+  "_container": "ob-test-1",
+  "_t0": 2912.6,
+  "_t1": 2931.2
+}

@@ -1,0 +1,84 @@
+{
+  "task": "2-2",
+  "subtask": "0",
+  "level": 2,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 7,
+  "llm_calls": 8,
+  "wall_s": 22.2,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 3824,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.68,
+    "faiss_backed": true
+  },
+  "trajectory": [
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "concert_post.pdf"
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"read_file\",\"pdf_file_path\":\"/testbed/data/concert_post.pdf\"}",
+      "Concert Announcement\nWe are excited to announce an upcoming concert featuring:\nArtist: John Smith\nDate: July 15, 2024\nTime: 7:00 PM\nVenue: Music Hall\nAddress: 123 Main Street, Cityville\nTickets are available for purchase at www.example.com/concert.\nDon't miss this amazing opportunity to enjoy live music!"
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "concert_post.pdf"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"switch_app\",\n  \"target_app\": \"word\"\n}",
+      "Successfully switched to app: word"
+    ],
+    [
+      "{\"app\": \"word\", \"action\": \"create_new_file\", \"file_path\": \"/testbed/data/contact.docx\"}",
+      "Successfully create new file /testbed/data/contact.docx"
+    ],
+    [
+      "{\n  \"app\": \"word\",\n  \"action\": \"write_to_file\",\n  \"file_path\": \"/testbed/data/contact.docx\",\n  \"contents\": \"Name: John Smith\\nDate: July 15, 2024\"\n}",
+      "Successfully write contents to /testbed/data/contact.docx"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: concert_post.pdf",
+    "step  2:   SUBAGENT[pdf]  --do-->  read_file  {\"pdf_file_path\": \"/testbed/data/concert_post.pdf\"}",
+    "         OBSERVATION: Concert Announcement\nWe are excited to announce an upcoming concert featuring:\nArtist: John Smith\nDate: July 15, 2024\nTime: 7:00 PM\nVenue: Music Hall\nAddress: 123 Main Street, Cityville\nTickets are av",
+    "step  3:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: concert_post.pdf",
+    "step  4: ORCHESTRATOR  --delegate-->  [word] agent",
+    "         OBSERVATION: Successfully switched to app: word",
+    "step  5:   SUBAGENT[word]  --do-->  create_new_file  {\"file_path\": \"/testbed/data/contact.docx\"}",
+    "         OBSERVATION: Successfully create new file /testbed/data/contact.docx",
+    "step  6:   SUBAGENT[word]  --do-->  write_to_file  {\"file_path\": \"/testbed/data/contact.docx\", \"contents\": \"Name: John Smith\\nDate: July 15, 2024\"}",
+    "         OBSERVATION: Successfully write contents to /testbed/data/contact.docx",
+    "step  7: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "scan Concert Announcement pdf file, extract name and date saved it as contact card in doc file named contact.docx",
+  "_container": "ob-test-0",
+  "_t0": 2700.0,
+  "_t1": 2725.5
+}
