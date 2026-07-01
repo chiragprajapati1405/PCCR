@@ -153,7 +153,7 @@ async def main_async(args):
                 plan_then_execute=args.plan, batch_size=args.batch_size,
                 output_convention=args.convention,
                 completion_gate=args.completion_gate, self_verify=args.self_verify,
-                inject_once=args.inject_once, slim_history=args.slim_history)
+                inject_once=args.inject_once, slim_history=args.slim_history, call_cap=args.call_cap)
             r["_container"], r["_t0"], r["_t1"] = container, round(t0, 1), round(time.perf_counter() - t_start, 1)
         finally:
             pool.put_nowait(container)                     # release
@@ -263,6 +263,8 @@ def main():
                     help="gate-LIGHT arm: confidence gate + replay + inject-once + F1 sanitiser + online STM, "
                          "but NO completion gate / self-verify -- the call-multipliers. Fewer LLM calls "
                          "(near retrieve-all), to settle the net token-cost ledger.")
+    ap.add_argument("--call-cap", type=int, default=0, dest="call_cap",
+                    help="perf safety net: hard cap on total LLM calls per task (0=off); kills gate-retry runaways")
     ap.add_argument("--slim-history", action="store_true", dest="slim_history",
                     help="perf: strip noise (malformed/switch) + cap the re-sent step history (fewer tokens, lower latency)")
     ap.add_argument("--method", default="pccr", choices=["pccr", "retrieve_all", "no_memory"],
@@ -274,6 +276,8 @@ def main():
         args.confidence = args.replay = args.curate_pm = args.convention = True
         args.inject_once = args.online_stm = args.slim_history = True
         args.step_hint = args.plan = False
+        if args.call_cap == 0:
+            args.call_cap = 80        # kill runaways; above the 93-call worst legit task headroom
         if args.stm_capacity == 0:                        # bound STM so it stays short-term
             args.stm_capacity = 24    # 12 backfires (evicts a plan before its follower arrives: 6<8 frozen); 24 -> 9
         if args.sim_threshold == 0.55:

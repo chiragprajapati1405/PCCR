@@ -108,7 +108,7 @@ def _patch_intercode_timeout():
 def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="no_memory",
              pattern=None, max_iter=20, container="ob-run", exclude_task=None, real_mem=None,
              replay=False, replay_threshold=0.75, plan_then_execute=False, batch_size=4,
-             output_convention=False, completion_gate=False, self_verify=False, inject_once=False, slim_history=False):
+             output_convention=False, completion_gate=False, self_verify=False, inject_once=False, slim_history=False, call_cap=0):
     _setup()
     from utils.env import OfficeAgentEnv
     from utils.policies import LLMPolicy
@@ -136,7 +136,12 @@ def run_task(task_id, subtask_id, model="gpt-oss-120b", real_arch=None, method="
 
     t0 = time.perf_counter()
     done, n, steps = False, 0, []
-    while not done and n < max_iter:
+    # per-task LLM-CALL cap (safety net): the completion gate + self-verify + malformed-recovery
+    # can each fire multiple times per step, so a stuck task can run FAR past the step budget in
+    # calls (observed: a slim-induced runaway hit 569 calls under a 45-step cap). Cap total calls
+    # so one pathological task can't dominate cost. cap=80 leaves headroom above the 93-call worst
+    # legit task -> 0 successes cut; it only kills runaways.
+    while not done and n < max_iter and (call_cap <= 0 or policy.llm.calls < call_cap):
         n += 1
         action = policy.forward(env)
         obs, reward, done, info = env.step(action)
