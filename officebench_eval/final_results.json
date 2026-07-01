@@ -1,0 +1,35 @@
+{
+  "no_memory (SEQ)": {
+    "tag": "no_memory (SEQ)",
+    "n": 152,
+    "pas": 66,
+    "real": 3378898,
+    "calls": 2075,
+    "tpc": 1628.384578313253,
+    "inj": 0,
+    "stm": 0,
+    "wall_min": 58.359999999999985
+  },
+  "retrieve_all (SEQ)": {
+    "tag": "retrieve_all (SEQ)",
+    "n": 152,
+    "pas": 76,
+    "real": 5019813,
+    "calls": 2323,
+    "tpc": 2160.9182092122255,
+    "inj": 777892,
+    "stm": 0,
+    "wall_min": 70.6433333333333
+  },
+  "PCCR improved+PERF (PAR N=4)": {
+    "tag": "PCCR improved+PERF (PAR N=4)",
+    "n": 152,
+    "pas": 73,
+    "real": 6869460,
+    "calls": 3796,
+    "tpc": 1809.6575342465753,
+    "inj": 641211,
+    "stm": 10,
+    "wall_min": 26.6
+  }
+}

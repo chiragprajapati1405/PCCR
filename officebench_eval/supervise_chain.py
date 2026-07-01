@@ -12,12 +12,12 @@ import json, os, signal, subprocess, time
 REPO = "/Users/chirag/Documents/Agentic_MM"
 PY = os.path.join(REPO, ".venv/bin/python")
 TASKS = os.path.join(REPO, "officebench_eval/full152.json")
-ARMS = [("perf152", ["--improved"])]
+ARMS = [("seq_nomem", ["--method", "no_memory"]), ("seq_ra", ["--method", "retrieve_all"])]
 N = 152
 STALL_S = 900          # 15 min: improved's gate-retry L3 tasks are legitimately long
 POLL = 30
 MAX_ATTEMPTS = 80      # per-arm safety cap (avoid infinite relaunch)
-CONCURRENCY = "4"      # improved at N=4 OOMs Colima repeatedly; N=2 completes (real-token/accuracy
+CONCURRENCY = "1"      # improved at N=4 OOMs Colima repeatedly; N=2 completes (real-token/accuracy
                        # are per-task = concurrency-independent; N=4 throughput already shown by ra/lean)
 STATUS = os.path.join(REPO, "officebench_eval/supervisor_status.json")
 

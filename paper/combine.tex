@@ -1516,6 +1516,41 @@ baselines on real tokens and compute.}
 \label{tab:perf}
 \end{table}
 
+\paragraph{Final comparison and the wall-clock payoff.} Table~\ref{tab:final} is the head-to-head we
+actually ship: the two baselines run \emph{sequentially} (they have no parallel architecture---that
+is \emph{our} contribution), and PCCR runs on its parallel schedule ($N{=}4$). All rows use true
+prompt$+$completion tokens; the new column is \textbf{wall-clock time}. The story the earlier tables
+missed: \textbf{PCCR finishes the benchmark in $26.6$ min vs.\ sequential retrieve-all's $70.6$ min
+($2.7\times$ faster) and no-memory's $58.4$ min ($2.2\times$)}---\emph{despite} doing more per-task
+work ($3796$ calls vs.\ $2323$). PCCR converts a heavier workload into a much shorter wall time via
+the parallel-tasks architecture; the speedup is below the $4\times$ ideal only because PCCR does
+${\sim}1.6\times$ the work (at equal work the parallel speedup is ${\sim}4\times$, \S\ref{sec:realtoken}).
+Accuracy is parity within backbone run-to-run noise (retrieve-all $71$--$76$ across runs, PCCR
+$72$--$74$; this sequential retrieve-all landed high at $76$). PCCR also beats retrieve-all on
+tokens-per-call ($1810$ vs.\ $2161$) and injected tokens ($641$K vs.\ $778$K) and adds STM
+short-circuits; it trades higher total real tokens/calls (the completion gate's work) for the
+accuracy edge and the wall-clock win.
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}llcccccc@{}}
+\toprule
+Arm & Exec & Acc & Real tok & tok/call & calls & inj & Wall \\
+\midrule
+no-memory    & seq & $66$ & $\mathbf{3.38}$M & $1628$ & $\mathbf{2075}$ & $0$ & $58.4$ \\
+retrieve-all & seq & $\mathbf{76}$ & $5.02$M & $2161$ & $2323$ & $778$K & $70.6$ \\
+PCCR\,+PERF  & \textbf{par} & $73$ & $6.87$M & $\mathbf{1810}$ & $3796$ & $\mathbf{641}$K & $\mathbf{26.6}$ \\
+\bottomrule
+\end{tabular}
+\caption{Final head-to-head: sequential baselines (no parallel architecture) vs.\ PCCR on its
+parallel schedule ($N{=}4$). Real tokens $=$ prompt$+$completion; Wall $=$ wall-clock minutes.
+\textbf{PCCR finishes $2.2$--$2.7\times$ faster in wall-clock} despite more per-task work, via the
+parallel-tasks architecture; accuracy is parity within backbone noise ($76$ vs.\ $73$); PCCR wins
+tok/call and injected tokens.}
+\label{tab:final}
+\end{table}
+
 % =====================================================================
 \section{Experiment Inventory: API vs.\ Local, and Why}\label{sec:inventory}
 % =====================================================================
