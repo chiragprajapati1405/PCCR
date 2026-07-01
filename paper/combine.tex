@@ -1441,16 +1441,20 @@ and the full \textbf{improved} PCCR.
 \toprule
 Arm & Accuracy & Real tokens & tok/call & LLM calls & injected & STM hits \\
 \midrule
-retrieve-all (baseline)  & $72/152$ & $\mathbf{4.47}$M & $1955$ & $\mathbf{2284}$ & $712$K & $0$ \\
+no-memory (floor)        & $68/152$ & $\mathbf{3.35}$M & $\mathbf{1223}$ & $2743$ & $0$ & $0$ \\
+retrieve-all (baseline)  & $72/152$ & $4.47$M & $1955$ & $\mathbf{2284}$ & $712$K & $0$ \\
 lean PCCR                & $72/152$ & $5.82$M & $2342$ & $2484$ & $553$K & $13$ \\
 improved PCCR            & $\mathbf{74/152}$ & $7.15$M & $2273$ & $3146$ & $\mathbf{630}$K & $10$ \\
 \bottomrule
 \end{tabular}
-\caption{Real-token cost ledger ($N{=}4$, true prompt$+$completion usage). PCCR \emph{matches or
-beats} retrieve-all on accuracy (lean ties, improved $+2$), but on the \emph{real} bill it costs
-$30$--$60\%$ more: the completion gate's \code{got\_stuck} retries add $+38\%$ LLM calls, and every
-call re-sends the system$+$history bulk. Note improved injects $12\%$ \emph{fewer} tokens ($630$K vs.\
-$712$K) yet costs $60\%$ \emph{more} real tokens---confirming injected-tokens is the wrong metric.}
+\caption{Real-token cost ledger ($N{=}4$, true prompt$+$completion usage). The three-way baseline is
+\textbf{no-memory} (injects nothing---the cost floor at $3.35$M, but its $2743$ calls exceed
+retrieve-all's because without guidance the agent explores more), \textbf{retrieve-all}, and PCCR.
+PCCR \emph{matches or beats} retrieve-all on accuracy (lean ties, improved $+2$), but on the
+\emph{real} bill it costs $30$--$60\%$ more: the completion gate's \code{got\_stuck} retries add
+$+38\%$ LLM calls, and every call re-sends the system$+$history bulk. Note improved injects $12\%$
+\emph{fewer} memory tokens ($630$K vs.\ $712$K) yet costs $60\%$ \emph{more} real tokens---confirming
+injected-tokens is the wrong metric.}
 \label{tab:realtoken}
 \end{table*}
 
@@ -1498,15 +1502,17 @@ batching: several actions per call), which we leave to future work.
 \toprule
 Arm & Acc & Real tok & tok/call & calls & compute\,s \\
 \midrule
-retrieve-all        & $72$ & $4.47$M & $1955$ & $\mathbf{2284}$ & $\mathbf{3761}$ \\
+no-memory (floor)   & $68$ & $\mathbf{3.35}$M & $1223$ & $2743$ & $\mathbf{3477}$ \\
+retrieve-all        & $72$ & $4.47$M & $1955$ & $\mathbf{2284}$ & $3761$ \\
 improved (pre-perf) & $74$ & $7.15$M & $2273$ & $3146$ & $7396$ \\
 improved$+$PERF     & $73$ & $6.87$M & $\mathbf{1810}$ & $3796$ & $4491$ \\
 \bottomrule
 \end{tabular}
-\caption{Performance pass (history slimming $+$ call cap), full $152$. vs.\ pre-perf improved: same
-accuracy, $-20\%$ tok/call, $-39\%$ compute time, $-4\%$ real tokens, but $+21\%$ calls. PCCR beats
-retrieve-all on tok/call and injected tokens; the call-count gap (the gate's cost) keeps it above on
-real tokens and compute.}
+\caption{Baseline (no-memory / retrieve-all) vs.\ the performance pass (history slimming $+$ call
+cap), full $152$. improved$+$PERF vs.\ pre-perf improved: same accuracy, $-20\%$ tok/call, $-39\%$
+compute time, $-4\%$ real tokens, but $+21\%$ calls. PCCR beats retrieve-all on tok/call and injected
+tokens; the call-count gap (the gate's cost, and no-memory's exploration cost) keeps PCCR above both
+baselines on real tokens and compute.}
 \label{tab:perf}
 \end{table}
 
