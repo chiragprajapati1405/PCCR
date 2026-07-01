@@ -112,6 +112,50 @@ _ARG_ALIAS = {"username": "user", "to": "recipient", "from": "sender", "body": "
               "filename": "file_path", "content": "contents", "text_content": "contents"}
 
 
+def _is_fanout(subtask):
+    s = subtask.lower()
+    return any(k in s for k in ("each", "all ", "every", "participant", "member", "everyone")) or "{" in subtask
+
+
+def _extract_items(blackboard, fanout_subtask, llm):
+    """After the read wave, parse the concrete list of items the fan-out iterates over (e.g. the
+    person names a read-agent pulled from the sheet) so we can spawn ONE sub-agent per item."""
+    prompt = ("From the DATA below, output ONLY the list of items this sub-task must be repeated "
+              "over, as a JSON array of short strings (e.g. person names, filenames). "
+              "SUB-TASK: %s\nDATA:\n%s\nJSON array:" % (fanout_subtask, blackboard[:900]))
+    items = _parse_json_block(llm.generate(prompt)) or []
+    # drop generic column-header / schema words that aren't real items
+    STOP = {"user", "name", "names", "participant", "participants", "member", "members", "email",
+            "emails", "section", "time", "summary", "row", "column", "id", "person", "people", "item"}
+    seen, out = set(), []
+    for x in items:
+        x = str(x).strip()
+        if x and x.lower() not in seen and x.lower() not in STOP and len(x) < 60:
+            seen.add(x.lower()); out.append(x)
+    return out[:25]
+
+
+def _expand_fanout(dels, blackboard, llm, step_counter):
+    """Replace each fan-out create/send delegation with ONE delegation PER ITEM (parsed from the
+    read results), turning error-prone in-agent looping into a clean parallel wave of single-item
+    leaves. Non-fan-out delegations pass through unchanged."""
+    out = []
+    for d in dels:
+        if _is_fanout(d.subtask) and d.agent_type in ("calendar", "email", "excel", "word"):
+            items = _extract_items(blackboard, d.subtask, llm); step_counter[0] += 1
+            if len(items) >= 2:
+                # strip ALL fan-out words so each per-item subtask is a clean single-item leaf
+                base = re.sub(r"\{[^}]*\}", "", d.subtask)
+                base = re.sub(r"\b(each|every|all)\s+", "", base, flags=re.I)
+                base = re.sub(r"\b(participants?|members?|everyone|people)\b", "", base, flags=re.I)
+                base = re.sub(r"\s+for\s*$", "", base.strip(), flags=re.I).strip()
+                for it in items:
+                    out.append(Delegation(agent_type=d.agent_type, subtask="%s for %s" % (base, it)))
+                continue
+        out.append(d)
+    return out
+
+
 def _exec_direct(env, app, action):
     """Execute ONE action via docker exec on the SHARED container -- no shared env state, so it
     is safe to call concurrently for different sub-agents in a wave."""
@@ -172,7 +216,7 @@ def _subagent_prompt(app, subtask, blackboard, last_obs, fanout=False):
         "Files are under /testbed/data. Reply with ONE JSON tool call {\"action\": <name>, <args>}. "
         "If the sub-task is fully done, reply {\"action\": \"done\"}.\n%sJSON:" % (
             app, subtask, fan, _arg_hint(app, VALID_ACTIONS[app]),
-            ("SHARED CONTEXT (results from earlier agents):\n%s\n" % blackboard[:600]) if blackboard else "",
+            ("SHARED CONTEXT (results from earlier agents):\n%s\n" % blackboard[:1200]) if blackboard else "",
             ("Result of your last action: %s\n" % last_obs[:250]) if last_obs else ""))
 
 
@@ -190,7 +234,7 @@ def _run_subagent_blocking(env, llm, app, subtask, blackboard, max_steps):
         last_action = action
         steps += 1
         obs = _exec_direct(env, app, action)
-        log.append(obs[:160])
+        log.append(obs[:1200])          # keep read data (names/rows) intact for fan-out extraction
         ok = "Malformed" not in obs and "Fail" not in obs and "does not exist" not in obs
         s = subtask.lower()
         fanout = any(k in s for k in ("each", "all", "every", "participant", "member")) or "{" in subtask
@@ -202,7 +246,7 @@ def _run_subagent_blocking(env, llm, app, subtask, blackboard, max_steps):
             if done_signal or (len(log) >= 2 and log[-1] == log[-2]):
                 break
     return AgentResult(agent_type=app, subtask=subtask, action=last_action,
-                       observation=" | ".join(log)[:400]), steps
+                       observation=" | ".join(log)[:1400]), steps
 
 
 def make_subagent_runner(env, llm, max_steps, step_counter, blackboard_ref):
@@ -237,14 +281,24 @@ async def run_task_2d(task_text, env, llm, max_steps=8):
     dels = plan_delegations(task_text, llm, files_hint=files)
     if len(dels) < 2:
         return None, [], dels
-    waves = DependencyAnalyzer().analyze(dels)
+    from memory_manager.parallel import categorize
     step_counter, blackboard_ref = [0], [seed]
     executor = ParallelExecutor(make_subagent_runner(env, llm, max_steps, step_counter, blackboard_ref))
-    results = []
-    for wave in waves:
-        wave_results = await executor.execute_group(wave, wm_snapshot=None)
-        results.extend(wave_results)
-        # blackboard: append this wave's observations so the NEXT wave sees the data (e.g. the
-        # participant list a read-agent produced) -- compact, not the full history.
-        blackboard_ref[0] += "\n".join("[%s] %s" % (r.agent_type, r.observation) for r in wave_results) + "\n"
+    results, waves = [], []
+
+    # PHASE 1 -- run the READ delegations (parallel), so their data lands on the blackboard.
+    reads = [d for d in dels if categorize(d.subtask) == "read"]
+    acts = [d for d in dels if categorize(d.subtask) != "read"]
+    if reads:
+        rr = await executor.execute_group(reads, None); results.extend(rr); waves.append(reads)
+        blackboard_ref[0] += "\n".join("[%s] %s" % (r.agent_type, r.observation) for r in rr) + "\n"
+
+    # PHASE 2 -- EXPAND fan-out act delegations into ONE PER ITEM (parsed from the read data),
+    # so each becomes a clean single-item leaf. This is the true N-way parallel wave.
+    acts = _expand_fanout(acts, blackboard_ref[0], llm, step_counter)
+
+    # PHASE 3 -- run the (now per-item) act delegations, grouped into create->send waves.
+    for wave in DependencyAnalyzer().analyze(acts):
+        wr = await executor.execute_group(wave, None); results.extend(wr); waves.append(wave)
+        blackboard_ref[0] += "\n".join("[%s] %s" % (r.agent_type, r.observation) for r in wr) + "\n"
     return results, waves, dels
