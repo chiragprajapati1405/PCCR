@@ -1481,7 +1481,9 @@ divides by $N$).
 \subsection{Performance pass: slimming the re-sent history}\label{sec:perfpass}
 % =====================================================================
 Given that the real cost is dominated by re-sent prompt bulk $\times$ calls, we attacked the prompt
-size. Tracing the improved run showed two things: (i)~$62\%$ of all calls and $63\%$ of real tokens
+size with a \emph{performance pass} we abbreviate \textbf{PERF} in the tables; \emph{pre-perf} means
+the system before it, and \textbf{improved$+$PERF} the system after.
+Tracing the improved run showed two things: (i)~$62\%$ of all calls and $63\%$ of real tokens
 are spent on \emph{failures}, but they cannot be blanket-truncated---successes legitimately run long
 (longest no-progress run $=31$ steps), so any step-cap or no-progress abort costs successes; and
 (ii)~\textbf{$39\%$ of the observation text is pure noise}---``Malformed action'' retries and
@@ -1500,7 +1502,7 @@ batching: several actions per call), which we leave to future work.
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
-Arm & Acc & Real tok & tok/call & calls & compute\,s \\
+Arm & Acc & Real tok & tok/call & calls & compute\,s$^{\dagger}$ \\
 \midrule
 no-memory (floor)   & $68$ & $\mathbf{3.35}$M & $1223$ & $2743$ & $\mathbf{3477}$ \\
 retrieve-all        & $72$ & $4.47$M & $1955$ & $\mathbf{2284}$ & $3761$ \\
@@ -1512,7 +1514,8 @@ improved$+$PERF     & $73$ & $6.87$M & $\mathbf{1810}$ & $3796$ & $4491$ \\
 cap), full $152$. improved$+$PERF vs.\ pre-perf improved: same accuracy, $-20\%$ tok/call, $-39\%$
 compute time, $-4\%$ real tokens, but $+21\%$ calls. PCCR beats retrieve-all on tok/call and injected
 tokens; the call-count gap (the gate's cost, and no-memory's exploration cost) keeps PCCR above both
-baselines on real tokens and compute.}
+baselines on real tokens and compute. $^{\dagger}$compute\,s $=$ summed per-task compute seconds with
+provider rate-limit (HTTP~429) stalls removed---i.e.\ sequential-equivalent work, not wall-clock.}
 \label{tab:perf}
 \end{table*}
 
