@@ -12,9 +12,7 @@ import json, os, signal, subprocess, time
 REPO = "/Users/chirag/Documents/Agentic_MM"
 PY = os.path.join(REPO, ".venv/bin/python")
 TASKS = os.path.join(REPO, "officebench_eval/full152.json")
-ARMS = [("rt_ra", ["--method", "retrieve_all"]),
-        ("rt_lean", ["--lean"]),
-        ("rt_improved", ["--improved"])]
+ARMS = [("perf152", ["--improved"])]
 N = 152
 STALL_S = 900          # 15 min: improved's gate-retry L3 tasks are legitimately long
 POLL = 30
