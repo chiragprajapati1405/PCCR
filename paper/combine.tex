@@ -61,11 +61,13 @@ on the hardest (L3) tasks where indiscriminate retrieval collapses. Reaching par
 diagnosing and removing three memory-\emph{fidelity} bugs (a schema-invalid curated rule,
 stale invalid action examples in the bank, and a completion gate that fired on the wrong stop
 signal), which we report in detail---under a fixed backbone, the binding constraint on agent
-memory is often the fidelity of what is injected, not the routing policy. We are deliberate
-about cost: the controlled experiments give a clean efficiency result, and an inject-once
-scheme cuts per-call memory injection $5\times$, but because the completion gate roughly
-doubles LLM calls we make no aggregate full-stack token-cost claim on OfficeBench pending
-true prompt$+$completion accounting.
+memory is often the fidelity of what is injected, not the routing policy. We are honest
+about cost: the controlled experiments give a clean injected-token efficiency result (up to $89\%$),
+but instrumenting the \emph{true} prompt$+$completion bill reveals that on this agentic benchmark
+PCCR costs $30$--$60\%$ \emph{more} real tokens than retrieve-all---it buys its accuracy edge by
+taking more agent steps, and the completion gate's retries ($+38\%$ calls) dominate the real bill,
+not the memory injection. PCCR still beats retrieve-all on tokens-per-call and injected tokens; the
+gap is call count.
 We then ask whether this cost-efficient design can also be made
 \emph{throughput}-efficient, since PCCR's reference execution model is strictly
 sequential---one task at a time, one sub-agent at a time. We extend it with
@@ -1355,18 +1357,16 @@ $0.179{\to}0.244{\to}\mathbf{0.295}$ across the three fixes---now matching no-me
 retrieve-all's $0.269$---and \code{doc\_process} reaches $\mathbf{0.680}$ ($>$ retrieve-all $0.600$,
 no-memory $0.480$). The \code{multi\_app} collapse is fully repaired.
 
-\paragraph{Cost: an honest two-sided ledger.} Inject-once cut the \emph{injected-memory} tokens from
-$709$ to $146$ per call ($628$K vs.\ retrieve-all's $734$K in aggregate), erasing the earlier
-$2\times$ overhead. But the tightened gate roughly \emph{doubles} LLM calls ($14.4{\to}28.3$ per task,
-almost entirely the gate's L3 retries: $56$ calls/task at L3). Because each call re-sends the full
-prompt (system instructions $+$ growing observation history $+$ memory), and our instrumentation
-accounts only the \emph{injected-memory} slice---not the system/history bulk---the \emph{net} API-token
-bill is \textbf{unresolved and plausibly higher} for the gated arm: more calls multiply the dominant
-system/history cost that the memory saving does not touch. We therefore make \emph{no} net token-cost
-claim for the full mechanism stack on OfficeBench; the clean cost result remains the \emph{controlled}
-router experiments (\S\ref{sec:pccr-results}, up to $89\%$ fewer injected tokens at equal accuracy) and the
-per-call injection reduction here. Capturing true prompt$+$completion usage and a lean (gate-light) arm
-are the outstanding measurements.
+\paragraph{Cost: from a misleading proxy to the real bill.} Inject-once cut the
+\emph{injected-memory} tokens from $709$ to $146$ per call ($628$K vs.\ retrieve-all's $734$K),
+which \emph{looked} like a cost win. It is not: injected-memory is a small, misleading slice of the
+real API bill, which is the \emph{entire} prompt (system instructions $+$ growing observation history
+$+$ memory) times the number of calls. We therefore instrumented the true
+\texttt{usage.prompt\_tokens}$+$\texttt{completion\_tokens} and re-ran all arms; the resolved
+real-token ledger (\S\ref{sec:realtoken}) shows the completion gate roughly doubles LLM calls, and on
+the \emph{real} bill \textbf{PCCR costs $30$--$60\%$ \emph{more} than retrieve-all} at equal accuracy---
+the injected-token "saving" is swamped by the system/history bulk re-sent on the extra calls. This
+correction is the point of \S\ref{sec:realtoken}--\S\ref{sec:perfpass}.
 
 \begin{table*}[t]
 \centering\small
@@ -1408,8 +1408,8 @@ single\_action & 23 & $0.478$ & $\mathbf{0.609}$ & $0.522$ & $0.565$ & $0.565$ \
 \caption{Accuracy by task pattern across the progression. \textbf{PCCR-improved} (F1--F4) repairs the
 \code{multi\_app} collapse ($0.179{\to}0.244{\to}\mathbf{0.295}$, now $>$ retrieve-all's $0.269$) and
 keeps the \code{doc\_process} win ($0.680>0.600$), reaching $0.474$ overall---parity with
-retrieve-all. Injected-memory tokens: retrieve-all $734$K, PCCR-improved $628$K (net API cost
-unresolved, \S\ref{sec:confgate}).}
+retrieve-all. Injected-memory tokens: retrieve-all $734$K, PCCR-improved $628$K---but the
+\emph{real} bill tells a different story (\S\ref{sec:realtoken}).}
 \label{tab:cg-pat}
 \end{table*}
 
@@ -1420,6 +1420,95 @@ setup, a single shared Docker daemon (which we had to restart under 4-container 
 rate limits. Parallel and sequential full runs reached the \emph{same} $64/152$ aggregate, consistent
 with the equivalence proof (\S\ref{sec:correct}); the residual per-task differences are backbone
 run-to-run variance, not scheduling, and they cancel in aggregate.
+
+% =====================================================================
+\subsection{The real-token cost ledger: what PCCR actually costs}\label{sec:realtoken}
+% =====================================================================
+Every cost number so far counted only \emph{injected-memory} tokens---the bytes the router adds to
+the prompt. That is a small, misleading fraction of the real API bill, which charges for the
+\emph{whole} prompt (system instructions $+$ the observation history re-sent on every step $+$ memory)
+plus the completion, on \emph{every} call. We instrumented the true
+\texttt{usage.prompt\_tokens}$+$\texttt{completion\_tokens} and re-ran three arms on all 152 tasks
+under one $N{=}4$ harness for an apples-to-apples comparison
+(Table~\ref{tab:realtoken})~---~\textbf{retrieve-all}, a \textbf{lean} PCCR (confidence gate $+$
+verified replay $+$ inject-once $+$ continual STM, \emph{without} the completion gate/self-verify),
+and the full \textbf{improved} PCCR.
+
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Arm & Accuracy & Real tokens & tok/call & LLM calls & injected & STM hits \\
+\midrule
+retrieve-all (baseline)  & $72/152$ & $\mathbf{4.47}$M & $1955$ & $\mathbf{2284}$ & $712$K & $0$ \\
+lean PCCR                & $72/152$ & $5.82$M & $2342$ & $2484$ & $553$K & $13$ \\
+improved PCCR            & $\mathbf{74/152}$ & $7.15$M & $2273$ & $3146$ & $\mathbf{630}$K & $10$ \\
+\bottomrule
+\end{tabular}
+\caption{Real-token cost ledger ($N{=}4$, true prompt$+$completion usage). PCCR \emph{matches or
+beats} retrieve-all on accuracy (lean ties, improved $+2$), but on the \emph{real} bill it costs
+$30$--$60\%$ more: the completion gate's \code{got\_stuck} retries add $+38\%$ LLM calls, and every
+call re-sends the system$+$history bulk. Note improved injects $12\%$ \emph{fewer} tokens ($630$K vs.\
+$712$K) yet costs $60\%$ \emph{more} real tokens---confirming injected-tokens is the wrong metric.}
+\label{tab:realtoken}
+\end{table*}
+
+The finding is unambiguous. \textbf{PCCR matches or slightly beats retrieve-all on accuracy}
+($72{=}72$ for lean, $74{>}72$ for improved) but is \textbf{$30$--$60\%$ more expensive on real
+tokens}. The cause is call count, not injection: even the lean arm makes more calls than
+retrieve-all, and the completion gate adds $+38\%$ more ($3146$ vs.\ $2284$). Because each call
+re-sends the dominant system$+$history bulk, more calls means a bigger bill regardless of how few
+memory tokens are injected---improved injects $12\%$ \emph{fewer} tokens yet costs $60\%$ \emph{more}.
+The clean injected-token efficiency (\S\ref{sec:pccr-results}, up to $89\%$) is real, but on this
+agentic benchmark it does not translate into a real-token win: PCCR buys its accuracy edge by doing
+\emph{more work} (more agent steps under the gate), and that work is what the provider charges for.
+
+\paragraph{Concurrency-independence and the parallel speedup.} Real tokens, calls, and injected
+tokens are \emph{per-task}, so they are identical sequential or parallel: a sequential retrieve-all
+run gives $2194$ calls / $734$K injected, matching the $N{=}4$ run's $2284$ / $712$K (modulo backbone
+noise). Parallelism affects only \emph{wall-clock} time, where the $N{=}4$ schedule is $\sim$$4\times$
+faster (measured $3.4$--$7.3\times$ across segments; super-linear when $429$ rate-limit stalls that
+serialise sequentially get hidden under concurrency). We report the \emph{sum} of per-task compute
+(sequential-equivalent work, conserved across $N$) separately from wall-clock (which parallelism
+divides by $N$).
+
+% =====================================================================
+\subsection{Performance pass: slimming the re-sent history}\label{sec:perfpass}
+% =====================================================================
+Given that the real cost is dominated by re-sent prompt bulk $\times$ calls, we attacked the prompt
+size. Tracing the improved run showed two things: (i)~$62\%$ of all calls and $63\%$ of real tokens
+are spent on \emph{failures}, but they cannot be blanket-truncated---successes legitimately run long
+(longest no-progress run $=31$ steps), so any step-cap or no-progress abort costs successes; and
+(ii)~\textbf{$39\%$ of the observation text is pure noise}---``Malformed action'' retries and
+``switched to app'' confirmations that carry no signal but are re-sent on every subsequent call.
+We therefore slim the \emph{bulk} history passed into each prompt (strip noise; the real history is
+restored before the malformed-recovery check so that still fires), and add a per-task LLM-call cap
+($80$, above the $93$-call worst legitimate task) to kill gate-retry runaways (one slim-induced task
+otherwise hit $569$ calls). Result (Table~\ref{tab:perf}): at \textbf{unchanged accuracy} ($73{\approx}74$,
+within noise), \textbf{$-20\%$ tokens/call and $-39\%$ compute time}, but \textbf{$+21\%$ calls}---
+removing history context makes the agent take a few more steps, so slimming is a \emph{latency/time}
+optimisation, not a call reducer. The lever for fewer \emph{calls} is the opposite (plan-then-execute
+batching: several actions per call), which we leave to future work.
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Arm & Acc & Real tok & tok/call & calls & compute\,s \\
+\midrule
+retrieve-all        & $72$ & $4.47$M & $1955$ & $\mathbf{2284}$ & $\mathbf{3761}$ \\
+improved (pre-perf) & $74$ & $7.15$M & $2273$ & $3146$ & $7396$ \\
+improved$+$PERF     & $73$ & $6.87$M & $\mathbf{1810}$ & $3796$ & $4491$ \\
+\bottomrule
+\end{tabular}
+\caption{Performance pass (history slimming $+$ call cap), full $152$. vs.\ pre-perf improved: same
+accuracy, $-20\%$ tok/call, $-39\%$ compute time, $-4\%$ real tokens, but $+21\%$ calls. PCCR beats
+retrieve-all on tok/call and injected tokens; the call-count gap (the gate's cost) keeps it above on
+real tokens and compute.}
+\label{tab:perf}
+\end{table}
 
 % =====================================================================
 \section{Experiment Inventory: API vs.\ Local, and Why}\label{sec:inventory}
@@ -1554,12 +1643,13 @@ Reaching this parity required diagnosing and removing three memory-poisoning bug
 schema-invalid curated rule, stale invalid action examples in the bank, and a completion
 gate that fired on the wrong stop signal)---a reminder that, with a fixed backbone, the
 binding constraint on agent memory is often the \emph{fidelity} of what is injected, not
-the routing policy. On cost we are deliberate: the controlled router experiments give a
-clean efficiency result (up to $89\%$ fewer injected tokens at equal accuracy), and
-inject-once cuts per-call memory injection $5\times$; but because the completion gate
-roughly doubles LLM calls, the \emph{net} full-stack token bill on OfficeBench is
-unresolved and we make no aggregate cost claim there pending true usage accounting. We then
-extended PCCR with two orthogonal dimensions of
+the routing policy. On cost, the honest result from true prompt$+$completion
+accounting (\S\ref{sec:realtoken}) is that on this agentic benchmark PCCR costs $30$--$60\%$
+\emph{more} real tokens than retrieve-all: it wins on injected tokens and tokens-per-call, but the
+completion gate's retries ($+38\%$ calls) dominate the real bill, since every call re-sends the
+system$+$history bulk. The clean injected-token efficiency ($89\%$) lives in the controlled router
+experiments; on OfficeBench the contribution is the routing/fidelity mechanisms and the parallel
+architecture, not a real-token cost saving. We then extended PCCR with two orthogonal dimensions of
 concurrency---parallel sub-agents within a task and parallel tasks across the
 system---through a seven-layer design that leaves the $\rho$-gate router and the
 ten-phase lifecycle intact. Per-task Working-Memory isolation, deterministic
