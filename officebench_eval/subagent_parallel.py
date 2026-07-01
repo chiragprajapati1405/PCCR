@@ -137,6 +137,11 @@ async def run_task_2d(task_text, env, llm, max_steps=6):
     """Orchestrate the 2nd dimension: plan -> waves -> per-wave concurrent execution.
     Returns (results, waves, planner_call) or (None,...) if planning yields nothing
     parallelisable (caller should fall back to the sequential loop)."""
+    # gpt-oss is a REASONING model: it emits a chain-of-thought BEFORE the answer, so a small
+    # max_tokens is consumed entirely by reasoning and returns EMPTY content -> generate() treats
+    # that as failure and retries every key (a self-inflicted 429 storm). Give it room.
+    if getattr(llm, "max_tokens", 0) < 4096:
+        llm.max_tokens = 4096
     dels = plan_delegations(task_text, llm)
     if len(dels) < 2:
         return None, [], dels
