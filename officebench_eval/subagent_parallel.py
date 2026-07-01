@@ -117,9 +117,154 @@ def _is_fanout(subtask):
     return any(k in s for k in ("each", "all ", "every", "participant", "member", "everyone")) or "{" in subtask
 
 
-def _extract_items(blackboard, fanout_subtask, llm):
-    """After the read wave, parse the concrete list of items the fan-out iterates over (e.g. the
-    person names a read-agent pulled from the sheet) so we can spawn ONE sub-agent per item."""
+_NAME_HDR = ("name", "student", "member", "participant", "employee", "person", "user", "fellow")
+
+
+def _extract_items_structural(blackboard, task_text=""):
+    """DETERMINISTIC extraction: parse the excel/csv read dump '(row, col): value' into a grid,
+    find the NAME column by its header, and return that column's values (no LLM). This kills the
+    gpt-oss extraction flakiness (dropped/garbled items) on clean table fan-outs.
+
+    CONDITION-AWARE: if the task references a value of another column (e.g. 'members in section A'
+    while a 'Section' column holds 'Section A'), keep ONLY rows matching that value --- so filtered
+    fan-outs ('for X in <group>') spawn a leaf per matching row, not per row."""
+    cells = {}
+    for m in re.finditer(r"\((\d+),\s*(\d+)\):\s*([^\t\n]+)", blackboard):
+        r, c, v = int(m.group(1)), int(m.group(2)), m.group(3).strip()
+        cells[(r, c)] = v
+    if not cells:
+        return []
+    max_r = max(r for r, _ in cells)
+    max_c = max(c for _, c in cells)
+    # header row = row 1; pick the column whose header matches a name-like word (else column 1)
+    name_col = None
+    for (r, c), v in cells.items():
+        if r == 1 and any(h in v.lower() for h in _NAME_HDR):
+            name_col = c; break
+    if name_col is None:
+        name_col = 1
+    # detect a filter: a non-name column whose (distinct) value is literally referenced in the task
+    tl = task_text.lower()
+    filt = None
+    if tl:
+        for c in range(1, max_c + 1):
+            if c == name_col:
+                continue
+            for r in range(2, max_r + 1):
+                v = cells.get((r, c), "").strip()
+                if len(v) >= 3 and v.lower() in tl:
+                    filt = (c, v.lower()); break
+            if filt:
+                break
+    out, seen = [], set()
+    for r in range(2, max_r + 1):
+        if filt and cells.get((r, filt[0]), "").strip().lower() != filt[1]:
+            continue
+        v = cells.get((r, name_col), "").strip()
+        if v and v.lower() not in seen and len(v) < 60:
+            seen.add(v.lower()); out.append(v)
+    return out
+
+
+_ACT_VERBS = ("create", "schedule", "send", "add ", "write", "set ", "book", "update", "delete",
+              "email", "notify", "remind", "reply", "forward", "record", "fill", "make ", "generate")
+_SEND_VERBS = ("send", "email", "notify", "remind", "reply", "forward")
+
+
+def _phase2d(subtask):
+    """Robust read-vs-act split for the 2D pipeline. The shared categorize() checks 'list' FIRST,
+    so 'create an event for each member LISTED in section A' is mislabeled 'read' and never runs.
+    Here an explicit ACT verb wins over an incidental 'list'/'listed' --- fixing dropped act waves."""
+    s = subtask.lower()
+    if any(v in s for v in _ACT_VERBS):
+        return "send" if any(v in s for v in _SEND_VERBS) else "create"
+    return "read"
+
+
+_APP_KEYWORDS = [
+    ("calendar", ("calendar", "event", "meeting", "appointment")),
+    ("email", ("email", "e-mail", " mail", "message", "notify", "inform")),
+    ("word", ("document", "word", ".docx", "letter", "report", "essay", ".txt")),
+    ("excel", ("spreadsheet", "excel", ".xlsx", "cell", "sheet")),
+]
+
+
+def _is_fanout_task(task_text):
+    """Whole-task fan-out check: does the task CREATE one output PER item of a group (the pattern
+    the deterministic fast-path handles: read source -> extract items -> create one leaf per item).
+
+    Excludes look-alikes that carry 'each/all' but are NOT per-item creates, so the fast-path fires
+    only where it's sound:
+      * collect-into-ONE-doc filters  ('put ... into students.docx')     -> one write, not N
+      * in-place excel bulk-edit/compute ('header', 'last row', 'remove', 'average', 'round down')
+    Those fall through to the general planner path instead."""
+    tl = (task_text or "").lower()
+    if not (_is_fanout(tl) and any(v in tl for v in _ACT_VERBS)):
+        return False
+    if re.search(r"\b(into|in)\s+\w[\w-]*\.(docx|xlsx|pdf|csv|txt)", tl):     # single named sink
+        return False
+    if any(k in tl for k in ("header", "last row", "remove ", "average", "round down", "attendance")):
+        return False
+    return True
+
+
+def _target_app(task_text):
+    """Which app produces the fan-out OUTPUT. The act clause (after the last comma) usually names
+    it (e.g. 'create calendar events'); scan that first, then the whole task."""
+    tl = (task_text or "").lower()
+    tail = tl.split(",")[-1]
+    for app, kws in _APP_KEYWORDS:
+        if any(k in tail for k in kws):
+            return app
+    for app, kws in _APP_KEYWORDS:
+        if any(k in tl for k in kws):
+            return app
+    return "calendar"
+
+
+def _act_clause(task_text):
+    """The single-item OUTPUT instruction template: the comma/period segment holding both a fan-out
+    word and an act verb (fall back to the last act segment), with the fan-out words stripped so
+    '<clause> for <name>' reads as a clean one-item leaf."""
+    segs = [s.strip() for s in re.split(r"[,.]", task_text or "") if s.strip()]
+    cand = None
+    # the OUTPUT instruction is usually the LAST segment that both fans out and acts -> take the last
+    for s in segs:
+        sl = s.lower()
+        if _is_fanout(sl) and any(v in sl for v in _ACT_VERBS):
+            cand = s
+    if cand is None:
+        for s in segs:
+            if any(v in s.lower() for v in _ACT_VERBS):
+                cand = s
+    base = re.sub(r"\{[^}]*\}", "", cand or task_text)
+    base = re.sub(r"\b(each|every|all)\s+", "", base, flags=re.I)
+    base = re.sub(r"\b(participants?|members?|employees?|students?|everyone|people|person)\b", "", base, flags=re.I)
+    base = re.sub(r"\bin their name\b", "", base, flags=re.I)
+    base = re.sub(r"\bfrom .*?file\b", "", base, flags=re.I)
+    base = re.sub(r"\s+", " ", base).strip(" .")
+    # drop a dangling preposition left by the strips so '<clause> for <name>' isn't '...for for X'
+    base = re.sub(r"\s+(for|to|of|in|with)$", "", base, flags=re.I).strip()
+    return base
+
+
+def _read_app_for(fname):
+    f = fname.lower()
+    if f.endswith((".xlsx", ".xls", ".csv")):
+        return "excel"
+    if f.endswith((".docx", ".doc", ".txt")):
+        return "word"
+    if f.endswith(".pdf"):
+        return "pdf"
+    return "excel"
+
+
+def _extract_items(blackboard, fanout_subtask, llm, task_text=""):
+    """After the read wave, parse the concrete list of items the fan-out iterates over. Tries the
+    DETERMINISTIC table parse first (robust); falls back to the LLM only if the data isn't a grid."""
+    struct = _extract_items_structural(blackboard, task_text)
+    if len(struct) >= 1:
+        return struct[:25]
     prompt = ("From the DATA below, output the COMPLETE list of items this sub-task must be repeated "
               "over (every person/row/file --- do not skip any), as a JSON array of short strings. "
               "SUB-TASK: %s\nDATA:\n%s\nJSON array:" % (fanout_subtask, blackboard[:1600]))
@@ -136,22 +281,23 @@ def _extract_items(blackboard, fanout_subtask, llm):
     return out[:25]
 
 
-def _expand_fanout(dels, blackboard, llm, step_counter):
+def _expand_fanout(dels, blackboard, llm, step_counter, task_text=""):
     """Replace each fan-out create/send delegation with ONE delegation PER ITEM (parsed from the
     read results), turning error-prone in-agent looping into a clean parallel wave of single-item
     leaves. Non-fan-out delegations pass through unchanged."""
     out = []
     for d in dels:
         if _is_fanout(d.subtask) and d.agent_type in ("calendar", "email", "excel", "word"):
-            items = _extract_items(blackboard, d.subtask, llm); step_counter[0] += 1
-            if len(items) >= 2:
+            items = _extract_items(blackboard, d.subtask, llm, task_text); step_counter[0] += 1
+            if len(items) >= 1:
                 # strip ALL fan-out words so each per-item subtask is a clean single-item leaf
                 base = re.sub(r"\{[^}]*\}", "", d.subtask)
                 base = re.sub(r"\b(each|every|all)\s+", "", base, flags=re.I)
                 base = re.sub(r"\b(participants?|members?|everyone|people)\b", "", base, flags=re.I)
                 base = re.sub(r"\s+for\s*$", "", base.strip(), flags=re.I).strip()
                 for it in items:
-                    out.append(Delegation(agent_type=d.agent_type, subtask="%s for %s" % (base, it)))
+                    out.append(Delegation(agent_type=d.agent_type, subtask="%s for %s" % (base, it),
+                                          category=getattr(d, "category", None) or _phase2d(d.subtask)))
                 continue
         out.append(d)
     return out
@@ -279,24 +425,52 @@ async def run_task_2d(task_text, env, llm, max_steps=8):
     except Exception:
         files = ""
     seed = ("[files] /testbed/data contains: %s\n" % files) if files else ""
-    dels = plan_delegations(task_text, llm, files_hint=files)
-    if len(dels) < 2:
-        return None, [], dels
-    from memory_manager.parallel import categorize
     step_counter, blackboard_ref = [0], [seed]
     executor = ParallelExecutor(make_subagent_runner(env, llm, max_steps, step_counter, blackboard_ref))
     results, waves = [], []
 
+    # DETERMINISTIC FAN-OUT FAST-PATH: when the task repeats an act over each item of a group, the
+    # LLM planner is the fragility (it randomly splits/mislabels read vs act across runs). Bypass it:
+    # read every data file -> parse the item list structurally (condition-aware) -> spawn one act
+    # leaf per item. Planner-free -> reproducible; the only LLM calls are the leaf sub-agents.
+    flist = [f.strip() for f in files.split(",") if f.strip()]
+    if _is_fanout_task(task_text) and flist:
+        # a clean per-item leaf completes in 1-2 steps; cap steps so a non-clean fan-out (grouped /
+        # pairing) that slips the gate can't loop to a 100K-token runaway.
+        fp_exec = ParallelExecutor(make_subagent_runner(env, llm, min(max_steps, 4), step_counter, blackboard_ref))
+        reads = [Delegation(agent_type=_read_app_for(f), subtask="read %s" % f, category="read") for f in flist]
+        rr = await fp_exec.execute_group(reads, None); results.extend(rr); waves.append(reads)
+        blackboard_ref[0] += "\n".join("[%s] %s" % (r.agent_type, r.observation) for r in rr) + "\n"
+        items = _extract_items(blackboard_ref[0], task_text, llm, task_text); step_counter[0] += 1
+        if items:
+            app, base = _target_app(task_text), _act_clause(task_text)
+            per = [Delegation(agent_type=app, subtask="%s for %s" % (base, it), category="create") for it in items]
+            for wave in DependencyAnalyzer().analyze(per):
+                wr = await fp_exec.execute_group(wave, None); results.extend(wr); waves.append(wave)
+                blackboard_ref[0] += "\n".join("[%s] %s" % (r.agent_type, r.observation) for r in wr) + "\n"
+            return results, waves, reads + per
+
+    dels = plan_delegations(task_text, llm, files_hint=files)
+    if len(dels) < 2:
+        return None, [], dels
+
     # PHASE 1 -- run the READ delegations (parallel), so their data lands on the blackboard.
-    reads = [d for d in dels if categorize(d.subtask) == "read"]
-    acts = [d for d in dels if categorize(d.subtask) != "read"]
+    # Use the robust local phase split (an ACT verb beats an incidental 'listed'); set the DAG
+    # category explicitly so create->send ordering survives the same 'list' false-positive.
+    reads, acts = [], []
+    for d in dels:
+        ph = _phase2d(d.subtask)
+        if ph == "read":
+            reads.append(d)
+        else:
+            d.category = ph; acts.append(d)
     if reads:
         rr = await executor.execute_group(reads, None); results.extend(rr); waves.append(reads)
         blackboard_ref[0] += "\n".join("[%s] %s" % (r.agent_type, r.observation) for r in rr) + "\n"
 
     # PHASE 2 -- EXPAND fan-out act delegations into ONE PER ITEM (parsed from the read data),
     # so each becomes a clean single-item leaf. This is the true N-way parallel wave.
-    acts = _expand_fanout(acts, blackboard_ref[0], llm, step_counter)
+    acts = _expand_fanout(acts, blackboard_ref[0], llm, step_counter, task_text=task_text)
 
     # PHASE 3 -- run the (now per-item) act delegations, grouped into create->send waves.
     for wave in DependencyAnalyzer().analyze(acts):
