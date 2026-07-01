@@ -120,17 +120,18 @@ def _is_fanout(subtask):
 def _extract_items(blackboard, fanout_subtask, llm):
     """After the read wave, parse the concrete list of items the fan-out iterates over (e.g. the
     person names a read-agent pulled from the sheet) so we can spawn ONE sub-agent per item."""
-    prompt = ("From the DATA below, output ONLY the list of items this sub-task must be repeated "
-              "over, as a JSON array of short strings (e.g. person names, filenames). "
-              "SUB-TASK: %s\nDATA:\n%s\nJSON array:" % (fanout_subtask, blackboard[:900]))
+    prompt = ("From the DATA below, output the COMPLETE list of items this sub-task must be repeated "
+              "over (every person/row/file --- do not skip any), as a JSON array of short strings. "
+              "SUB-TASK: %s\nDATA:\n%s\nJSON array:" % (fanout_subtask, blackboard[:1600]))
     items = _parse_json_block(llm.generate(prompt)) or []
-    # drop generic column-header / schema words that aren't real items
     STOP = {"user", "name", "names", "participant", "participants", "member", "members", "email",
             "emails", "section", "time", "summary", "row", "column", "id", "person", "people", "item"}
+    bb = blackboard.lower()
     seen, out = set(), []
     for x in items:
         x = str(x).strip()
-        if x and x.lower() not in seen and x.lower() not in STOP and len(x) < 60:
+        # keep ONLY items that literally appear in the read data (kills hallucinations/garbage)
+        if x and x.lower() not in seen and x.lower() not in STOP and len(x) < 60 and x.lower() in bb:
             seen.add(x.lower()); out.append(x)
     return out[:25]
 
