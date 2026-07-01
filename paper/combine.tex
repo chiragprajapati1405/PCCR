@@ -1495,7 +1495,7 @@ removing history context makes the agent take a few more steps, so slimming is a
 optimisation, not a call reducer. The lever for fewer \emph{calls} is the opposite (plan-then-execute
 batching: several actions per call), which we leave to future work.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering\small
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lccccc@{}}
@@ -1514,7 +1514,7 @@ compute time, $-4\%$ real tokens, but $+21\%$ calls. PCCR beats retrieve-all on 
 tokens; the call-count gap (the gate's cost, and no-memory's exploration cost) keeps PCCR above both
 baselines on real tokens and compute.}
 \label{tab:perf}
-\end{table}
+\end{table*}
 
 \paragraph{Final comparison and the wall-clock payoff.} Table~\ref{tab:final} is the head-to-head we
 actually ship: the two baselines run \emph{sequentially} (they have no parallel architecture---that
@@ -1531,7 +1531,7 @@ tokens-per-call ($1810$ vs.\ $2161$) and injected tokens ($641$K vs.\ $778$K) an
 short-circuits; it trades higher total real tokens/calls (the completion gate's work) for the
 accuracy edge and the wall-clock win.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering\small
 \setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{@{}llcccccc@{}}
@@ -1549,7 +1549,7 @@ parallel schedule ($N{=}4$). Real tokens $=$ prompt$+$completion; Wall $=$ wall-
 parallel-tasks architecture; accuracy is parity within backbone noise ($76$ vs.\ $73$); PCCR wins
 tok/call and injected tokens.}
 \label{tab:final}
-\end{table}
+\end{table*}
 
 % =====================================================================
 \section{Experiment Inventory: API vs.\ Local, and Why}\label{sec:inventory}
@@ -1563,6 +1563,7 @@ and correctness claims are cheap and exactly reproducible.
 
 \begin{table}[t]
 \centering\scriptsize
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}llp{3.1cm}@{}}
 \toprule
 Experiment & LLM? & Why \\
@@ -1582,7 +1583,8 @@ Stress \& unit tests & local & invariants, no model needed \\
 OfficeBench (full, by level) & \textbf{API} & multi-step agent execution \\
 OfficeBench curation & \textbf{API} & LLM distills trajectories \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{Which experiments call the LLM and why. ``modeled'' = real async
 scheduling with the per-call cost set to the measured $0.516$\,s.}
 \label{tab:inv}
