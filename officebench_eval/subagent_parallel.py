@@ -205,6 +205,15 @@ def _is_fanout_task(task_text):
         return False
     if any(k in tl for k in ("header", "last row", "remove ", "average", "round down", "attendance")):
         return False
+    # the deterministic fast-path is proven on per-person CALENDAR-event fan-outs read from a grid;
+    # excel-target fan-outs are in-place compute/edit (regress 1-11/2) and email-collect fan-outs
+    # write ONE message (both-fail + a 63K-token runaway on 2-43/0) -> restrict to the calendar niche.
+    if _target_app(task_text) != "calendar":
+        return False
+    # folder/grouping/pairing fan-outs need per-group dir + file ops the flat item-leaf can't do
+    # (3-53/0 per-class folders, 3-10/0 per-recipient folders) -> regress; leave them to the planner.
+    if any(k in tl for k in ("folder", "directory", "subdirectory", "each class", "separ", " pair ", "conflict")):
+        return False
     return True
 
 
