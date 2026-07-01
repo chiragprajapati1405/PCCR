@@ -31,6 +31,28 @@ def _is_giveup(action) -> bool:
     return '"got_stuck"' in a or "'got_stuck'" in a
 
 
+_NOISE_OBS = ("Malformed action", "Successfully switched to app")
+
+
+def _slim_history(history, keep_last=14):
+    """Performance: OfficeBench re-renders the ENTIRE step history into every prompt, so a
+    30-step task re-sends all 30 (action, obs) pairs each call. Two safe cuts, measured on
+    the 74/152 run: (1) drop NOISE observations (malformed 'try again' + app-switch confirms
+    = 39% of observation text, zero signal); (2) cap to the last `keep_last` useful steps but
+    ALWAYS keep file-creation confirmations (the state the agent must not forget). Applied
+    only to the bulk history passed to super().build_prompt -- the real env.history is
+    restored before the malformed-recovery check, so that still fires on the true last step."""
+    kept = [(a, o) for a, o in (history or [])
+            if not any(sig in str(o or "") for sig in _NOISE_OBS)]
+    if len(kept) > keep_last:
+        def _is_output(o):
+            s = str(o or "").lower()
+            return "success" in s and ("write" in s or "creat" in s or "convert" in s or "sent" in s)
+        head = [x for x in kept[:-keep_last] if _is_output(x[1])]   # preserve produced-file state
+        kept = head + kept[-keep_last:]
+    return kept
+
+
 def _filenames(text) -> set:
     """Output filenames mentioned in a task/action (basename, lowercased)."""
     return {m.split("/")[-1].lower() for m in _FNAME_RE.findall(str(text or ""))}
@@ -114,7 +136,8 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
                      pattern=None, exclude_task=None, use_pm=False, real_mem=None,
                      replay=False, replay_threshold=0.75,
                      plan_then_execute=False, batch_size=4, output_convention=False,
-                     completion_gate=False, self_verify=False, inject_once=False, heavy_steps=3):
+                     completion_gate=False, self_verify=False, inject_once=False, heavy_steps=3,
+                     slim_history=False):
 
     class PCCRPolicy(LLMPolicyCls):
         def __init__(self):
@@ -127,6 +150,7 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
             self._realmem_block = ""     # set on the gate arm when driven by the real MemoryManager
             self._heavy_block = self._light_block = ""
             self._inject_once = bool(inject_once) and method not in ("no_memory", "retrieve_all")
+            self._slim_history_on = bool(slim_history)   # perf: strip noise + cap re-sent history
             self._heavy_steps = max(1, int(heavy_steps))   # inject heavy guidance for the first K calls
             self._prompt_n = 0                              # build_prompt (≈ LLM-call) counter
             self._pm_text = ""
@@ -369,7 +393,15 @@ def make_pccr_policy(LLMPolicyCls, model, env, config, real_arch=None, method="n
             return action[i:]                              # truncated: hand back partial
 
         def build_prompt(self, env):
-            base = super().build_prompt(env)
+            if self._slim_history_on and env.history and len(env.history) > 6:
+                _full = env.history                      # slim only the BULK re-sent history
+                try:
+                    env.history = _slim_history(_full)   # noise-strip + cap (keeps output state)
+                    base = super().build_prompt(env)
+                finally:
+                    env.history = _full                  # restore before the malformed-recovery check
+            else:
+                base = super().build_prompt(env)
             # MALFORMED-RECOVERY: gpt-oss frequently invents WRONG action names
             # (e.g. shell `command`/excel `append_row`) -> OfficeBench replies with a generic
             # "Malformed action!" and the model keeps guessing wrong names, looping to the cap.
