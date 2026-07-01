@@ -417,10 +417,17 @@ def make_subagent_runner(env, llm, max_steps, step_counter, blackboard_ref):
     return runner
 
 
-async def run_task_2d(task_text, env, llm, max_steps=8):
+async def run_task_2d(task_text, env, llm, max_steps=8, force=False):
     """Orchestrate the 2nd dimension: plan -> waves -> per-wave concurrent execution, threading a
     compact blackboard (prior-wave observations) forward so later agents have the data they need.
-    Returns (results, waves, delegations) or (None,...) if not parallelisable (fall back to 1D)."""
+
+    Returns (results, waves, delegations, meta). meta = {path, fanout_fired, leaves, items}:
+      * path         : 'fastpath' (deterministic grid fan-out) | 'planner' | 'single'
+      * fanout_fired : a GENUINE parallel decomposition formed (an act wave >= 2 independent leaves)
+                       -- the STRUCTURAL router predicate (keyword-free): route to 2D iff this is True
+      * leaves       : widest act-wave width; items: extracted fan-out items (fast-path only)
+    force=True runs EVERY task through the sub-agent machinery (no 1D fall-back) for the pure-2D
+    all-152 comparison: an undecomposable task degrades to a single whole-task sub-agent."""
     # gpt-oss is a REASONING model: it emits chain-of-thought BEFORE the answer, so a small
     # max_tokens is consumed by reasoning and returns EMPTY content -> generate() retries every key
     # (self-inflicted 429 storm). Give it room.
@@ -457,11 +464,14 @@ async def run_task_2d(task_text, env, llm, max_steps=8):
             for wave in DependencyAnalyzer().analyze(per):
                 wr = await fp_exec.execute_group(wave, None); results.extend(wr); waves.append(wave)
                 blackboard_ref[0] += "\n".join("[%s] %s" % (r.agent_type, r.observation) for r in wr) + "\n"
-            return results, waves, reads + per
+            return results, waves, reads + per, {"path": "fastpath", "fanout_fired": len(per) >= 2,
+                                                 "leaves": len(per), "items": items}
 
     dels = plan_delegations(task_text, llm, files_hint=files)
-    if len(dels) < 2:
-        return None, [], dels
+    if len(dels) < 2 and not force:
+        return None, [], dels, {"path": "planner", "fanout_fired": False, "leaves": len(dels), "items": []}
+    if not dels:                                     # force mode: undecomposable -> ONE whole-task agent
+        dels = [Delegation(agent_type=_target_app(task_text), subtask=task_text)]
 
     # PHASE 1 -- run the READ delegations (parallel), so their data lands on the blackboard.
     # Use the robust local phase split (an ACT verb beats an incidental 'listed'); set the DAG
@@ -482,7 +492,10 @@ async def run_task_2d(task_text, env, llm, max_steps=8):
     acts = _expand_fanout(acts, blackboard_ref[0], llm, step_counter, task_text=task_text)
 
     # PHASE 3 -- run the (now per-item) act delegations, grouped into create->send waves.
+    widest = 0
     for wave in DependencyAnalyzer().analyze(acts):
+        widest = max(widest, len(wave))
         wr = await executor.execute_group(wave, None); results.extend(wr); waves.append(wave)
         blackboard_ref[0] += "\n".join("[%s] %s" % (r.agent_type, r.observation) for r in wr) + "\n"
-    return results, waves, dels
+    path = "single" if len(dels) < 2 else "planner"
+    return results, waves, dels, {"path": path, "fanout_fired": widest >= 2, "leaves": widest, "items": []}

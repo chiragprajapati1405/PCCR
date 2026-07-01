@@ -28,7 +28,7 @@ for it in TASKS:
     llm = CerebrasLLM(model_name="gpt-oss-120b")
     t0 = time.perf_counter()
     try:
-        results, waves, dels = asyncio.run(sp.run_task_2d(cfg["task"], env, llm))
+        results, waves, dels, _meta = asyncio.run(sp.run_task_2d(cfg["task"], env, llm))
     except Exception as e:
         results, waves, dels = None, [], "ERR:%s" % str(e)[:60]
     wall = round(time.perf_counter() - t0, 1)
