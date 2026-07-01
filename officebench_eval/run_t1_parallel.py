@@ -82,9 +82,14 @@ def _save_trace(it, m, r):
     base = f"{TRACE_DIR}/{it['task']}_{it['subtask']}_{m}"
     json.dump(r, open(f"{base}.json", "w"), indent=2, default=str)
     with open(f"{base}.txt", "w") as fh:
+        rl = r.get("rate_limit_wait_s", 0.0)
+        pt, ct = r.get("prompt_tokens", 0), r.get("completion_tokens", 0)
         fh.write(f"TASK {it['task']}/{it['subtask']} [{r.get('pattern')}] {m}  success={r['success']}  "
-                 f"steps={r['steps']} llm_calls={r['llm_calls']} wall={r['wall_s']}s "
-                 f"compute(no-429)={round(r['wall_s']-r.get('rate_limit_wait_s',0.0),1)}s\n"
+                 f"steps={r['steps']} llm_calls={r['llm_calls']}\n"
+                 f"  REAL tokens: prompt={pt} completion={ct} total={pt+ct}  "
+                 f"injected_mem={r['em'].get('injected_tokens',0)}\n"
+                 f"  latency: wall={r['wall_s']}s  compute(no-429)={round(r['wall_s']-rl,1)}s  "
+                 f"429_wait={round(rl,1)}s  429_hits={r.get('rate_limit_hits',0)}\n"
                  f"  {r['task_text']}\n" + "=" * 70 + "\n" + "\n".join(r["sequence"]) + "\n")
 
 
