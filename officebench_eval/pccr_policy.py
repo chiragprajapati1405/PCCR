@@ -34,13 +34,16 @@ def _is_giveup(action) -> bool:
 _NOISE_OBS = ("Malformed action", "Successfully switched to app")
 
 
-def _slim_history(history, keep_last=14):
+def _slim_history(history, keep_last=200):
     """Performance: OfficeBench re-renders the ENTIRE step history into every prompt, so a
-    30-step task re-sends all 30 (action, obs) pairs each call. Two safe cuts, measured on
-    the 74/152 run: (1) drop NOISE observations (malformed 'try again' + app-switch confirms
-    = 39% of observation text, zero signal); (2) cap to the last `keep_last` useful steps but
-    ALWAYS keep file-creation confirmations (the state the agent must not forget). Applied
-    only to the bulk history passed to super().build_prompt -- the real env.history is
+    30-step task re-sends all 30 (action, obs) pairs each call. NOISE-STRIP is the safe,
+    context-lossless cut: drop malformed 'try again' + app-switch confirmations (39% of
+    observation text, zero signal) -- this cuts tokens/latency WITHOUT losing any state the
+    agent needs, so it does not push the agent into extra steps. The optional length cap
+    (keep_last, default effectively off at 200 since no task exceeds the 45-step budget) was
+    the source of a +12% calls regression -- it dropped old data-reads -- so it is disabled by
+    default; lower keep_last only if you accept a few extra steps for more token savings.
+    Applied only to the bulk history passed to super().build_prompt; real env.history is
     restored before the malformed-recovery check, so that still fires on the true last step."""
     kept = [(a, o) for a, o in (history or [])
             if not any(sig in str(o or "") for sig in _NOISE_OBS)]
