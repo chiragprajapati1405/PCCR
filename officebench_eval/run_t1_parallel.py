@@ -34,7 +34,8 @@ from collections import defaultdict
 from .gate import load_calibration
 from .real_arch import RealArch
 from .real_mem import RealMem
-from .runner import run_task, cap_for_level
+from .runner import run_task, cap_for_level, _setup as _ob_setup
+from .subagent_parallel import run_task_2d, _is_fanout_task
 from memory_manager.task_queue import AsyncTaskQueue
 
 _PKG = os.path.dirname(os.path.abspath(__file__))
@@ -78,6 +79,50 @@ def _record(prog, key, it, pat, r):
                  "container": r.get("_container"), "worker_t0": r.get("_t0"), "worker_t1": r.get("_t1")}
 
 
+def _run_2d_fastpath(it, container, model):
+    """SECOND DIMENSION on top of PCCR: for a genuine fan-out task, run the deterministic 2D
+    fast-path (parallel per-item leaves) instead of the single PCCR agent. Returns a PCCR-shaped
+    result dict, or None if no real fan-out materialised (path!=fastpath or <2 leaves) --- the caller
+    then falls back to the full PCCR agent. Runs blocking in a worker thread (own event loop)."""
+    import asyncio as _a
+    import shutil
+    from utils.env import OfficeAgentEnv
+    import utils.evaluate as ev
+    from .cerebras_llm import CerebrasLLM
+    tid, sid = it["task"], it["subtask"]
+    cfg = json.load(open(f"tasks/{tid}/subtasks/{sid}.json"))
+    env = OfficeAgentEnv(image_name="officebench", container_name=container, task=cfg["task"], verbose=False)
+    env.reset(); env.prepare_docker_env(testbed_dir=f"tasks/{tid}/testbed/", app_dir="apps/")
+    env.cache_docker_status(local_cache_dir=f"tasks/{tid}/cache/{sid}/")
+    llm = CerebrasLLM(model_name=model)
+    t0 = time.perf_counter()
+    results, waves, dels, meta = _a.run(run_task_2d(cfg["task"], env, llm, force=False))
+    wall = round(time.perf_counter() - t0, 1)
+    fired = meta.get("path") == "fastpath" and meta.get("fanout_fired")
+    if not fired:                                        # not a real fan-out -> let PCCR handle it
+        env.close(); shutil.rmtree(f"tasks/{tid}/cache/{sid}", ignore_errors=True)
+        return None
+    out_dir = f"tasks/{tid}/outputs/{sid}/pccr2d"; shutil.rmtree(out_dir, ignore_errors=True)
+    env.cache_docker_status(local_cache_dir=out_dir); testbed = os.path.join(out_dir, "testbed")
+    ok, fp = True, None
+    for item in cfg["evaluation"]:
+        try:
+            if not getattr(ev, item["function"])(testbed, item["args"]): ok, fp = False, item["function"]; break
+        except Exception as e:
+            ok, fp = False, f"{item['function']}:ERR:{str(e)[:40]}"; break
+    env.close(); shutil.rmtree(out_dir, ignore_errors=True); shutil.rmtree(f"tasks/{tid}/cache/{sid}", ignore_errors=True)
+    traj = [(str(getattr(r, "action", "")), (getattr(r, "observation", "") or "")[:400]) for r in (results or [])]
+    seq = [f"[2D fan-out fast-path] {len(dels)} leaves, fired={fired}, items={meta.get('items', [])[:8]}"]
+    seq += [f"  [{r.agent_type}] {r.subtask}  ->  {(getattr(r, 'observation', '') or '')[:120]}" for r in (results or [])]
+    return {"success": ok, "failed_predicate": fp, "steps": sum(len(w) for w in (waves or [])),
+            "llm_calls": getattr(llm, "calls", 0), "wall_s": wall,
+            "prompt_tokens": getattr(llm, "prompt_tokens", 0), "completion_tokens": getattr(llm, "completion_tokens", 0),
+            "rate_limit_wait_s": getattr(llm, "rate_limit_wait_s", 0.0), "rate_limit_hits": getattr(llm, "rate_limit_hits", 0),
+            "em": {"consult_em": 0, "injected_tokens": 0, "stm_hit": False, "top_em_sim": 0.0,
+                   "consulted_stores": [], "pm_used": False, "replay": None, "batch_calls": None, "batch_actions": None},
+            "task_text": cfg["task"], "trajectory": traj, "sequence": seq, "pattern": None, "_2d": True}
+
+
 def _save_trace(it, m, r):
     base = f"{TRACE_DIR}/{it['task']}_{it['subtask']}_{m}"
     json.dump(r, open(f"{base}.json", "w"), indent=2, default=str)
@@ -94,6 +139,10 @@ def _save_trace(it, m, r):
 
 
 async def main_async(args):
+    if args.tasks_file:             # resolve against the ORIGINAL cwd before we chdir into OfficeBench
+        args.tasks_file = os.path.abspath(args.tasks_file)
+    _ob_setup()                     # chdir into OfficeBench up-front so the --twod fan-out check
+                                    # (json.load of tasks/..) resolves before the first run_task
     cost, util = load_calibration(os.path.join(_PKG, "calibration"))
     if args.priors:
         util, cost = {}, {}
@@ -143,17 +192,26 @@ async def main_async(args):
         container = await pool.get()                       # acquire a free container
         try:
             t0 = time.perf_counter() - t_start
+            # SECOND DIMENSION: a genuine fan-out task goes to the parallel 2D fast-path; if no real
+            # fan-out materialises it returns None and we fall through to the full PCCR agent. Every
+            # non-fan-out task runs PCCR unchanged -> PCCR accuracy is the floor.
+            r = None
+            if getattr(args, "twod", False):
+                task_text = json.load(open(f"tasks/{it['task']}/subtasks/{it['subtask']}.json"))["task"]
+                if _is_fanout_task(task_text):
+                    r = await asyncio.to_thread(_run_2d_fastpath, it, container, args.model)
             # CRITICAL (H3.1): run the blocking run_task in a worker thread so the
             # event loop is free to dispatch the other concurrent tasks.
-            r = await asyncio.to_thread(
-                run_task, it["task"], it["subtask"], model=args.model, real_arch=real,
-                real_mem=realmem, method=METHOD, pattern=pat,
-                max_iter=cap_for_level(it["level"], l3_cap=args.l3_cap), container=container,
-                replay=args.replay, replay_threshold=args.replay_threshold,
-                plan_then_execute=args.plan, batch_size=args.batch_size,
-                output_convention=args.convention,
-                completion_gate=args.completion_gate, self_verify=args.self_verify,
-                inject_once=args.inject_once, slim_history=args.slim_history, call_cap=args.call_cap)
+            if r is None:
+                r = await asyncio.to_thread(
+                    run_task, it["task"], it["subtask"], model=args.model, real_arch=real,
+                    real_mem=realmem, method=METHOD, pattern=pat,
+                    max_iter=cap_for_level(it["level"], l3_cap=args.l3_cap), container=container,
+                    replay=args.replay, replay_threshold=args.replay_threshold,
+                    plan_then_execute=args.plan, batch_size=args.batch_size,
+                    output_convention=args.convention,
+                    completion_gate=args.completion_gate, self_verify=args.self_verify,
+                    inject_once=args.inject_once, slim_history=args.slim_history, call_cap=args.call_cap)
             r["_container"], r["_t0"], r["_t1"] = container, round(t0, 1), round(time.perf_counter() - t_start, 1)
         finally:
             pool.put_nowait(container)                     # release
@@ -267,6 +325,10 @@ def main():
                     help="perf safety net: hard cap on total LLM calls per task (0=off); kills gate-retry runaways")
     ap.add_argument("--slim-history", action="store_true", dest="slim_history",
                     help="perf: strip noise (malformed/switch) + cap the re-sent step history (fewer tokens, lower latency)")
+    ap.add_argument("--twod", action="store_true",
+                    help="SECOND DIMENSION on top of PCCR: route genuine fan-out tasks to the parallel "
+                         "2D fast-path (per-item leaves); every other task runs the full PCCR agent "
+                         "unchanged. PCCR accuracy is the floor; 2D adds the fan-out wins.")
     ap.add_argument("--method", default="pccr", choices=["pccr", "retrieve_all", "no_memory"],
                     help="arm to run (default pccr). retrieve_all/no_memory: baselines through the SAME "
                          "harness for a fair real-token comparison.")
