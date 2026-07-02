@@ -1544,7 +1544,7 @@ Arm & Exec & Acc & Real tok & tok/call & calls & inj & Wall \\
 no-memory    & seq & $66$ & $\mathbf{3.38}$M & $1628$ & $\mathbf{2075}$ & $0$ & $58.4$ \\
 retrieve-all & seq & $\mathbf{76}$ & $5.02$M & $2161$ & $2323$ & $778$K & $70.6$ \\
 PCCR\,+PERF  & \textbf{par} & $73$ & $6.87$M & $\mathbf{1810}$ & $3796$ & $\mathbf{641}$K & $\mathbf{26.6}$ \\
-2D-router    & 2D & $60$ & $3.83$M & $1454$ & $2633$ & --- & --- \\
+2D-router    & 2D & $60$ & $3.83$M & $1454$ & $2633$ & $319$K & $83.9$ \\
 \bottomrule
 \end{tabular}
 \caption{Final head-to-head: sequential baselines (no parallel architecture) vs.\ PCCR on its
@@ -1553,10 +1553,13 @@ parallel schedule ($N{=}4$). Real tokens $=$ prompt$+$completion; Wall $=$ wall-
 parallel-tasks architecture; accuracy is parity within backbone noise ($76$ vs.\ $73$); PCCR wins
 tok/call and injected tokens. The last row adds the \textbf{second-dimension} arm
 (\S\ref{sec:twod}): the \emph{2D-router} routes each task to parallel sub-agents wherever a genuine
-parallel decomposition (an act wave of $\ge2$ independent leaves) forms and to the 1D agent
-otherwise. It scores only $60/152$---below every 1D arm---because ``a decomposition exists'' does not
-imply ``2D succeeds'' (it fires on $62$ tasks and regresses $16$ that 1D solved); injected-tokens and
-a single wall-clock are not well-defined for this post-hoc routed composite (``---'').}
+parallel decomposition (an act wave of $\ge2$ independent leaves) forms ($62$ tasks) and to the 1D
+agent otherwise ($90$ tasks). It scores only $60/152$---below every 1D arm---because ``a decomposition
+exists'' does not imply ``2D succeeds'' (it fires on $62$ tasks and regresses $16$ that 1D solved). Its
+injected tokens ($319$K) come only from the $90$ 1D-routed tasks (the $62$ sub-agent tasks inject no
+memory), and its Wall is the sequential-equivalent ($83.9$ min, sum of per-task): the router is a
+post-hoc composite of two runs, so it has no single measured parallel schedule and is not faster than
+the sequential baselines.}
 \label{tab:final}
 \end{table*}
 
