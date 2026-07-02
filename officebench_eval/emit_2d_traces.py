@@ -1,16 +1,22 @@
-"""Render the machine JSON traces (twod_all152_traces.json) into human-readable per-task .txt files
-in officebench_eval/traces/twod_all152/<task>_<sub>_2d.txt -- same folder convention + step style as
-the 1D traces in traces/par_full152/, but showing the 2D decomposition: the plan (delegations) then
-each parallel WAVE of sub-agents with their action + observation. Re-runnable; overwrites."""
+"""Render the machine JSON traces (twod_all152_traces.json) into per-task files in
+officebench_eval/traces/twod_all152/ -- BOTH:
+  * <task>_<sub>_2d.json : the full machine record for that one task (every field)
+  * <task>_<sub>_2d.txt  : human-readable -- plan (delegations) then each parallel WAVE of
+                           sub-agents with their action + observation (same style as the 1D
+                           par_full152 traces).
+Re-runnable; overwrites. Run after the full-152 run to materialise all 152 pairs."""
 import json, os
 REPO = "/Users/chirag/Documents/Agentic_MM"
-SRC = os.path.join(REPO, "officebench_eval/twod_all152_traces.json")
-DST = os.path.join(REPO, "officebench_eval/traces/twod_all152")
+# override via env for the N=4 run: TWOD_TRACES / TWOD_TRACEDIR
+SRC = os.environ.get("TWOD_TRACES", os.path.join(REPO, "officebench_eval/twod_all152_traces.json"))
+DST = os.environ.get("TWOD_TRACEDIR", os.path.join(REPO, "officebench_eval/traces/twod_all152"))
 os.makedirs(DST, exist_ok=True)
 
 traces = json.load(open(SRC))
 n = 0
 for key, t in traces.items():
+    if key == "_run" or not isinstance(t, dict) or "task" not in t:
+        continue                                  # skip the run-level meta row (N=4 file)
     tid, sid = t["task"], t["subtask"]
     lines = []
     hdr = ("TASK %s/%s [L%s] 2d  success=%s  path=%s  fanout_fired=%s  leaves=%s  "
@@ -47,7 +53,9 @@ for key, t in traces.items():
         for a in agents[i:]:
             lines.append("  SUBAGENT[%s]  %s\n    ACTION: %s\n    OBSERVATION: %s" % (
                 a["app"], a["subtask"], a.get("action", ""), a.get("observation", "")))
-    open(os.path.join(DST, "%s_%s_2d.txt" % (tid, sid)), "w").write("\n".join(lines) + "\n")
+    stem = os.path.join(DST, "%s_%s_2d" % (tid, sid))
+    open(stem + ".txt", "w").write("\n".join(lines) + "\n")
+    json.dump(t, open(stem + ".json", "w"), indent=1)     # per-task machine record
     n += 1
 
-print("wrote %d readable traces to %s" % (n, DST))
+print("wrote %d (.json + .txt) trace pairs to %s" % (n, DST))

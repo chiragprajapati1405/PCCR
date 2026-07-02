@@ -21,7 +21,9 @@ PRICE_IN_PER_M, PRICE_OUT_PER_M = 0.25, 0.69
 
 ledger = json.load(open(os.path.join(REPO, "officebench_eval/COST_LEDGER.json")))
 oneD = json.load(open(os.path.join(REPO, "officebench_eval/par_rt_improved_progress.json")))
-traces = json.load(open(os.path.join(REPO, "officebench_eval/twod_all152_traces.json")))
+_src = os.environ.get("TWOD_TRACES", os.path.join(REPO, "officebench_eval/twod_all152_traces.json"))
+traces = json.load(open(_src))
+run_meta = traces.pop("_run", None)          # run-level parallel wall (N=4 file)
 
 
 def cost(pt, ct):
@@ -77,3 +79,8 @@ for r in rows:
     print("%-26s %-9s %8.2fM %9.0f %7d %10.0f %10.1f %8.4f" % (
         r["arm"], r["acc"], r["real_M"], r["tok_call"], r["calls"], r["compute_s"], r["wall_min"], r["cost"]))
 print("\nNote: %d/152 traces present." % n)
+if run_meta:
+    print("N=%s task-level run: PARALLEL wall = %.1fs (%.1f min) across %d tasks "
+          "(seq-equiv sum of per-task wall = %.1fs)." % (
+              run_meta.get("N"), run_meta.get("total_wall_s", 0), run_meta.get("total_wall_s", 0) / 60.0,
+              run_meta.get("done", 0), sum(v["wall_s"] for v in tv)))
