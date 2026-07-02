@@ -17,6 +17,14 @@ import time
 _GLOBAL_LOCK = threading.Lock()
 _GLOBAL_I = 0
 
+# GLOBAL in-flight cap across ALL instances/threads. Key round-robin spreads load across keys, but
+# the Cerebras rate limit is ORG-WIDE, so N=4 tasks x fan-out sub-agents can still burst 40+ calls at
+# once and trigger a 429 storm (measured: 1360 hits / 55 tasks on one PCCR+2D run, knocking out
+# base tasks). Bounding concurrent in-flight requests keeps the request rate under the org quota so
+# tasks don't fail on exhausted retries. Tune via CEREBRAS_MAX_INFLIGHT (0/unset = uncapped).
+_MAX_INFLIGHT = int(os.environ.get("CEREBRAS_MAX_INFLIGHT", "0") or "0")
+_INFLIGHT_SEM = threading.Semaphore(_MAX_INFLIGHT) if _MAX_INFLIGHT > 0 else None
+
 
 class CerebrasLLM:
     def __init__(self, model_name: str = "gpt-oss-120b", system_message: str | None = None):
@@ -62,10 +70,16 @@ class CerebrasLLM:
             c = self._next()
             t0 = time.perf_counter()
             try:
-                r = c.chat.completions.create(
-                    model=self.model_name, temperature=0, max_tokens=self.max_tokens,
-                    messages=[{"role": "system", "content": self.system_message or ""},
-                              {"role": "user", "content": prompt}])
+                if _INFLIGHT_SEM is not None:
+                    _INFLIGHT_SEM.acquire()
+                try:
+                    r = c.chat.completions.create(
+                        model=self.model_name, temperature=0, max_tokens=self.max_tokens,
+                        messages=[{"role": "system", "content": self.system_message or ""},
+                                  {"role": "user", "content": prompt}])
+                finally:
+                    if _INFLIGHT_SEM is not None:
+                        _INFLIGHT_SEM.release()
                 u = getattr(r, "usage", None)         # real billed tokens (whole prompt + completion)
                 if u is not None:
                     self.prompt_tokens += int(getattr(u, "prompt_tokens", 0) or 0)
