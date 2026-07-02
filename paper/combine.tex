@@ -1544,23 +1544,21 @@ Arm & Exec & Acc & Real tok & tok/call & calls & inj & Wall \\
 no-memory    & seq & $66$ & $\mathbf{3.38}$M & $1628$ & $\mathbf{2075}$ & $0$ & $58.4$ \\
 retrieve-all & seq & $\mathbf{76}$ & $5.02$M & $2161$ & $2323$ & $778$K & $70.6$ \\
 PCCR\,+PERF  & \textbf{par} & $73$ & $6.87$M & $\mathbf{1810}$ & $3796$ & $\mathbf{641}$K & $\mathbf{26.6}$ \\
-2D-router    & \textbf{par} & $60$ & $3.83$M & $1454$ & $2633$ & $319$K & $21.0$ \\
+2D (all $152$) & \textbf{par} & $18$ & $1.25$M & $765$ & $1636$ & $0$ & $15.6$ \\
 \bottomrule
 \end{tabular}
 \caption{Final head-to-head: sequential baselines (no parallel architecture) vs.\ PCCR on its
 parallel schedule ($N{=}4$). Real tokens $=$ prompt$+$completion; Wall $=$ wall-clock minutes.
 \textbf{PCCR finishes $2.2$--$2.7\times$ faster in wall-clock} despite more per-task work, via the
 parallel-tasks architecture; accuracy is parity within backbone noise ($76$ vs.\ $73$); PCCR wins
-tok/call and injected tokens. The last row adds the \textbf{second-dimension} arm
-(\S\ref{sec:twod}): the \emph{2D-router} routes each task to parallel sub-agents wherever a genuine
-parallel decomposition (an act wave of $\ge2$ independent leaves) forms ($62$ tasks) and to the 1D
-agent otherwise ($90$ tasks). It scores only $60/152$---below every 1D arm---because ``a decomposition
-exists'' does not imply ``2D succeeds'' (it fires on $62$ tasks and regresses $16$ that 1D solved). Its
-injected tokens are $319$K \emph{over all $152$} (the $62$ sub-agent tasks inject no memory, so they
-contribute $0$; only the $90$ 1D-routed tasks inject). Wall is the $N{=}4$ parallel makespan
-(LPT-scheduled per-task wall over four workers, an ideal-schedule estimate that omits cross-task
-rate-limit contention), $21.0$ min---so it does parallelise to the same order as the 1D parallel arm.
-The verdict is on \emph{accuracy}, not speed: the second dimension does not improve correctness.}
+tok/call and injected tokens. The last row is the \textbf{second dimension} (\S\ref{sec:twod}):
+parallel sub-agent decomposition applied to \emph{every} task under the same $N{=}4$ schedule---a
+single measured clean-pass run (all values real: calls are successful completions after excluding
+$429$ retries/dead-key skips; Wall is the continuous elapsed, $15.6$ min; injected $=0$ as sub-agents
+carry no memory). It posts the lowest tokens/calls/wall, but \emph{only by failing fast}: accuracy
+collapses to $18/152$ (L3 $1/57$)---far below every 1D arm. The second dimension buys wall-clock, not
+correctness: decomposition helps only the ${\sim}8/152$ embarrassingly-parallel fan-outs and strictly
+hurts the sequential majority.}
 \label{tab:final}
 \end{table*}
 
@@ -1589,12 +1587,13 @@ where a decomposition forms.
 
 \paragraph{Result: the second dimension does not generalise.} We evaluate two variants: the
 \emph{pure}-2D arm (the 2D machinery on \emph{every} task, no fall-back---the strictly fair analogue
-of running retrieve-all on all $152$), which scores $17/152$; and the structural router, whose
-head-to-head row we add to Table~\ref{tab:final}. Two findings, both negative:
+of running retrieve-all on all $152$), which we \emph{measure} as the second-dimension row of
+Table~\ref{tab:final} (a single clean $N{=}4$ pass); and a post-hoc structural router. Two findings,
+both negative:
 \begin{itemize}
-\item \textbf{Pure-2D collapses: $17/152$}, far below retrieve-all ($72$) and the improved 1D
-PCCR ($74$). The failure is concentrated exactly where parallelism is unavailable: by level it scores
-L1 $7/47$, L2 $9/48$, \textbf{L3 $1/57$}---the multi-step pipelines, which are strict dependency
+\item \textbf{Pure-2D collapses: $18/152$} (measured, $N{=}4$), far below retrieve-all ($72$) and the
+improved 1D PCCR ($74$). The failure is concentrated exactly where parallelism is unavailable: by
+level L1 $8/47$, L2 $9/48$, \textbf{L3 $1/57$}---the multi-step pipelines, which are strict dependency
 chains with no independent sub-work to overlap.
 \item \textbf{The general structural router is still below 1D: $60/152$.} The predicate fires on $62$
 tasks and \emph{regresses $16$ that 1D solved}. The lesson is that \emph{``a parallel decomposition

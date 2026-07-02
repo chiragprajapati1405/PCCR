@@ -94,6 +94,7 @@ async def run_one(it, pool, run_start):
             "worker_elapsed_s": round(time.perf_counter() - run_start, 1),   # wall since run start
         }
         prog["_run"] = {"N": N, "total_wall_s": round(time.perf_counter() - run_start, 1),
+                        "start_epoch": prog.get("_run", {}).get("start_epoch"),
                         "done": len([k for k in prog if k != "_run"])}
         json.dump(prog, open(OUT, "w"), indent=1)
         npass = sum(1 for k, v in prog.items() if k != "_run" and v["success"])
@@ -106,17 +107,26 @@ async def run_one(it, pool, run_start):
 
 async def main():
     loop = asyncio.get_running_loop()
-    loop.set_default_executor(ThreadPoolExecutor(max_workers=64))    # room for N=4 x sub-agents
+    # Cap concurrent blocking sub-agent LLM calls: 64 workers let N=4 x fan-out burst 40+ simultaneous
+    # Cerebras calls -> 429 storm -> multi-minute hangs (which corrupted the overnight wall). 16 keeps
+    # the request rate smooth so the run finishes in one continuous pass = a clean, real wall.
+    loop.set_default_executor(ThreadPoolExecutor(max_workers=16))
     # fresh per-worker containers
     for i in range(N):
         os.system("docker rm -f ob-2dpar-%d >/dev/null 2>&1" % i)
     pool = asyncio.Queue()
     for i in range(N):
         pool.put_nowait("ob-2dpar-%d" % i)
-    run_start = time.perf_counter()
+    # persist a single wall-clock START epoch so total wall is the TRUE continuous elapsed even if the
+    # process is resumed -- no more per-restart timer resets.
+    start_epoch = prog.get("_run", {}).get("start_epoch") or time.time()
+    prog["_run"] = {"N": N, "start_epoch": start_epoch, "done": len([k for k in prog if k != "_run"])}
+    json.dump(prog, open(OUT, "w"), indent=1)                          # persist epoch before any work
+    run_start = time.perf_counter() - (time.time() - start_epoch)     # anchor perf_counter to epoch
     await asyncio.gather(*[run_one(it, pool, run_start) for it in TASKS])
-    total = round(time.perf_counter() - run_start, 1)
-    prog["_run"] = {"N": N, "total_wall_s": total, "done": len([k for k in prog if k != "_run"])}
+    total = round(time.time() - start_epoch, 1)
+    prog["_run"] = {"N": N, "total_wall_s": total, "start_epoch": start_epoch,
+                    "done": len([k for k in prog if k != "_run"])}
     json.dump(prog, open(OUT, "w"), indent=1)
     d = [v for k, v in prog.items() if k != "_run"]
     print("\nPURE-2D N=%d FULL-152: %d/%d passed | real tokens %d | PARALLEL wall %.1fs (%.1f min) | "

@@ -1,5 +1,8 @@
 # 2D (parallel sub-agents) on OfficeBench — full-152 results
 
+> **UPDATE (clean N=4 measured run, `twod_par152_traces.json`):** pure-2D = **18/152**, real tokens **1.25M**, successful calls **1636** (raw 4356 incl. 2252 429-retries + 468 dead-key skips), tok/call **765**, injected **0**, **measured continuous N=4 wall = 15.6 min** (seq-equiv 25.5 min). This is the row now in Table 18 (tab:final). The earlier 17/152 run is archived in `twod_par152_traces_run1.json`.
+
+
 Backbone gpt-oss-120b (Cerebras). Accuracy / tokens / calls / cost are per-task, so they are
 **concurrency-independent** (identical at task-level N=1 or N=4); only wall-clock changes with N.
 
