@@ -454,13 +454,18 @@ def _run_subagent_blocking(env, llm, app, subtask, blackboard, max_steps):
                        observation=" | ".join(log)[:1400]), steps
 
 
-def make_subagent_runner(env, llm, max_steps, step_counter, blackboard_ref):
-    """Real AgentRunner for ParallelExecutor: runs the blocking sub-agent in a worker thread so
-    the wave's agents overlap on Docker-exec + LLM waits. Reads the shared blackboard (prior-wave
-    results) so create/send agents know the data a read-agent extracted."""
+def make_subagent_runner(env, llm, max_steps, step_counter, blackboard_ref, leaf_fn=None):
+    """Real AgentRunner for ParallelExecutor: runs the sub-agent in a worker thread so the wave's
+    agents overlap on Docker-exec + LLM waits, reading the shared blackboard. If leaf_fn is given
+    (a full PCCR-agent leaf), it drives the leaf instead of the bare schema loop --- this is what
+    makes the DAG-first leaves real PCCR sub-agents (memory + gate) on the shared container."""
     async def runner(agent_type, subtask, wm_snapshot):
-        res, steps = await asyncio.to_thread(
-            _run_subagent_blocking, env, llm, agent_type, subtask, blackboard_ref[0], max_steps)
+        if leaf_fn is not None:
+            res, steps = await asyncio.to_thread(
+                leaf_fn, env.container_name, agent_type, subtask, blackboard_ref[0], max_steps)
+        else:
+            res, steps = await asyncio.to_thread(
+                _run_subagent_blocking, env, llm, agent_type, subtask, blackboard_ref[0], max_steps)
         step_counter[0] += steps
         return res
     return runner
@@ -495,7 +500,7 @@ def dag_decision(task_text, env, llm):
     return dels, files, widest >= 2
 
 
-async def run_task_2d(task_text, env, llm, max_steps=8, force=False, dag=False, predels=None):
+async def run_task_2d(task_text, env, llm, max_steps=8, force=False, dag=False, predels=None, leaf_fn=None):
     """Orchestrate the 2nd dimension: plan -> waves -> per-wave concurrent execution, threading a
     compact blackboard (prior-wave observations) forward so later agents have the data they need.
 
@@ -520,7 +525,7 @@ async def run_task_2d(task_text, env, llm, max_steps=8, force=False, dag=False, 
         files = ""
     seed = ("[files] /testbed/data contains: %s\n" % files) if files else ""
     step_counter, blackboard_ref = [0], [seed]
-    executor = ParallelExecutor(make_subagent_runner(env, llm, max_steps, step_counter, blackboard_ref))
+    executor = ParallelExecutor(make_subagent_runner(env, llm, max_steps, step_counter, blackboard_ref, leaf_fn=leaf_fn))
     results, waves = [], []
 
     # DETERMINISTIC FAN-OUT FAST-PATH: when the task repeats an act over each item of a group, the
