@@ -79,16 +79,18 @@ def _record(prog, key, it, pat, r):
                  "container": r.get("_container"), "worker_t0": r.get("_t0"), "worker_t1": r.get("_t1")}
 
 
-def _run_2d_fastpath(it, container, model):
-    """SECOND DIMENSION on top of PCCR: for a genuine fan-out task, run the deterministic 2D
-    fast-path (parallel per-item leaves) instead of the single PCCR agent. Returns a PCCR-shaped
-    result dict, or None if no real fan-out materialised (path!=fastpath or <2 leaves) --- the caller
-    then falls back to the full PCCR agent. Runs blocking in a worker thread (own event loop)."""
+def _run_2d_dag(it, container, model):
+    """DAG-FIRST 2D on top of PCCR. Single planner pass builds the dependency DAG; a STRUCTURAL
+    independence test (disjoint target files) decides whether the task has genuine parallel work. If
+    yes, execute the 2D waves (independent subtasks parallel, file-sharing ones serialised); if no
+    (sequential chain), return None -> the caller runs the full PCCR agent. Blocking in a worker
+    thread (own event loop)."""
     import asyncio as _a
     import shutil
     from utils.env import OfficeAgentEnv
     import utils.evaluate as ev
     from .cerebras_llm import CerebrasLLM
+    from .subagent_parallel import dag_decision
     tid, sid = it["task"], it["subtask"]
     cfg = json.load(open(f"tasks/{tid}/subtasks/{sid}.json"))
     env = OfficeAgentEnv(image_name="officebench", container_name=container, task=cfg["task"], verbose=False)
@@ -96,12 +98,12 @@ def _run_2d_fastpath(it, container, model):
     env.cache_docker_status(local_cache_dir=f"tasks/{tid}/cache/{sid}/")
     llm = CerebrasLLM(model_name=model)
     t0 = time.perf_counter()
-    results, waves, dels, meta = _a.run(run_task_2d(cfg["task"], env, llm, force=False))
-    wall = round(time.perf_counter() - t0, 1)
-    fired = meta.get("path") == "fastpath" and meta.get("fanout_fired")
-    if not fired:                                        # not a real fan-out -> let PCCR handle it
+    dels0, _files, parallel = dag_decision(cfg["task"], env, llm)      # plan-only DAG decision
+    if not parallel:                                     # sequential chain -> PCCR (reset wipes any reads)
         env.close(); shutil.rmtree(f"tasks/{tid}/cache/{sid}", ignore_errors=True)
         return None
+    results, waves, dels, meta = _a.run(run_task_2d(cfg["task"], env, llm, dag=True, predels=dels0, max_steps=6))
+    wall = round(time.perf_counter() - t0, 1)
     out_dir = f"tasks/{tid}/outputs/{sid}/pccr2d"; shutil.rmtree(out_dir, ignore_errors=True)
     env.cache_docker_status(local_cache_dir=out_dir); testbed = os.path.join(out_dir, "testbed")
     ok, fp = True, None
@@ -112,7 +114,7 @@ def _run_2d_fastpath(it, container, model):
             ok, fp = False, f"{item['function']}:ERR:{str(e)[:40]}"; break
     env.close(); shutil.rmtree(out_dir, ignore_errors=True); shutil.rmtree(f"tasks/{tid}/cache/{sid}", ignore_errors=True)
     traj = [(str(getattr(r, "action", "")), (getattr(r, "observation", "") or "")[:400]) for r in (results or [])]
-    seq = [f"[2D fan-out fast-path] {len(dels)} leaves, fired={fired}, items={meta.get('items', [])[:8]}"]
+    seq = [f"[2D DAG] path={meta.get('path')} waves={[len(w) for w in (waves or [])]} widest={meta.get('leaves')}"]
     seq += [f"  [{r.agent_type}] {r.subtask}  ->  {(getattr(r, 'observation', '') or '')[:120]}" for r in (results or [])]
     return {"success": ok, "failed_predicate": fp, "steps": sum(len(w) for w in (waves or [])),
             "llm_calls": getattr(llm, "calls", 0), "wall_s": wall,
@@ -192,14 +194,13 @@ async def main_async(args):
         container = await pool.get()                       # acquire a free container
         try:
             t0 = time.perf_counter() - t_start
-            # SECOND DIMENSION: a genuine fan-out task goes to the parallel 2D fast-path; if no real
-            # fan-out materialises it returns None and we fall through to the full PCCR agent. Every
-            # non-fan-out task runs PCCR unchanged -> PCCR accuracy is the floor.
+            # SECOND DIMENSION (DAG-first): every task gets a single planner pass + dependency-DAG +
+            # structural (file-disjoint) independence test. If it exposes genuine parallel work, the
+            # 2D waves run; otherwise (a sequential chain) _run_2d_dag returns None and we fall through
+            # to the full PCCR agent -> PCCR accuracy is the floor.
             r = None
             if getattr(args, "twod", False):
-                task_text = json.load(open(f"tasks/{it['task']}/subtasks/{it['subtask']}.json"))["task"]
-                if _is_fanout_task(task_text):
-                    r = await asyncio.to_thread(_run_2d_fastpath, it, container, args.model)
+                r = await asyncio.to_thread(_run_2d_dag, it, container, args.model)
             # CRITICAL (H3.1): run the blocking run_task in a worker thread so the
             # event loop is free to dispatch the other concurrent tasks.
             if r is None:

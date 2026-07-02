@@ -257,6 +257,55 @@ def _act_clause(task_text):
     return base
 
 
+# ---- STRUCTURAL INDEPENDENCE (DAG-first router safety) --------------------------------------------
+# The DependencyAnalyzer orders subtasks into category waves; two subtasks in the SAME wave are only
+# safe to run in parallel if they touch DISJOINT outputs. We verify that structurally (from the files
+# each subtask names) rather than trusting the planner's dependency guess -- the fix that keeps the
+# general DAG-first router from over-decomposing dependent chains into colliding parallel waves.
+_FILE_RE = re.compile(r"[\w./-]+\.(?:xlsx|xls|csv|docx|doc|pdf|txt|ics|eml|png|jpe?g)", re.I)
+
+
+def _target_files(subtask, app):
+    """Best-effort set of output targets a subtask touches. Explicit filenames win; for the
+    implicit-file apps we key on the person (calendar event -> calendar/<name>.ics, email -> the
+    recipient's mailbox) so per-item fan-outs read as disjoint. Empty set => UNKNOWN target."""
+    s = subtask or ""
+    files = set(m.group(0).lower() for m in _FILE_RE.finditer(s))
+    if files:
+        return files
+    if app in ("calendar", "email"):
+        # extract the person after 'for/to <Name>' -> a per-person sink token
+        m = re.search(r"\b(?:for|to)\s+([A-Z][\w.-]{1,30})", s)
+        who = m.group(1).lower() if m else ""
+        return {"%s:%s" % (app, who)} if who else {"%s:<?>" % app}
+    return set()
+
+
+def _independent(d1, d2):
+    """Two delegations are parallel-safe iff their target files are known and disjoint. Unknown
+    target -> conservatively treated as DEPENDENT (serialised), so we never guess independence."""
+    f1, f2 = _target_files(d1.subtask, d1.agent_type), _target_files(d2.subtask, d2.agent_type)
+    if not f1 or not f2 or any(str(x).endswith("<?>") for x in (f1 | f2)):
+        return False
+    return f1.isdisjoint(f2)
+
+
+def _refine_wave(wave):
+    """Split one category wave into serial sub-waves so that only pairwise-INDEPENDENT delegations
+    run together. Greedy graph-colouring: a delegation joins the first sub-wave whose members are all
+    independent of it, else starts a new sub-wave. File-sharing (or unknown-target) subtasks end up in
+    different sub-waves -> executed sequentially, preserving their real dependency."""
+    subwaves = []
+    for d in wave:
+        placed = False
+        for sw in subwaves:
+            if all(_independent(d, o) for o in sw):
+                sw.append(d); placed = True; break
+        if not placed:
+            subwaves.append([d])
+    return subwaves
+
+
 def _read_app_for(fname):
     f = fname.lower()
     if f.endswith((".xlsx", ".xls", ".csv")):
@@ -417,7 +466,36 @@ def make_subagent_runner(env, llm, max_steps, step_counter, blackboard_ref):
     return runner
 
 
-async def run_task_2d(task_text, env, llm, max_steps=8, force=False):
+def dag_decision(task_text, env, llm):
+    """DAG-first routing decision, made from a single planner pass WITHOUT executing sub-agents.
+    Returns (dels, files, parallel) where parallel=True means the DAG exposes genuine parallel work:
+    either a per-item fan-out (detected from the text, since its width only appears after the grid is
+    read) OR >=2 planned act subtasks that are STRUCTURALLY INDEPENDENT (disjoint target files).
+    parallel=False -> the task is a sequential chain; route it to the single PCCR agent."""
+    if getattr(llm, "max_tokens", 0) < 4096:
+        llm.max_tokens = 4096
+    try:
+        _ec, _out = env.container.exec_run("ls /testbed/data", workdir=env.workdir)
+        files = _out.decode().replace("\n", ", ").strip()
+    except Exception:
+        files = ""
+    if _is_fanout_task(task_text):                       # fan-out: independence guaranteed by construction
+        return None, files, True
+    dels = plan_delegations(task_text, llm, files_hint=files)
+    if len(dels) < 2:
+        return dels, files, False
+    acts = []
+    for d in dels:
+        if _phase2d(d.subtask) != "read":
+            d.category = _phase2d(d.subtask); acts.append(d)
+    widest = 0
+    for wave in DependencyAnalyzer().analyze(acts):
+        for sw in _refine_wave(wave):
+            widest = max(widest, len(sw))
+    return dels, files, widest >= 2
+
+
+async def run_task_2d(task_text, env, llm, max_steps=8, force=False, dag=False, predels=None):
     """Orchestrate the 2nd dimension: plan -> waves -> per-wave concurrent execution, threading a
     compact blackboard (prior-wave observations) forward so later agents have the data they need.
 
@@ -450,7 +528,7 @@ async def run_task_2d(task_text, env, llm, max_steps=8, force=False):
     # read every data file -> parse the item list structurally (condition-aware) -> spawn one act
     # leaf per item. Planner-free -> reproducible; the only LLM calls are the leaf sub-agents.
     flist = [f.strip() for f in files.split(",") if f.strip()]
-    if _is_fanout_task(task_text) and flist:
+    if not dag and _is_fanout_task(task_text) and flist:
         # a clean per-item leaf completes in 1-2 steps; cap steps so a non-clean fan-out (grouped /
         # pairing) that slips the gate can't loop to a 100K-token runaway.
         fp_exec = ParallelExecutor(make_subagent_runner(env, llm, min(max_steps, 4), step_counter, blackboard_ref))
@@ -467,7 +545,7 @@ async def run_task_2d(task_text, env, llm, max_steps=8, force=False):
             return results, waves, reads + per, {"path": "fastpath", "fanout_fired": len(per) >= 2,
                                                  "leaves": len(per), "items": items}
 
-    dels = plan_delegations(task_text, llm, files_hint=files)
+    dels = predels if predels is not None else plan_delegations(task_text, llm, files_hint=files)
     if len(dels) < 2 and not force:
         return None, [], dels, {"path": "planner", "fanout_fired": False, "leaves": len(dels), "items": []}
     if not dels:                                     # force mode: undecomposable -> ONE whole-task agent
@@ -491,11 +569,15 @@ async def run_task_2d(task_text, env, llm, max_steps=8, force=False):
     # so each becomes a clean single-item leaf. This is the true N-way parallel wave.
     acts = _expand_fanout(acts, blackboard_ref[0], llm, step_counter, task_text=task_text)
 
-    # PHASE 3 -- run the (now per-item) act delegations, grouped into create->send waves.
+    # PHASE 3 -- run the act delegations grouped into create->send waves. In DAG mode, refine each
+    # category wave by STRUCTURAL INDEPENDENCE: only file-disjoint subtasks run together (sub-waves);
+    # file-sharing / unknown-target subtasks serialise, so a mis-planned dependent chain can't collide.
     widest = 0
     for wave in DependencyAnalyzer().analyze(acts):
-        widest = max(widest, len(wave))
-        wr = await executor.execute_group(wave, None); results.extend(wr); waves.append(wave)
-        blackboard_ref[0] += "\n".join("[%s] %s" % (r.agent_type, r.observation) for r in wr) + "\n"
-    path = "single" if len(dels) < 2 else "planner"
+        subwaves = _refine_wave(wave) if dag else [wave]
+        for sw in subwaves:
+            widest = max(widest, len(sw))
+            wr = await executor.execute_group(sw, None); results.extend(wr); waves.append(sw)
+            blackboard_ref[0] += "\n".join("[%s] %s" % (r.agent_type, r.observation) for r in wr) + "\n"
+    path = ("dag" if dag else ("single" if len(dels) < 2 else "planner"))
     return results, waves, dels, {"path": path, "fanout_fired": widest >= 2, "leaves": widest, "items": []}
