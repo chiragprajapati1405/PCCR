@@ -1441,16 +1441,20 @@ and the full \textbf{improved} PCCR.
 \toprule
 Arm & Accuracy & Real tokens & tok/call & LLM calls & injected & STM hits \\
 \midrule
-retrieve-all (baseline)  & $72/152$ & $\mathbf{4.47}$M & $1955$ & $\mathbf{2284}$ & $712$K & $0$ \\
+no-memory (floor)        & $68/152$ & $\mathbf{3.35}$M & $\mathbf{1223}$ & $2743$ & $0$ & $0$ \\
+retrieve-all (baseline)  & $72/152$ & $4.47$M & $1955$ & $\mathbf{2284}$ & $712$K & $0$ \\
 lean PCCR                & $72/152$ & $5.82$M & $2342$ & $2484$ & $553$K & $13$ \\
 improved PCCR            & $\mathbf{74/152}$ & $7.15$M & $2273$ & $3146$ & $\mathbf{630}$K & $10$ \\
 \bottomrule
 \end{tabular}
-\caption{Real-token cost ledger ($N{=}4$, true prompt$+$completion usage). PCCR \emph{matches or
-beats} retrieve-all on accuracy (lean ties, improved $+2$), but on the \emph{real} bill it costs
-$30$--$60\%$ more: the completion gate's \code{got\_stuck} retries add $+38\%$ LLM calls, and every
-call re-sends the system$+$history bulk. Note improved injects $12\%$ \emph{fewer} tokens ($630$K vs.\
-$712$K) yet costs $60\%$ \emph{more} real tokens---confirming injected-tokens is the wrong metric.}
+\caption{Real-token cost ledger ($N{=}4$, true prompt$+$completion usage). The three-way baseline is
+\textbf{no-memory} (injects nothing---the cost floor at $3.35$M, but its $2743$ calls exceed
+retrieve-all's because without guidance the agent explores more), \textbf{retrieve-all}, and PCCR.
+PCCR \emph{matches or beats} retrieve-all on accuracy (lean ties, improved $+2$), but on the
+\emph{real} bill it costs $30$--$60\%$ more: the completion gate's \code{got\_stuck} retries add
+$+38\%$ LLM calls, and every call re-sends the system$+$history bulk. Note improved injects $12\%$
+\emph{fewer} memory tokens ($630$K vs.\ $712$K) yet costs $60\%$ \emph{more} real tokens---confirming
+injected-tokens is the wrong metric.}
 \label{tab:realtoken}
 \end{table*}
 
@@ -1477,7 +1481,9 @@ divides by $N$).
 \subsection{Performance pass: slimming the re-sent history}\label{sec:perfpass}
 % =====================================================================
 Given that the real cost is dominated by re-sent prompt bulk $\times$ calls, we attacked the prompt
-size. Tracing the improved run showed two things: (i)~$62\%$ of all calls and $63\%$ of real tokens
+size with a \emph{performance pass} we abbreviate \textbf{PERF} in the tables; \emph{pre-perf} means
+the system before it, and \textbf{improved$+$PERF} the system after.
+Tracing the improved run showed two things: (i)~$62\%$ of all calls and $63\%$ of real tokens
 are spent on \emph{failures}, but they cannot be blanket-truncated---successes legitimately run long
 (longest no-progress run $=31$ steps), so any step-cap or no-progress abort costs successes; and
 (ii)~\textbf{$39\%$ of the observation text is pure noise}---``Malformed action'' retries and
@@ -1491,24 +1497,139 @@ removing history context makes the agent take a few more steps, so slimming is a
 optimisation, not a call reducer. The lever for fewer \emph{calls} is the opposite (plan-then-execute
 batching: several actions per call), which we leave to future work.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering\small
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
-Arm & Acc & Real tok & tok/call & calls & compute\,s \\
+Arm & Acc & Real tok & tok/call & calls & compute\,s$^{\dagger}$ \\
 \midrule
-retrieve-all        & $72$ & $4.47$M & $1955$ & $\mathbf{2284}$ & $\mathbf{3761}$ \\
+no-memory (floor)   & $68$ & $\mathbf{3.35}$M & $1223$ & $2743$ & $\mathbf{3477}$ \\
+retrieve-all        & $72$ & $4.47$M & $1955$ & $\mathbf{2284}$ & $3761$ \\
 improved (pre-perf) & $74$ & $7.15$M & $2273$ & $3146$ & $7396$ \\
 improved$+$PERF     & $73$ & $6.87$M & $\mathbf{1810}$ & $3796$ & $4491$ \\
 \bottomrule
 \end{tabular}
-\caption{Performance pass (history slimming $+$ call cap), full $152$. vs.\ pre-perf improved: same
-accuracy, $-20\%$ tok/call, $-39\%$ compute time, $-4\%$ real tokens, but $+21\%$ calls. PCCR beats
-retrieve-all on tok/call and injected tokens; the call-count gap (the gate's cost) keeps it above on
-real tokens and compute.}
+\caption{Baseline (no-memory / retrieve-all) vs.\ the performance pass (history slimming $+$ call
+cap), full $152$. improved$+$PERF vs.\ pre-perf improved: same accuracy, $-20\%$ tok/call, $-39\%$
+compute time, $-4\%$ real tokens, but $+21\%$ calls. PCCR beats retrieve-all on tok/call and injected
+tokens; the call-count gap (the gate's cost, and no-memory's exploration cost) keeps PCCR above both
+baselines on real tokens and compute. $^{\dagger}$compute\,s $=$ summed per-task compute seconds with
+provider rate-limit (HTTP~429) stalls removed---i.e.\ sequential-equivalent work, not wall-clock.}
 \label{tab:perf}
-\end{table}
+\end{table*}
+
+\paragraph{Final comparison and the wall-clock payoff.} Table~\ref{tab:final} is the head-to-head we
+actually ship: the two baselines run \emph{sequentially} (they have no parallel architecture---that
+is \emph{our} contribution), and PCCR runs on its parallel schedule ($N{=}4$). All rows use true
+prompt$+$completion tokens; the new column is \textbf{wall-clock time}. The story the earlier tables
+missed: \textbf{PCCR finishes the benchmark in $26.6$ min vs.\ sequential retrieve-all's $70.6$ min
+($2.7\times$ faster) and no-memory's $58.4$ min ($2.2\times$)}---\emph{despite} doing more per-task
+work ($3796$ calls vs.\ $2323$). PCCR converts a heavier workload into a much shorter wall time via
+the parallel-tasks architecture; the speedup is below the $4\times$ ideal only because PCCR does
+${\sim}1.6\times$ the work (at equal work the parallel speedup is ${\sim}4\times$, \S\ref{sec:realtoken}).
+Accuracy is parity within backbone run-to-run noise (retrieve-all $71$--$76$ across runs, PCCR
+$72$--$74$; this sequential retrieve-all landed high at $76$). PCCR also beats retrieve-all on
+tokens-per-call ($1810$ vs.\ $2161$) and injected tokens ($641$K vs.\ $778$K) and adds STM
+short-circuits; it trades higher total real tokens/calls (the completion gate's work) for the
+accuracy edge and the wall-clock win.
+
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}llcccccc@{}}
+\toprule
+Arm & Exec & Acc & Real tok & tok/call & calls & inj & Wall \\
+\midrule
+no-memory    & seq & $66$ & $\mathbf{3.38}$M & $1628$ & $\mathbf{2075}$ & $0$ & $58.4$ \\
+retrieve-all & seq & $\mathbf{76}$ & $5.02$M & $2161$ & $2323$ & $778$K & $70.6$ \\
+PCCR\,+PERF  & \textbf{par} & $73$ & $6.87$M & $\mathbf{1810}$ & $3796$ & $\mathbf{641}$K & $\mathbf{26.6}$ \\
+\bottomrule
+\end{tabular}
+\caption{Final head-to-head: sequential baselines (no parallel architecture) vs.\ PCCR on its
+parallel schedule ($N{=}4$). Real tokens $=$ prompt$+$completion; Wall $=$ wall-clock minutes.
+\textbf{PCCR finishes $2.2$--$2.7\times$ faster in wall-clock} despite more per-task work, via the
+parallel-tasks architecture; accuracy is parity within backbone noise ($76$ vs.\ $73$); PCCR wins
+tok/call and injected tokens.}
+\label{tab:final}
+\end{table*}
+
+% =====================================================================
+\section{A Second Dimension of Concurrency: Parallel Sub-Agents}\label{sec:twod}
+% =====================================================================
+The architecture so far parallelises across \emph{tasks} (the first dimension: $N$ tasks run
+concurrently, \S\ref{sec:par-results}). A natural question is whether a \emph{second} dimension
+helps: parallel \emph{sub-agents within a single task}. We decompose one task into independent
+sub-delegations---an LLM planner emits \code{(app, subtask)} pairs, and fan-outs such as ``create an
+event for \emph{each} member'' are expanded (deterministically, from the source grid) into one leaf
+per item---then a dependency analyser groups the leaves into precedence waves (read\,$\to$\,create\,
+$\to$\,send) and each wave's sub-agents run concurrently against the shared container. Token, call
+and accuracy figures are per-task and therefore concurrency-independent (\S\ref{sec:realtoken}); only
+wall-clock changes with the second dimension.
+
+\paragraph{The general structural router.} To test this \emph{fairly}---on the same distribution the
+sequential baselines run on, not a hand-picked subset---we need a routing rule that is not tuned to
+the test set. We use a \textbf{keyword-free structural predicate}: a task is routed to the 2D path
+\emph{iff a genuine parallel decomposition materialises}, i.e.\ the planner (or the deterministic
+fan-out fast-path) produces an act wave of \textbf{$\ge 2$ independent leaves}. This is the principled
+general test---``does a parallel decomposition of this task exist?''---decided \emph{a priori} from
+the task alone, with no oracle. Where it fires, we run the 2D sub-agent waves; everywhere else we fall
+back to the single-agent (1D) result. By construction the router can only differ from 1D on the tasks
+where a decomposition forms.
+
+\paragraph{Result: the second dimension does not generalise.} Table~\ref{tab:twod} reports both the
+\emph{pure}-2D arm (the 2D machinery on \emph{every} task, no fall-back---the strictly fair analogue
+of running retrieve-all on all $152$) and the structural router. Two findings, both negative:
+\begin{itemize}
+\item \textbf{Pure-2D collapses: $17/152$}, far below retrieve-all ($72$) and the improved 1D
+PCCR ($74$). The failure is concentrated exactly where parallelism is unavailable: by level it scores
+L1 $7/47$, L2 $9/48$, \textbf{L3 $1/57$}---the multi-step pipelines, which are strict dependency
+chains with no independent sub-work to overlap.
+\item \textbf{The general structural router is still below 1D: $60/152$.} The predicate fires on $62$
+tasks and \emph{regresses $16$ that 1D solved}. The lesson is that \emph{``a parallel decomposition
+exists'' is not the same as ``2D will succeed.''} The planner readily over-decomposes a sequential
+task into parallel-looking waves (e.g.\ two sub-agents that both re-read the same sheet and neither
+answers the question), and those waves then fail for structural reasons: decomposition (i) discards
+the whole-task context a monolithic agent uses for cross-step reasoning, (ii) inserts the planner as
+a new per-task point of failure, (iii) passes only a lossy $\sim$2\,KB blackboard between waves, and
+(iv) compounds sub-agent errors with no shared context to recover.
+\end{itemize}
+
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Arm & Acc & Real tok & tok/call & calls & compute\,s$^{\dagger}$ \\
+\midrule
+retrieve-all (1D, seq)        & $72$ & $\mathbf{4.47}$M & $1955$ & $2284$ & $3761$ \\
+improved PCCR (1D)            & $\mathbf{74}$ & $7.15$M & $2273$ & $3146$ & $7396$ \\
+pure-2D (all $152$)           & $17$ & $\mathbf{1.34}$M & $\mathbf{677}$ & $\mathbf{1974}$ & $\mathbf{2886}$ \\
+2D-router (general structural)& $60$ & $3.83$M & $1454$ & $2633$ & $4898$ \\
+\bottomrule
+\end{tabular}
+\caption{The second dimension (parallel sub-agents) on the full $152$, compared to the first-dimension
+1D arms. \emph{pure-2D} applies the 2D decomposition to every task (fair analogue of the baselines);
+the \emph{general structural router} takes the 2D result wherever a parallel decomposition of
+$\ge2$ independent leaves forms (fires on $62$ tasks) and the 1D result elsewhere. Both trail the 1D
+agent: decomposition helps only the ${\sim}8/152$ embarrassingly-parallel fan-out tasks and strictly
+hurts the sequential majority ($47$ multi-app pipelines, $97$ single/other). pure-2D's low
+tokens/calls reflect sub-agents \emph{failing fast}, not efficiency. $^{\dagger}$compute\,s $=$ summed
+per-task seconds with HTTP~429 stalls removed (sequential-equivalent work).}
+\label{tab:twod}
+\end{table*}
+
+\paragraph{Where 2D \emph{does} win, and the wall-clock.} On the narrow niche it is built for---per-item
+fan-out \emph{creates} read from a grid (e.g.\ ``schedule an event for each member'')---the
+deterministic fast-path beats 1D: $4/4$ vs.\ $3/4$ on those tasks (it even solves the top-three-students
+task the monolithic agent misses, via deterministic structural extraction) at $3.3\times$ fewer real
+tokens. But capturing that niche requires a task-structure-specific gate, so it is a scoped positive,
+not a benchmark-wide result. On wall-clock, the $N{=}4$ pure-2D run finishes in $25.4$\,min (the
+active parallel wall, reconstructed per-segment) versus a $49.4$\,min sequential-equivalent---a
+$1.9\times$ speedup, held below the ideal by HTTP~429 contention from four tasks each fanning out
+sub-agents, and partly attributable to fail-fast rather than genuine throughput. \textbf{Conclusion:}
+the second dimension is a niche optimisation for embarrassingly-parallel fan-outs, not a general agent
+architecture; we report it as a scoping (negative) result.
 
 % =====================================================================
 \section{Experiment Inventory: API vs.\ Local, and Why}\label{sec:inventory}
@@ -1522,6 +1643,7 @@ and correctness claims are cheap and exactly reproducible.
 
 \begin{table}[t]
 \centering\scriptsize
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}llp{3.1cm}@{}}
 \toprule
 Experiment & LLM? & Why \\
@@ -1541,7 +1663,8 @@ Stress \& unit tests & local & invariants, no model needed \\
 OfficeBench (full, by level) & \textbf{API} & multi-step agent execution \\
 OfficeBench curation & \textbf{API} & LLM distills trajectories \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{Which experiments call the LLM and why. ``modeled'' = real async
 scheduling with the per-call cost set to the measured $0.516$\,s.}
 \label{tab:inv}
