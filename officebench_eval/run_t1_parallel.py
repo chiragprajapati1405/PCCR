@@ -143,7 +143,7 @@ def _run_2d_dag(it, container, model, real, realmem):
     acc = {"prompt": 0, "completion": 0, "calls": 0, "inj": 0, "rl_wait": 0.0, "rl_hits": 0}
     leaf_fn = _make_pccr_leaf(real, realmem, model, acc, threading.Lock(), cfg)
     results, waves, dels, meta = _a.run(run_task_2d(cfg["task"], env, llm, dag=True, predels=dels0,
-                                                    max_steps=6, leaf_fn=leaf_fn))
+                                                    max_steps=6, leaf_fn=leaf_fn, replan=True))
     wall = round(time.perf_counter() - t0, 1)
     out_dir = f"tasks/{tid}/outputs/{sid}/pccr2d"; shutil.rmtree(out_dir, ignore_errors=True)
     env.cache_docker_status(local_cache_dir=out_dir); testbed = os.path.join(out_dir, "testbed")

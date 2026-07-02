@@ -105,6 +105,35 @@ def plan_delegations(task_text, llm, files_hint=""):
     return out
 
 
+def plan_next_group(task_text, blackboard, llm):
+    """ONE round of the orchestrator RE-PLAN loop (diagram Phase 4--5). Given the task and the
+    PROGRESS SO FAR (results merged from prior groups), emit the NEXT group of sub-tasks that can run
+    in parallel NOW --- or FINISH when the task is complete. This is the adaptive multi-round
+    orchestrator the fixed read->act plan was missing: each group is planned AFTER seeing the last
+    wave's results. Returns list[Delegation] (the next group) or None (FINISH)."""
+    prompt = (
+        "You are an orchestrator completing an office task by emitting ONE GROUP of parallel sub-tasks "
+        "per round. Look at PROGRESS SO FAR, then emit the NEXT group of sub-tasks whose inputs are "
+        "ALREADY available and that are INDEPENDENT of each other (they will run concurrently).\n"
+        "Return ONLY a JSON array of {\"app\": <shell,excel,word,pdf,ocr,calendar,email>, "
+        "\"subtask\": <one concrete single-app instruction>}. If the task repeats an operation over N "
+        "items visible in the progress, emit ONE sub-task PER item. If the task is COMPLETE, return "
+        "exactly: FINISH\n\nTASK: %s\n\nPROGRESS SO FAR:\n%s\n\nNEXT GROUP (JSON) or FINISH:"
+        % (str(task_text), (blackboard or "(nothing yet)")[:1600]))
+    out = llm.generate(prompt) or ""
+    head = out.strip()[:40].lower()
+    if "finish" in head and "[" not in head:
+        return None
+    parsed = _parse_json_block(out) or []
+    group = []
+    for d in parsed:
+        app = str(d.get("app", "")).lower().strip()
+        sub = str(d.get("subtask", "")).strip()
+        if app in VALID_ACTIONS and sub:
+            group.append(Delegation(agent_type=app, subtask=sub))
+    return group or None
+
+
 # common arg-name mistakes the model makes -> the real key each app expects
 _ARG_ALIAS = {"username": "user", "to": "recipient", "from": "sender", "body": "content",
               "message": "content", "title": "summary", "start": "time_start", "end": "time_end",
@@ -500,7 +529,11 @@ def dag_decision(task_text, env, llm):
     return dels, files, widest >= 2
 
 
-async def run_task_2d(task_text, env, llm, max_steps=8, force=False, dag=False, predels=None, leaf_fn=None):
+MAX_REPLAN_ROUNDS = 8          # orchestrator re-plan rounds cap (Phase 4-5 <-> Phase 8 loop)
+
+
+async def run_task_2d(task_text, env, llm, max_steps=8, force=False, dag=False, predels=None,
+                      leaf_fn=None, replan=False):
     """Orchestrate the 2nd dimension: plan -> waves -> per-wave concurrent execution, threading a
     compact blackboard (prior-wave observations) forward so later agents have the data they need.
 
@@ -527,6 +560,27 @@ async def run_task_2d(task_text, env, llm, max_steps=8, force=False, dag=False, 
     step_counter, blackboard_ref = [0], [seed]
     executor = ParallelExecutor(make_subagent_runner(env, llm, max_steps, step_counter, blackboard_ref, leaf_fn=leaf_fn))
     results, waves = [], []
+
+    # ORCHESTRATOR RE-PLAN LOOP (diagram Phase 4--5 -> L3 -> L4 -> Phase 8 -> "more groups?"). Each
+    # round the orchestrator emits the NEXT group of parallel sub-tasks GIVEN the merged results so
+    # far; the dependency DAG waves it (structural independence in dag mode); the wave runs against
+    # the shared blackboard (WM); results merge back; repeat until the orchestrator says FINISH.
+    if replan:
+        rounds = 0
+        for rounds in range(1, MAX_REPLAN_ROUNDS + 1):
+            group = plan_next_group(task_text, blackboard_ref[0], llm); step_counter[0] += 1
+            if not group:                                    # FINISH
+                break
+            for d in group:
+                d.category = getattr(d, "category", "") or _phase2d(d.subtask)
+            for wave in DependencyAnalyzer().analyze(group):
+                for sw in (_refine_wave(wave) if dag else [wave]):
+                    wr = await executor.execute_group(sw, None)
+                    results.extend(wr); waves.append(sw)
+                    blackboard_ref[0] += "\n".join("[%s] %s" % (r.agent_type, r.observation) for r in wr) + "\n"
+        widest = max((len(w) for w in waves), default=1)
+        return results, waves, [], {"path": "replan", "fanout_fired": widest >= 2,
+                                    "leaves": widest, "items": [], "rounds": rounds}
 
     # DETERMINISTIC FAN-OUT FAST-PATH: when the task repeats an act over each item of a group, the
     # LLM planner is the fragility (it randomly splits/mislabels read vs act across runs). Bypass it:
