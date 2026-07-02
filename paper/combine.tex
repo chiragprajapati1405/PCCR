@@ -1544,13 +1544,19 @@ Arm & Exec & Acc & Real tok & tok/call & calls & inj & Wall \\
 no-memory    & seq & $66$ & $\mathbf{3.38}$M & $1628$ & $\mathbf{2075}$ & $0$ & $58.4$ \\
 retrieve-all & seq & $\mathbf{76}$ & $5.02$M & $2161$ & $2323$ & $778$K & $70.6$ \\
 PCCR\,+PERF  & \textbf{par} & $73$ & $6.87$M & $\mathbf{1810}$ & $3796$ & $\mathbf{641}$K & $\mathbf{26.6}$ \\
+2D-router    & 2D & $60$ & $3.83$M & $1454$ & $2633$ & --- & --- \\
 \bottomrule
 \end{tabular}
 \caption{Final head-to-head: sequential baselines (no parallel architecture) vs.\ PCCR on its
 parallel schedule ($N{=}4$). Real tokens $=$ prompt$+$completion; Wall $=$ wall-clock minutes.
 \textbf{PCCR finishes $2.2$--$2.7\times$ faster in wall-clock} despite more per-task work, via the
 parallel-tasks architecture; accuracy is parity within backbone noise ($76$ vs.\ $73$); PCCR wins
-tok/call and injected tokens.}
+tok/call and injected tokens. The last row adds the \textbf{second-dimension} arm
+(\S\ref{sec:twod}): the \emph{2D-router} routes each task to parallel sub-agents wherever a genuine
+parallel decomposition (an act wave of $\ge2$ independent leaves) forms and to the 1D agent
+otherwise. It scores only $60/152$---below every 1D arm---because ``a decomposition exists'' does not
+imply ``2D succeeds'' (it fires on $62$ tasks and regresses $16$ that 1D solved); injected-tokens and
+a single wall-clock are not well-defined for this post-hoc routed composite (``---'').}
 \label{tab:final}
 \end{table*}
 
@@ -1577,9 +1583,10 @@ the task alone, with no oracle. Where it fires, we run the 2D sub-agent waves; e
 back to the single-agent (1D) result. By construction the router can only differ from 1D on the tasks
 where a decomposition forms.
 
-\paragraph{Result: the second dimension does not generalise.} Table~\ref{tab:twod} reports both the
+\paragraph{Result: the second dimension does not generalise.} We evaluate two variants: the
 \emph{pure}-2D arm (the 2D machinery on \emph{every} task, no fall-back---the strictly fair analogue
-of running retrieve-all on all $152$) and the structural router. Two findings, both negative:
+of running retrieve-all on all $152$), which scores $17/152$; and the structural router, whose
+head-to-head row we add to Table~\ref{tab:final}. Two findings, both negative:
 \begin{itemize}
 \item \textbf{Pure-2D collapses: $17/152$}, far below retrieve-all ($72$) and the improved 1D
 PCCR ($74$). The failure is concentrated exactly where parallelism is unavailable: by level it scores
@@ -1594,30 +1601,10 @@ the whole-task context a monolithic agent uses for cross-step reasoning, (ii) in
 a new per-task point of failure, (iii) passes only a lossy $\sim$2\,KB blackboard between waves, and
 (iv) compounds sub-agent errors with no shared context to recover.
 \end{itemize}
-
-\begin{table*}[t]
-\centering\small
-\setlength{\tabcolsep}{6pt}
-\begin{tabular}{@{}lccccc@{}}
-\toprule
-Arm & Acc & Real tok & tok/call & calls & compute\,s$^{\dagger}$ \\
-\midrule
-retrieve-all (1D, seq)        & $72$ & $\mathbf{4.47}$M & $1955$ & $2284$ & $3761$ \\
-improved PCCR (1D)            & $\mathbf{74}$ & $7.15$M & $2273$ & $3146$ & $7396$ \\
-pure-2D (all $152$)           & $17$ & $\mathbf{1.34}$M & $\mathbf{677}$ & $\mathbf{1974}$ & $\mathbf{2886}$ \\
-2D-router (general structural)& $60$ & $3.83$M & $1454$ & $2633$ & $4898$ \\
-\bottomrule
-\end{tabular}
-\caption{The second dimension (parallel sub-agents) on the full $152$, compared to the first-dimension
-1D arms. \emph{pure-2D} applies the 2D decomposition to every task (fair analogue of the baselines);
-the \emph{general structural router} takes the 2D result wherever a parallel decomposition of
-$\ge2$ independent leaves forms (fires on $62$ tasks) and the 1D result elsewhere. Both trail the 1D
-agent: decomposition helps only the ${\sim}8/152$ embarrassingly-parallel fan-out tasks and strictly
-hurts the sequential majority ($47$ multi-app pipelines, $97$ single/other). pure-2D's low
-tokens/calls reflect sub-agents \emph{failing fast}, not efficiency. $^{\dagger}$compute\,s $=$ summed
-per-task seconds with HTTP~429 stalls removed (sequential-equivalent work).}
-\label{tab:twod}
-\end{table*}
+Only ${\sim}8/152$ tasks are embarrassingly-parallel fan-outs; the rest are $47$ multi-app
+\emph{sequential} pipelines (no parallelism to exploit) and $97$ single/other, so decomposition helps
+a small niche and strictly hurts the sequential majority. pure-2D's low tokens/calls ($1.34$M, $1974$ calls) reflect sub-agents
+\emph{failing fast}, not efficiency.
 
 \paragraph{Where 2D \emph{does} win, and the wall-clock.} On the narrow niche it is built for---per-item
 fan-out \emph{creates} read from a grid (e.g.\ ``schedule an event for each member'')---the
