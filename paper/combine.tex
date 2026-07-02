@@ -1544,7 +1544,7 @@ Arm & Exec & Acc & Real tok & tok/call & calls & inj & Wall \\
 no-memory    & seq & $66$ & $\mathbf{3.38}$M & $1628$ & $\mathbf{2075}$ & $0$ & $58.4$ \\
 retrieve-all & seq & $\mathbf{76}$ & $5.02$M & $2161$ & $2323$ & $778$K & $70.6$ \\
 PCCR\,+PERF  & \textbf{par} & $73$ & $6.87$M & $\mathbf{1810}$ & $3796$ & $\mathbf{641}$K & $\mathbf{26.6}$ \\
-2D-router    & 2D & $60$ & $3.83$M & $1454$ & $2633$ & $319$K & $83.9$ \\
+2D-router    & \textbf{par} & $60$ & $3.83$M & $1454$ & $2633$ & $319$K & $21.0$ \\
 \bottomrule
 \end{tabular}
 \caption{Final head-to-head: sequential baselines (no parallel architecture) vs.\ PCCR on its
@@ -1556,10 +1556,11 @@ tok/call and injected tokens. The last row adds the \textbf{second-dimension} ar
 parallel decomposition (an act wave of $\ge2$ independent leaves) forms ($62$ tasks) and to the 1D
 agent otherwise ($90$ tasks). It scores only $60/152$---below every 1D arm---because ``a decomposition
 exists'' does not imply ``2D succeeds'' (it fires on $62$ tasks and regresses $16$ that 1D solved). Its
-injected tokens ($319$K) come only from the $90$ 1D-routed tasks (the $62$ sub-agent tasks inject no
-memory), and its Wall is the sequential-equivalent ($83.9$ min, sum of per-task): the router is a
-post-hoc composite of two runs, so it has no single measured parallel schedule and is not faster than
-the sequential baselines.}
+injected tokens are $319$K \emph{over all $152$} (the $62$ sub-agent tasks inject no memory, so they
+contribute $0$; only the $90$ 1D-routed tasks inject). Wall is the $N{=}4$ parallel makespan
+(LPT-scheduled per-task wall over four workers, an ideal-schedule estimate that omits cross-task
+rate-limit contention), $21.0$ min---so it does parallelise to the same order as the 1D parallel arm.
+The verdict is on \emph{accuracy}, not speed: the second dimension does not improve correctness.}
 \label{tab:final}
 \end{table*}
 
