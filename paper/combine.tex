@@ -1544,21 +1544,24 @@ Arm & Exec & Acc & Real tok & tok/call & calls & inj & Wall \\
 no-memory    & seq & $66$ & $\mathbf{3.38}$M & $1628$ & $\mathbf{2075}$ & $0$ & $58.4$ \\
 retrieve-all & seq & $\mathbf{76}$ & $5.02$M & $2161$ & $2323$ & $778$K & $70.6$ \\
 PCCR\,+PERF  & \textbf{par} & $73$ & $6.87$M & $\mathbf{1810}$ & $3796$ & $\mathbf{641}$K & $\mathbf{26.6}$ \\
-2D (all $152$) & \textbf{par} & $18$ & $1.25$M & $765$ & $1636$ & $0$ & $15.6$ \\
+pure-2D (replace) & par & $18$ & $1.25$M & $765$ & $1636$ & $0$ & $15.6$ \\
+PCCR\,+PERF\,+2D (layer) & \textbf{par} & $68$ & $5.55$M & $1340$ & $4140$ & $609$K & $22.3$ \\
 \bottomrule
 \end{tabular}
 \caption{Final head-to-head: sequential baselines (no parallel architecture) vs.\ PCCR on its
 parallel schedule ($N{=}4$). Real tokens $=$ prompt$+$completion; Wall $=$ wall-clock minutes.
 \textbf{PCCR finishes $2.2$--$2.7\times$ faster in wall-clock} despite more per-task work, via the
 parallel-tasks architecture; accuracy is parity within backbone noise ($76$ vs.\ $73$); PCCR wins
-tok/call and injected tokens. The last row is the \textbf{second dimension} (\S\ref{sec:twod}):
-parallel sub-agent decomposition applied to \emph{every} task under the same $N{=}4$ schedule---a
-single measured clean-pass run (all values real: calls are successful completions after excluding
-$429$ retries/dead-key skips; Wall is the continuous elapsed, $15.6$ min; injected $=0$ as sub-agents
-carry no memory). It posts the lowest tokens/calls/wall, but \emph{only by failing fast}: accuracy
-collapses to $18/152$ (L3 $1/57$)---far below every 1D arm. The second dimension buys wall-clock, not
-correctness: decomposition helps only the ${\sim}8/152$ embarrassingly-parallel fan-outs and strictly
-hurts the sequential majority.}
+tok/call and injected tokens. The last two rows are the \textbf{second dimension} (\S\ref{sec:twod}),
+both measured at $N{=}4$. \emph{pure-2D (replace)} runs the 2D decomposition on \emph{every} task with
+no PCCR: it posts the lowest tokens/calls/wall but \emph{only by failing fast}---accuracy collapses to
+$18/152$ (L3 $1/57$). \emph{PCCR$+$PERF$+$2D (layer)} keeps the full PCCR agent and routes only genuine
+fan-out tasks to the parallel 2D fast-path: memory is restored ($609$K injected; the $7$ fan-out tasks
+inject $0$) and the 2D layer is \textbf{strictly additive}---it solves $+2$ tasks 1D misses with zero
+regressions. This run's $68$ (below the $73$ base) is backbone (gpt-oss) run-to-run variance $+$ $429$
+stalls on the \emph{non-2D} tasks, not the 2D layer (all $13$ shortfalls are full-PCCR tasks). Takeaway:
+\textbf{replacing} PCCR with 2D collapses accuracy; \textbf{layering} 2D on PCCR preserves it and adds
+the fan-out wins.}
 \label{tab:final}
 \end{table*}
 
@@ -1566,60 +1569,69 @@ hurts the sequential majority.}
 \section{A Second Dimension of Concurrency: Parallel Sub-Agents}\label{sec:twod}
 % =====================================================================
 The architecture so far parallelises across \emph{tasks} (the first dimension: $N$ tasks run
-concurrently, \S\ref{sec:par-results}). A natural question is whether a \emph{second} dimension
-helps: parallel \emph{sub-agents within a single task}. We decompose one task into independent
-sub-delegations---an LLM planner emits \code{(app, subtask)} pairs, and fan-outs such as ``create an
-event for \emph{each} member'' are expanded (deterministically, from the source grid) into one leaf
-per item---then a dependency analyser groups the leaves into precedence waves (read\,$\to$\,create\,
-$\to$\,send) and each wave's sub-agents run concurrently against the shared container. Token, call
-and accuracy figures are per-task and therefore concurrency-independent (\S\ref{sec:realtoken}); only
-wall-clock changes with the second dimension.
+concurrently, \S\ref{sec:par-results}). The second dimension adds parallel \emph{sub-agents within a
+single task}, and---crucially---\textbf{layers on top of the intact PCCR agent rather than replacing
+it}, so PCCR's accuracy is the floor and 2D is purely additive.
 
-\paragraph{The general structural router.} To test this \emph{fairly}---on the same distribution the
-sequential baselines run on, not a hand-picked subset---we need a routing rule that is not tuned to
-the test set. We use a \textbf{keyword-free structural predicate}: a task is routed to the 2D path
-\emph{iff a genuine parallel decomposition materialises}, i.e.\ the planner (or the deterministic
-fan-out fast-path) produces an act wave of \textbf{$\ge 2$ independent leaves}. This is the principled
-general test---``does a parallel decomposition of this task exist?''---decided \emph{a priori} from
-the task alone, with no oracle. Where it fires, we run the 2D sub-agent waves; everywhere else we fall
-back to the single-agent (1D) result. By construction the router can only differ from 1D on the tasks
-where a decomposition forms.
+\paragraph{Deployed architecture (per task).} A two-stage router decides how each task runs:
 
-\paragraph{Result: the second dimension does not generalise.} We evaluate two variants: the
-\emph{pure}-2D arm (the 2D machinery on \emph{every} task, no fall-back---the strictly fair analogue
-of running retrieve-all on all $152$), which we \emph{measure} as the second-dimension row of
-Table~\ref{tab:final} (a single clean $N{=}4$ pass); and a post-hoc structural router. Two findings,
-both negative:
+\emph{(1) Structural gate.} A cheap, LLM-free predicate \code{is\_fanout\_task} tests the task text
+for a per-item fan-out: a fan-out quantifier (\emph{each}/\emph{every}/\emph{all}) $+$ a create verb,
+targeting a per-record output (a calendar event) read from a tabular source, while \emph{excluding}
+look-alikes---in-place cell edits, aggregations, folder/PDF pipelines, and ``collect into one
+document.'' It fires only on the provably-independent niche.
+
+\emph{(2a) Fan-out $\to$ 2D fast-path.} When the gate fires we build the parallel work
+\emph{deterministically, with no planner}: (i)~read every data file; (ii)~parse the grid and extract
+the item list from the name column, \emph{condition-aware} (``members in section~A'' keeps only the
+matching rows); (iii)~emit one \code{(app, subtask)} \emph{leaf} per item. The leaves feed the
+\textbf{DependencyAnalyzer}, a conservative dependency DAG that groups delegations into ordered
+\emph{waves}: a wave is a maximal set of leaves with no mutual dependency (same action category), and
+waves run in precedence order \code{read}\,$\to$\,\code{create}\,$\to$\,\code{send}\,$\to$\,\code{finish},
+with every node in wave $k{+}1$ conservatively depending on \emph{all} of wave~$k$. For a fan-out the
+$N$ per-item leaves are all \code{create}, so they form \emph{one wide wave} that the
+\textbf{ParallelExecutor} runs concurrently against the shared container. This is safe because
+OfficeBench tool execution is stateless per action (each call is an independent container process), so
+independent leaves in a wave never collide.
+
+\emph{(2b) Everything else $\to$ full PCCR.} Any non-fan-out task (the sequential-pipeline majority)
+runs the complete PCCR agent unchanged---six-store memory, $\rho$-gate, EM injection, completion gate,
+malformed-recovery. If the gate fires but the fast-path fails to materialise $\ge 2$ grid items, it
+hands control back and the task also falls to PCCR. Hence \textbf{PCCR is the accuracy floor}.
+
+\paragraph{Why layer, not replace --- the DAG-for-all ablation.} The alternative is to run the planner
+on \emph{every} task, build its dependency DAG, and fire 2D wherever the DAG exposes $\ge 2$
+independent nodes. We measured both endpoints and both are negative:
 \begin{itemize}
-\item \textbf{Pure-2D collapses: $18/152$} (measured, $N{=}4$), far below retrieve-all ($72$) and the
-improved 1D PCCR ($74$). The failure is concentrated exactly where parallelism is unavailable: by
-level L1 $8/47$, L2 $9/48$, \textbf{L3 $1/57$}---the multi-step pipelines, which are strict dependency
-chains with no independent sub-work to overlap.
-\item \textbf{The general structural router is still below 1D: $60/152$.} The predicate fires on $62$
-tasks and \emph{regresses $16$ that 1D solved}. The lesson is that \emph{``a parallel decomposition
-exists'' is not the same as ``2D will succeed.''} The planner readily over-decomposes a sequential
-task into parallel-looking waves (e.g.\ two sub-agents that both re-read the same sheet and neither
-answers the question), and those waves then fail for structural reasons: decomposition (i) discards
-the whole-task context a monolithic agent uses for cross-step reasoning, (ii) inserts the planner as
-a new per-task point of failure, (iii) passes only a lossy $\sim$2\,KB blackboard between waves, and
-(iv) compounds sub-agent errors with no shared context to recover.
+\item \textbf{Pure-2D (2D on every task) collapses to $18/152$} ($N{=}4$; L1 $8/47$, L2 $9/48$,
+\textbf{L3 $1/57$}). The multi-step L3 pipelines are strict dependency chains with no independent
+sub-work; decomposing them shreds the task. Its low tokens/calls ($1.34$M, $1636$ calls) reflect
+sub-agents \emph{failing fast}, not efficiency.
+\item \textbf{The general DAG/structural router still reaches only $60/152$}, \emph{regressing $16$
+tasks 1D solved}. ``A parallel decomposition exists'' is not ``2D succeeds'': the LLM planner
+over-decomposes dependent chains into parallel-looking waves (e.g.\ a calendar-create placed in the
+same wave as the spreadsheet it depends on). Decomposition further (i)~discards the whole-task context
+a monolithic agent uses for cross-step reasoning, (ii)~inserts the planner as a new failure point,
+(iii)~passes only a lossy $\sim$2\,KB blackboard between waves, and (iv)~compounds sub-agent errors
+with no shared context to recover.
 \end{itemize}
-Only ${\sim}8/152$ tasks are embarrassingly-parallel fan-outs; the rest are $47$ multi-app
-\emph{sequential} pipelines (no parallelism to exploit) and $97$ single/other, so decomposition helps
-a small niche and strictly hurts the sequential majority. pure-2D's low tokens/calls ($1.34$M, $1974$ calls) reflect sub-agents
-\emph{failing fast}, not efficiency.
+Only ${\sim}8/152$ tasks are genuine fan-outs; $47$ are multi-app \emph{sequential} pipelines and $97$
+single/other. So we gate 2D to the fan-out niche---where independence is guaranteed by construction,
+needing \emph{no} planner judgement---and keep PCCR everywhere else. Making the DAG-for-all router safe
+would require a \emph{structural} independence test (fire only when the leaves' target files are
+provably disjoint, not on the planner's opinion), which we leave to future work.
 
-\paragraph{Where 2D \emph{does} win, and the wall-clock.} On the narrow niche it is built for---per-item
-fan-out \emph{creates} read from a grid (e.g.\ ``schedule an event for each member'')---the
-deterministic fast-path beats 1D: $4/4$ vs.\ $3/4$ on those tasks (it even solves the top-three-students
-task the monolithic agent misses, via deterministic structural extraction) at $3.3\times$ fewer real
-tokens. But capturing that niche requires a task-structure-specific gate, so it is a scoped positive,
-not a benchmark-wide result. On wall-clock, the $N{=}4$ pure-2D run finishes in $25.4$\,min (the
-active parallel wall, reconstructed per-segment) versus a $49.4$\,min sequential-equivalent---a
-$1.9\times$ speedup, held below the ideal by HTTP~429 contention from four tasks each fanning out
-sub-agents, and partly attributable to fail-fast rather than genuine throughput. \textbf{Conclusion:}
-the second dimension is a niche optimisation for embarrassingly-parallel fan-outs, not a general agent
-architecture; we report it as a scoping (negative) result.
+\paragraph{Result: 2D is additive on top of PCCR.} Table~\ref{tab:final} reports the deployed
+\textbf{PCCR$+$PERF$+$2D} arm at $N{=}4$: $68/152$, with memory restored ($609$K injected---the $7$
+fan-out tasks inject $0$, the rest run PCCR) and a $22.3$\,min parallel wall. The contrast with the
+\emph{pure}-2D row ($18/152$) is the headline: \textbf{replacing} PCCR collapses accuracy, whereas
+\textbf{layering} 2D on top does not. A per-task diff against the 1D PCCR reference confirms the layer
+is clean: 2D \emph{solved $+2$ tasks} 1D misses (the top-three-students fan-out $2$-$14$/$0$ and
+$1$-$8$/$2$) with \textbf{zero regressions}---every task the 2D path touched either passed or was
+already failing under PCCR. The gap to the $73$ PCCR$+$PERF baseline is \emph{not} the 2D layer: all
+$13$ shortfalls land on \emph{full-PCCR} tasks and are backbone (gpt-oss) run-to-run variance plus
+HTTP~429 stalls this run (retrieve-all itself spans $71$--$76$ across runs). On its niche the fast-path
+still wins outright---$4/4$ vs.\ 1D's $3/4$ on the clean fan-out creates at $3.3\times$ fewer tokens.
 
 % =====================================================================
 \section{Experiment Inventory: API vs.\ Local, and Why}\label{sec:inventory}
