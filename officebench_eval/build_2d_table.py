@@ -80,7 +80,18 @@ for r in rows:
         r["arm"], r["acc"], r["real_M"], r["tok_call"], r["calls"], r["compute_s"], r["wall_min"], r["cost"]))
 print("\nNote: %d/152 traces present." % n)
 if run_meta:
-    print("N=%s task-level run: PARALLEL wall = %.1fs (%.1f min) across %d tasks "
-          "(seq-equiv sum of per-task wall = %.1fs)." % (
-              run_meta.get("N"), run_meta.get("total_wall_s", 0), run_meta.get("total_wall_s", 0) / 60.0,
-              run_meta.get("done", 0), sum(v["wall_s"] for v in tv)))
+    # reconstruct the true N=4 parallel wall from per-task worker_elapsed_s: it is monotonic within a
+    # watchdog segment and DROPS at each auto-heal restart -> sum each segment's max (last completion).
+    # This excludes the idle hang time before a restart, giving the ACTIVE parallel wall.
+    seq = sum(v["wall_s"] for v in tv)
+    par, cur, prev = 0.0, [], -1.0
+    for v in tv:                                   # tv is in completion (insertion) order
+        we = v.get("worker_elapsed_s", 0)
+        if we < prev - 1 and cur:
+            par += max(cur); cur = []
+        cur.append(we); prev = we
+    if cur:
+        par += max(cur)
+    print("N=%s parallel wall (active, segment-reconstructed) = %.1f min | seq-equiv compute = %.1f min "
+          "| speedup %.1fx  (raw _run.total_wall_s=%.0fs is only the last segment -- restarts reset it)"
+          % (run_meta.get("N"), par / 60.0, seq / 60.0, seq / max(1.0, par), run_meta.get("total_wall_s", 0)))

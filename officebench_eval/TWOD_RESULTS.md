@@ -35,11 +35,24 @@ blackboard between waves, (d) compounds sub-agent errors with no shared-context 
 `traces/twod_par152/1-12_2_2d.txt` — trivial lookup "What is X's HW2 score?" split into two
 sub-agents that both re-read the file and never answered.
 
-## Timing note
+## Wall-clock / timing
 The N=4 `_run.total_wall_s` (205.5s) is **unreliable** — the watchdog restarted the run twice
-(healing stalls), resetting the wall timer; it covers only the final segment. Use the
-**sequential-equivalent compute** (sum of per-task wall) = **2963s ≈ 49 min**. Note pure-2D's low
-compute/tokens is because sub-agents **fail fast**, not real efficiency.
+(healing stalls), resetting the wall timer; it covers only the final segment. Reconstruct the true
+wall from per-task `worker_elapsed_s` (monotonic within a segment, drops at each restart -> sum each
+segment's max; this excludes the idle hang before a restart):
+
+| Time metric (pure-2D N=4) | value |
+|---|---|
+| N=4 parallel wall (active, segment-reconstructed) | **25.4 min** |
+| seq-equiv compute (sum of per-task wall) | 49.4 min |
+| speedup (seq-equiv / parallel) | **1.9×** |
+| retrieve-all (1D seq) wall | 69.7 min |
+| improved PCCR (1D) wall | 128.3 min |
+
+Speedup is only ~1.9× (not ~4×) because 4 concurrent tasks × parallel sub-agents saturate the
+Cerebras API (429 contention) and contend on concurrent Docker setup. And pure-2D's low wall/tokens
+is partly because sub-agents **fail fast** (1.34M tokens vs retrieve-all 4.47M) — not real efficiency.
+`build_2d_table.py` prints the reconstructed wall from the traces.
 
 ## Artifacts
 - `twod_par152_traces.json` — full machine traces (all fields) + `_run` meta.
