@@ -1546,6 +1546,7 @@ retrieve-all & seq & $\mathbf{76}$ & $5.02$M & $2161$ & $2323$ & $778$K & $70.6$
 PCCR\,+PERF  & \textbf{par} & $73$ & $6.87$M & $\mathbf{1810}$ & $3796$ & $\mathbf{641}$K & $\mathbf{26.6}$ \\
 pure-2D (replace) & par & $18$ & $1.25$M & $765$ & $1636$ & $0$ & $15.6$ \\
 PCCR\,+PERF\,+2D (layer) & \textbf{par} & $68$ & $5.55$M & $1340$ & $4140$ & $609$K & $22.3$ \\
+PCCR$+$2D (DAG re-plan) & par & $64$ & $8.10$M & $1687$ & $4802$ & $1350$K & $51.6$ \\
 \bottomrule
 \end{tabular}
 \caption{Final head-to-head: sequential baselines (no parallel architecture) vs.\ PCCR on its
@@ -1559,9 +1560,19 @@ $18/152$ (L3 $1/57$). \emph{PCCR$+$PERF$+$2D (layer)} keeps the full PCCR agent 
 fan-out tasks to the parallel 2D fast-path: memory is restored ($609$K injected; the $7$ fan-out tasks
 inject $0$) and the 2D layer is \textbf{strictly additive}---it solves $+2$ tasks 1D misses with zero
 regressions. This run's $68$ (below the $73$ base) is backbone (gpt-oss) run-to-run variance $+$ $429$
-stalls on the \emph{non-2D} tasks, not the 2D layer (all $13$ shortfalls are full-PCCR tasks). Takeaway:
-\textbf{replacing} PCCR with 2D collapses accuracy; \textbf{layering} 2D on PCCR preserves it and adds
-the fan-out wins.}
+stalls on the \emph{non-2D} tasks, not the 2D layer (all $13$ shortfalls are full-PCCR tasks). The
+last row, \emph{PCCR$+$2D (DAG re-plan)}, is the arm that realises \emph{fig:arch literally}: every
+task with parallel structure runs the full orchestrator RE-PLAN loop (emit group $\to$ dependency-DAG
+$\to$ parallel wave $\to$ merge $\to$ ``more groups?'') with each leaf a full \emph{PCCR sub-agent}
+(memory $+$ $\rho$-gate); sequential chains fall back to a single PCCR agent. It is the \emph{most
+faithful} to the diagram but also the \emph{most expensive and least accurate} of the memory arms:
+$64/152$ at $8.10$M real tokens, $4802$ calls ($\sim$$49$/parallelised task) and a $51.6$-min wall---
+$1.5$--$3\times$ the cost of the keyword-gated layer ($68$) for $-4$ accuracy, because the LLM
+orchestrator re-plans one group at a time and mis-decomposes (and injects memory every round, $1350$K).
+Takeaway: \textbf{replacing} PCCR with 2D collapses accuracy ($18$); \textbf{layering} a targeted 2D
+fast-path on PCCR preserves it cheaply ($68$); and a \textbf{fully general DAG re-plan orchestrator},
+though architecturally faithful, pays far more for less---the deterministic, gated fast-path is the
+better engineering choice.}
 \label{tab:final}
 \end{table*}
 

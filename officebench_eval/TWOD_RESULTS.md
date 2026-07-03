@@ -62,3 +62,8 @@ is partly because sub-agents **fail fast** (1.34M tokens vs retrieve-all 4.47M) 
 - `traces/twod_par152/<task>_<sub>_2d.{json,txt}` — per-task machine + readable pair (152 each).
 - `build_2d_table.py` (`TWOD_TRACES=... `), `routed_152.py` — reproduce the numbers.
 - N=1 run traces (reached 80 tasks before the N=4 restart): `traces/twod_all152/`.
+
+## Exact-diagram arm (DAG-first + orchestrator re-plan + PCCR-agent leaves), N=4
+Measured full 152 (`par_dagreplan_progress.json`, traces in `traces/par_dagreplan/`, 152 pairs):
+**64/152** (L1 29/47, L2 24/48, L3 11/57) | real tokens **8.10M** | tok/call 1687 | calls **4802 (~49/parallelised task)** | injected **1350K** | N=4 wall (LPT est.) **51.6 min** (seq-equiv 205.8 min).
+This is the arm that realises fig:arch literally (Phase 4-5 orchestrator re-plan loop → DAG → parallel PCCR sub-agents → merge → "more groups?"; sequential chains → single PCCR fallback). Verdict: **most faithful but most expensive AND least accurate** of the memory arms — 1.5-3× the cost of the keyword-gated PCCR+2D (68) for -4 accuracy, because the LLM orchestrator re-plans one group at a time and mis-decomposes (and injects memory every round). The deterministic gated fast-path is the better engineering choice. (Run survived ~6 colima docker-socket crashes; watchdog now restarts colima on DEAD too.)
