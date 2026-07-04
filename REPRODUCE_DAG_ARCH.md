@@ -49,7 +49,10 @@ Watchdog (self-heals colima docker-socket death + resumes): `officebench_eval/wa
 - **OfficeBench** clone at `./OfficeBench/` (tasks + apps + intercode env) — the benchmark itself.
 - **Docker image** `officebench` (built per OfficeBench README) + Colima running.
 - **`cerebras.env`** — `CEREBRAS_KEY_1..N` API keys (gitignored).
-- Python venv `.venv/` with the OfficeBench requirements + `openai`, `faiss`.
+- Python venv `.venv/` with the OfficeBench requirements + `openai`, `faiss-cpu`, `sentence-transformers`.
+- **Embedder model** `all-MiniLM-L6-v2` — auto-downloaded by `sentence-transformers` on first run
+  (used to embed the EM bank into the FAISS index at startup; the index is built at runtime from
+  `em_bank.json`, so no index file needs committing).
 
 ## Recompute the aggregate from the committed result
 ```python
