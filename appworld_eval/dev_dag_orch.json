@@ -1,0 +1,44 @@
+{
+ "50e1ac9_1": {
+  "success": false,
+  "rounds": 6,
+  "calls": 32,
+  "flat_mem": false
+ },
+ "50e1ac9_2": {
+  "success": true,
+  "rounds": 6,
+  "calls": 23,
+  "flat_mem": true
+ },
+ "50e1ac9_3": {
+  "success": false,
+  "rounds": 6,
+  "calls": 32,
+  "flat_mem": true
+ },
+ "fac291d_1": {
+  "success": false,
+  "rounds": 6,
+  "calls": 31,
+  "flat_mem": true
+ },
+ "fac291d_2": {
+  "success": false,
+  "rounds": 6,
+  "calls": 38,
+  "flat_mem": false
+ },
+ "fac291d_3": {
+  "success": false,
+  "rounds": 6,
+  "calls": 23,
+  "flat_mem": true
+ },
+ "530b157_1": {
+  "success": false,
+  "rounds": 6,
+  "calls": 26,
+  "flat_mem": false
+ }
+}
