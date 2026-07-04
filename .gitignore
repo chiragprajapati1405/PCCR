@@ -60,3 +60,7 @@ explanation/
 # Parallel/improved-arm eval artifacts (regenerable)
 officebench_eval/t1_parallel_progress.json
 officebench_eval/traces/t1_par/
+.venv311/
+data/
+.appworld/
+appworld_eval/experiments/
