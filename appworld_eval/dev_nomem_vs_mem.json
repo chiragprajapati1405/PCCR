@@ -1,0 +1,222 @@
+{
+ "50e1ac9_1": {
+  "nomem": false,
+  "mem": false,
+  "nomem_pass": 1,
+  "mem_pass": 1,
+  "num_tests": 2,
+  "nomem_calls": 11,
+  "mem_calls": 10,
+  "inj": 400,
+  "instruction": "Give me a comma-separated list of top 4 most played r&b song titles from across "
+ },
+ "50e1ac9_2": {
+  "nomem": false,
+  "mem": true,
+  "nomem_pass": 1,
+  "mem_pass": 2,
+  "num_tests": 2,
+  "nomem_calls": 18,
+  "mem_calls": 10,
+  "inj": 400,
+  "instruction": "Give me a comma-separated list of top 6 most played edm song titles from across "
+ },
+ "50e1ac9_3": {
+  "nomem": false,
+  "mem": true,
+  "nomem_pass": 1,
+  "mem_pass": 2,
+  "num_tests": 2,
+  "nomem_calls": 28,
+  "mem_calls": 7,
+  "inj": 400,
+  "instruction": "Give me a comma-separated list of top 3 most played indie song titles from acros"
+ },
+ "fac291d_1": {
+  "nomem": false,
+  "mem": true,
+  "nomem_pass": 1,
+  "mem_pass": 2,
+  "num_tests": 2,
+  "nomem_calls": 17,
+  "mem_calls": 6,
+  "inj": 400,
+  "instruction": "How many unique songs are there across my Spotify song library, albums library a"
+ },
+ "fac291d_2": {
+  "nomem": false,
+  "mem": false,
+  "nomem_pass": 1,
+  "mem_pass": 1,
+  "num_tests": 2,
+  "nomem_calls": 19,
+  "mem_calls": 6,
+  "inj": 400,
+  "instruction": "How many unique songs are there across my Spotify song library, albums library a"
+ },
+ "fac291d_3": {
+  "nomem": true,
+  "mem": true,
+  "nomem_pass": 2,
+  "mem_pass": 2,
+  "num_tests": 2,
+  "nomem_calls": 27,
+  "mem_calls": 7,
+  "inj": 400,
+  "instruction": "How many unique songs are there across my Spotify song library, albums library a"
+ },
+ "530b157_1": {
+  "nomem": false,
+  "mem": false,
+  "nomem_pass": 3,
+  "mem_pass": 1,
+  "num_tests": 10,
+  "nomem_calls": 26,
+  "mem_calls": 28,
+  "inj": 400,
+  "instruction": "Kristin paid for my grocery recently as my payment cards were not working at the"
+ },
+ "530b157_2": {
+  "nomem": false,
+  "mem": false,
+  "nomem_pass": 1,
+  "mem_pass": 1,
+  "num_tests": 10,
+  "nomem_calls": 29,
+  "mem_calls": 28,
+  "inj": 400,
+  "instruction": "Joseph paid for my grocery recently as my payment cards were not working at the "
+ },
+ "530b157_3": {
+  "nomem": false,
+  "mem": false,
+  "nomem_pass": 4,
+  "mem_pass": 1,
+  "num_tests": 10,
+  "nomem_calls": 31,
+  "mem_calls": 28,
+  "inj": 400,
+  "instruction": "Robert paid for my grocery recently as my payment cards were not working at the "
+ },
+ "4ec8de5_1": {
+  "nomem": false,
+  "mem": false,
+  "nomem_pass": 1,
+  "mem_pass": 1,
+  "num_tests": 2,
+  "nomem_calls": 22,
+  "mem_calls": 2,
+  "inj": 400,
+  "instruction": "How many songs from across my spotify song and album libraries were released in "
+ },
+ "4ec8de5_2": {
+  "nomem": false,
+  "mem": true,
+  "nomem_pass": 1,
+  "mem_pass": 2,
+  "num_tests": 2,
+  "nomem_calls": 16,
+  "mem_calls": 7,
+  "inj": 400,
+  "instruction": "How many songs from across my spotify song and album libraries were released in "
+ },
+ "4ec8de5_3": {
+  "nomem": false,
+  "mem": true,
+  "nomem_pass": 1,
+  "mem_pass": 2,
+  "num_tests": 2,
+  "nomem_calls": 18,
+  "mem_calls": 10,
+  "inj": 400,
+  "instruction": "How many songs from across my spotify song and album libraries were released bef"
+ },
+ "b119b1f_1": {
+  "nomem": false,
+  "mem": false,
+  "nomem_pass": 0,
+  "mem_pass": 5,
+  "num_tests": 6,
+  "nomem_calls": 28,
+  "mem_calls": 12,
+  "inj": 400,
+  "instruction": "Keep going to the previous song on Spotify until you reach a song by Luna Starli"
+ },
+ "b119b1f_2": {
+  "nomem": true,
+  "mem": true,
+  "nomem_pass": 6,
+  "mem_pass": 6,
+  "num_tests": 6,
+  "nomem_calls": 21,
+  "mem_calls": 13,
+  "inj": 400,
+  "instruction": "Keep going to the next song on Spotify until you reach a song by Lily Moon."
+ },
+ "b119b1f_3": {
+  "nomem": false,
+  "mem": true,
+  "nomem_pass": 0,
+  "mem_pass": 6,
+  "num_tests": 6,
+  "nomem_calls": 9,
+  "mem_calls": 18,
+  "inj": 400,
+  "instruction": "Keep going to the previous song on Spotify until you reach a song by Silent Thun"
+ },
+ "d4e9306_1": {
+  "nomem": false,
+  "mem": true,
+  "nomem_pass": 2,
+  "mem_pass": 6,
+  "num_tests": 6,
+  "nomem_calls": 13,
+  "mem_calls": 10,
+  "inj": 400,
+  "instruction": "Follow artists of all the songs and albums I have ever liked on Spotify."
+ },
+ "d4e9306_2": {
+  "nomem": false,
+  "mem": true,
+  "nomem_pass": 1,
+  "mem_pass": 6,
+  "num_tests": 6,
+  "nomem_calls": 17,
+  "mem_calls": 9,
+  "inj": 400,
+  "instruction": "Follow artists of all the songs and albums I have ever liked on Spotify."
+ },
+ "d4e9306_3": {
+  "nomem": false,
+  "mem": true,
+  "nomem_pass": 1,
+  "mem_pass": 6,
+  "num_tests": 6,
+  "nomem_calls": 15,
+  "mem_calls": 8,
+  "inj": 400,
+  "instruction": "Follow artists of all the songs and albums I have ever liked on Spotify."
+ },
+ "0d8a4ee_1": {
+  "nomem": false,
+  "mem": false,
+  "nomem_pass": 2,
+  "mem_pass": 4,
+  "num_tests": 5,
+  "nomem_calls": 25,
+  "mem_calls": 23,
+  "inj": 400,
+  "instruction": "Send the following phone message to my parents and siblings, who do not have a v"
+ },
+ "0d8a4ee_2": {
+  "nomem": false,
+  "mem": true,
+  "nomem_pass": 1,
+  "mem_pass": 5,
+  "num_tests": 5,
+  "nomem_calls": 28,
+  "mem_calls": 16,
+  "inj": 400,
+  "instruction": "Send the following phone message to my siblings and roommates, who do not have a"
+ }
+}

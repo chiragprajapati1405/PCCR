@@ -35,17 +35,22 @@ def _code(text):
     return (m.group(1) if m else (text or "")).strip()
 
 
-def run_task(task_id, llm, max_steps=25, verbose=False):
-    """Drive one AppWorld task with the bare code-action agent. Returns a result dict."""
+def run_task(task_id, llm, max_steps=25, verbose=False, em=None):
+    """Drive one AppWorld task with the code-action agent. If `em` (AppWorldEM) is given, retrieve
+    the memory block ONCE per task (PCCR inject-once) and include it in every step's prompt."""
     t0 = time.perf_counter()
     result = {"task_id": task_id}
     # NOTE: AppWorld patches the `time` module inside its context (freezegun), so perf_counter is
     # unreliable in there -- measure wall AFTER the `with` exits (time is restored on __exit__).
     with AppWorld(task_id=task_id, experiment_name="pccr_aw_p1") as w:
         instr = w.task.instruction
+        mem = ""
+        if em is not None:                       # inject-once: retrieve relevant solved procedures
+            mem = em.inject_block(instr, k=2, exclude_task=task_id, max_chars=1600)
+        mem_ctx = ("\n\n" + mem + "\n") if mem else ""
         history, steps = [], 0
         for steps in range(1, max_steps + 1):
-            prompt = (SYSTEM + "\n\nTASK: " + instr + "\n\n"
+            prompt = (SYSTEM + mem_ctx + "\n\nTASK: " + instr + "\n\n"
                       + "\n\n".join(history[-8:]) + "\n\nNext python code:")
             code = _code(llm.generate(prompt))
             try:
@@ -60,6 +65,7 @@ def run_task(task_id, llm, max_steps=25, verbose=False):
                 break
         report = w.evaluate()
         result.update({"instruction": instr, "completed": w.task_completed(),
+                       "injected_tokens": max(0, len(mem) // 4),
                        "success": bool(getattr(report, "success", False)),
                        "pass_count": getattr(report, "pass_count", None),
                        "num_tests": getattr(report, "num_tests", None),
