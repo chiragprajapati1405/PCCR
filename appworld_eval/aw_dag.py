@@ -15,7 +15,7 @@ import sys
 import time
 
 from appworld import AppWorld, load_task_ids
-from officebench_eval.cerebras_llm import CerebrasLLM
+from appworld_eval.cerebras_llm import CerebrasLLM
 from appworld_eval.aw_runner import SYSTEM
 from appworld_eval.aw_memory import AppWorldEM
 

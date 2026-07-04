@@ -9,7 +9,7 @@ import os
 import sys
 
 from appworld import load_task_ids
-from officebench_eval.cerebras_llm import CerebrasLLM
+from appworld_eval.cerebras_llm import CerebrasLLM
 from appworld_eval.aw_runner import run_task, SYSTEM
 from appworld_eval.aw_memory import AppWorldEM
 

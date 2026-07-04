@@ -11,7 +11,7 @@ import sys
 import time
 
 from appworld import AppWorld, load_task_ids
-from officebench_eval.cerebras_llm import CerebrasLLM
+from appworld_eval.cerebras_llm import CerebrasLLM
 
 SYSTEM = (
     "You complete tasks by writing Python code in a REPL, one focused step per turn.\n"
