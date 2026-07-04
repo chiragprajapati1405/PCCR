@@ -80,10 +80,12 @@ def _record(prog, key, it, pat, r):
 
 
 def _make_pccr_leaf(real, realmem, model, acc, acc_lock, base_cfg):
-    """Factory for a PCCR-AGENT leaf: each parallel sub-agent is a full PCCR policy (six-store memory,
-    rho-gate, EM injection) running its subtask on its OWN env attached to the shared, already-prepped
-    container (get_container reuses it; no reset, so siblings' work survives). Token/injection stats
-    are summed into a shared accumulator. This is what makes the DAG-first leaves real PCCR sub-agents."""
+    """Factory for a PCCR-AGENT leaf running its subtask on its OWN env attached to the shared,
+    already-prepped container (get_container reuses it; no reset, so siblings' work survives).
+    INJECT-ONCE: the task-level rho-gate/memory is retrieved once by the orchestrator and seeded into
+    the shared blackboard; the leaf reads that (via [shared context]) and runs \code{no_memory} so it
+    does NOT re-retrieve/re-inject (which had doubled injected tokens). Diagram-faithful (rho-gate
+    once/task) and the main token cut. Token stats sum into a shared accumulator."""
     from utils.env import OfficeAgentEnv
     from utils.policies import LLMPolicy
     from .pccr_policy import make_pccr_policy
@@ -95,11 +97,12 @@ def _make_pccr_leaf(real, realmem, model, acc, acc_lock, base_cfg):
         # but WITHOUT the git-wipe (which would destroy sibling leaves' outputs).
         env.current_app = None; env.workdir = "/"; env.info = {}
         env.trajectory = []; env.observation = None; env.reward = None
-        text = subtask if not blackboard else (subtask + "\n\n[shared context]\n" + blackboard[:900])
+        text = subtask if not blackboard else (subtask + "\n\n[shared context]\n" + blackboard[:1200])
         cfg = dict(base_cfg or {}); cfg["task"] = text; cfg["evaluation"] = []      # inherit username/date/etc.
+        # no_memory: the shared memory is already in [shared context] (inject-once) -> no re-retrieval.
         policy = make_pccr_policy(LLMPolicy, model, env, cfg, real_arch=real, real_mem=realmem,
-                                  method="pccr", pattern=app, replay=True, output_convention=True,
-                                  inject_once=True, slim_history=True, completion_gate=False, self_verify=False)
+                                  method="no_memory", pattern=app, output_convention=True,
+                                  slim_history=True, completion_gate=False, self_verify=False)
         done, n, last_action, last_obs = False, 0, {}, ""
         while not done and n < max_steps and getattr(policy.llm, "calls", 0) < 40:
             n += 1
@@ -117,7 +120,7 @@ def _make_pccr_leaf(real, realmem, model, acc, acc_lock, base_cfg):
     return leaf_fn
 
 
-def _run_2d_dag(it, container, model, real, realmem):
+def _run_2d_dag(it, container, model, real, realmem, pattern="multi_app"):
     """DAG-FIRST 2D on top of PCCR. Single planner pass builds the dependency DAG; a STRUCTURAL
     independence test (disjoint target files) decides whether the task has genuine parallel work. If
     yes, execute the 2D waves with PARALLEL PCCR-AGENT leaves (independent subtasks concurrent,
@@ -141,9 +144,19 @@ def _run_2d_dag(it, container, model, real, realmem):
         env.close(); shutil.rmtree(f"tasks/{tid}/cache/{sid}", ignore_errors=True)
         return None
     acc = {"prompt": 0, "completion": 0, "calls": 0, "inj": 0, "rl_wait": 0.0, "rl_hits": 0}
+    # INJECT-ONCE: run the rho-gate / memory retrieval ONCE for the whole task (diagram Phase 3),
+    # seed it into the shared blackboard; the no_memory leaves read it and never re-retrieve.
+    mem_seed, task_inj = "", 0
+    try:
+        mem_text, _mtr = realmem.retrieve(cfg["task"], pattern)
+        if mem_text and str(mem_text).strip():
+            mem_seed = "[memory]\n" + str(mem_text).strip()[:1400]
+            task_inj = max(1, len(mem_seed) // 4)
+    except Exception:
+        pass
     leaf_fn = _make_pccr_leaf(real, realmem, model, acc, threading.Lock(), cfg)
     results, waves, dels, meta = _a.run(run_task_2d(cfg["task"], env, llm, dag=True, predels=dels0,
-                                                    max_steps=6, leaf_fn=leaf_fn, replan=True))
+                                                    max_steps=6, leaf_fn=leaf_fn, replan=True, mem_seed=mem_seed))
     wall = round(time.perf_counter() - t0, 1)
     out_dir = f"tasks/{tid}/outputs/{sid}/pccr2d"; shutil.rmtree(out_dir, ignore_errors=True)
     env.cache_docker_status(local_cache_dir=out_dir); testbed = os.path.join(out_dir, "testbed")
@@ -160,14 +173,15 @@ def _run_2d_dag(it, container, model, real, realmem):
     calls = getattr(llm, "calls", 0) + acc["calls"]
     rlw = getattr(llm, "rate_limit_wait_s", 0.0) + acc["rl_wait"]
     rlh = getattr(llm, "rate_limit_hits", 0) + acc["rl_hits"]
+    inj_total = task_inj + acc["inj"]                    # inject-once task block (+ any leaf residue)
     traj = [(str(getattr(r, "action", "")), (getattr(r, "observation", "") or "")[:400]) for r in (results or [])]
-    seq = [f"[2D DAG, PCCR leaves] path={meta.get('path')} waves={[len(w) for w in (waves or [])]} "
-           f"widest={meta.get('leaves')} injected={acc['inj']}"]
+    seq = [f"[2D DAG, PCCR leaves, inject-once] path={meta.get('path')} waves={[len(w) for w in (waves or [])]} "
+           f"widest={meta.get('leaves')} rounds={meta.get('rounds')} injected={inj_total}"]
     seq += [f"  [{r.agent_type}] {r.subtask}  ->  {(getattr(r, 'observation', '') or '')[:120]}" for r in (results or [])]
     return {"success": ok, "failed_predicate": fp, "steps": sum(len(w) for w in (waves or [])),
             "llm_calls": calls, "wall_s": wall, "prompt_tokens": pt, "completion_tokens": ct,
             "rate_limit_wait_s": rlw, "rate_limit_hits": rlh,
-            "em": {"consult_em": 0, "injected_tokens": acc["inj"], "stm_hit": False, "top_em_sim": 0.0,
+            "em": {"consult_em": 0, "injected_tokens": inj_total, "stm_hit": False, "top_em_sim": 0.0,
                    "consulted_stores": [], "pm_used": False, "replay": None, "batch_calls": None, "batch_actions": None},
             "task_text": cfg["task"], "trajectory": traj, "sequence": seq, "pattern": None, "_2d": True}
 
@@ -247,7 +261,7 @@ async def main_async(args):
             # to the full PCCR agent -> PCCR accuracy is the floor.
             r = None
             if getattr(args, "twod", False):
-                r = await asyncio.to_thread(_run_2d_dag, it, container, args.model, real, realmem)
+                r = await asyncio.to_thread(_run_2d_dag, it, container, args.model, real, realmem, pat)
             # CRITICAL (H3.1): run the blocking run_task in a worker thread so the
             # event loop is free to dispatch the other concurrent tasks.
             if r is None:

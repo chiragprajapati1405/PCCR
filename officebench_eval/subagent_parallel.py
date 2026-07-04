@@ -529,11 +529,13 @@ def dag_decision(task_text, env, llm):
     return dels, files, widest >= 2
 
 
-MAX_REPLAN_ROUNDS = 8          # orchestrator re-plan rounds cap (Phase 4-5 <-> Phase 8 loop)
+MAX_REPLAN_ROUNDS = 4          # orchestrator re-plan rounds cap (Phase 4-5 <-> Phase 8 loop); lowered
+                              # 8->4: most tasks converge in <=3 rounds, the tail 4 rounds are cost
+                              # with little accuracy (re-plan token cut).
 
 
 async def run_task_2d(task_text, env, llm, max_steps=8, force=False, dag=False, predels=None,
-                      leaf_fn=None, replan=False):
+                      leaf_fn=None, replan=False, mem_seed=""):
     """Orchestrate the 2nd dimension: plan -> waves -> per-wave concurrent execution, threading a
     compact blackboard (prior-wave observations) forward so later agents have the data they need.
 
@@ -556,7 +558,12 @@ async def run_task_2d(task_text, env, llm, max_steps=8, force=False, dag=False, 
         files = _out.decode().replace("\n", ", ").strip()
     except Exception:
         files = ""
+    # INJECT-ONCE (diagram Phase 3: rho-gate once/task before parallelism): the task-level memory
+    # block is retrieved ONCE by the caller and seeded into the shared blackboard (WM) here, so every
+    # round's leaves READ it instead of each re-retrieving+re-injecting (which doubled injected tokens).
     seed = ("[files] /testbed/data contains: %s\n" % files) if files else ""
+    if mem_seed:
+        seed = mem_seed.strip() + "\n" + seed
     step_counter, blackboard_ref = [0], [seed]
     executor = ParallelExecutor(make_subagent_runner(env, llm, max_steps, step_counter, blackboard_ref, leaf_fn=leaf_fn))
     results, waves = [], []
