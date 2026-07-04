@@ -399,7 +399,8 @@ def main():
     if args.improved or args.lean:                     # shared base of both arms
         args.confidence = args.replay = args.curate_pm = args.convention = True
         args.inject_once = args.online_stm = args.slim_history = True
-        args.step_hint = args.plan = False
+        args.step_hint = False        # keep --plan as passed: batching is an opt-in efficiency lever
+        #                             # (plan-then-execute, several actions/call) on the PCCR path.
         if args.call_cap == 0:
             args.call_cap = 80        # kill runaways; above the 93-call worst legit task headroom
         if args.stm_capacity == 0:                        # bound STM so it stays short-term
