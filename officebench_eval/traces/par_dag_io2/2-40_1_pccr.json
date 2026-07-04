@@ -1,0 +1,106 @@
+{
+  "task": "2-40",
+  "subtask": "1",
+  "level": 2,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 10,
+  "llm_calls": 9,
+  "wall_s": 20.4,
+  "prompt_tokens": 11859,
+  "completion_tokens": 2887,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 3078,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.48,
+    "faiss_backed": true,
+    "batch_calls": 5,
+    "batch_actions": 8
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "Successfully executed command: ls /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"list_events\", \"user\": \"Bob\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "Successfully executed command: ls /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"calendar\"}",
+      "Successfully switched to app: calendar"
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"list_events\", \"user\": \"Bob\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"list_events\", \"username\": \"Bob\"}",
+      "Successfully list events for Bob:\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: nap\nStart Time: 2024-05-01 13:00:00\nEnd Time: 2024-05-01 14:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: lunch\nStart Time: 2024-05-01 12:00:00"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"email\"}",
+      "Successfully switched to app: email"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"send_email\", \"to\": \"Bob\", \"subject\": \"class\", \"body\": \"Reminder: you have a class event scheduled.\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"send_email\", \"sender\": \"Alice\", \"recipient\": \"Bob\", \"subject\": \"class\", \"content\": \"Dear Bob,\\n\\nI noticed you have a class scheduled on 2024-05-01 from 16:00 to 18:00.\\n\\nBest regards,\\nAlice\"}",
+      "Successfully sent email to Bob."
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].",
+    "step  2:   SUBAGENT[calendar]  --do-->  list_events  {\"user\": \"Bob\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  3:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].",
+    "step  4: ORCHESTRATOR  --delegate-->  [calendar] agent",
+    "         OBSERVATION: Successfully switched to app: calendar",
+    "step  5:   SUBAGENT[calendar]  --do-->  list_events  {\"user\": \"Bob\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6:   SUBAGENT[calendar]  --do-->  list_events  {\"username\": \"Bob\"}",
+    "         OBSERVATION: Successfully list events for Bob:\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSumma",
+    "step  7: ORCHESTRATOR  --delegate-->  [email] agent",
+    "         OBSERVATION: Successfully switched to app: email",
+    "step  8:   SUBAGENT[email]  --do-->  send_email  {\"to\": \"Bob\", \"subject\": \"class\", \"body\": \"Reminder: you have a class event scheduled.\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  9:   SUBAGENT[email]  --do-->  send_email  {\"sender\": \"Alice\", \"recipient\": \"Bob\", \"subject\": \"class\", \"content\": \"Dear Bob,\\n\\nI noticed you have a class schedule",
+    "         OBSERVATION: Successfully sent email to Bob.",
+    "step 10: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "read Bob's calendar event and send email using event names to Bob only for class",
+  "_container": "ob-test-1",
+  "_t0": 1248.7,
+  "_t1": 1288.9
+}

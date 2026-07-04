@@ -1,0 +1,192 @@
+{
+  "3-98/0": {
+    "success": false,
+    "sim": 0.95,
+    "level": 3,
+    "consult_em": true,
+    "injected_tokens": 20490,
+    "top_hit": [
+      "extract score table from email, save as excel file score.xls"
+    ]
+  },
+  "3-51/0": {
+    "success": false,
+    "sim": 0.91,
+    "level": 3,
+    "consult_em": true,
+    "injected_tokens": 9175,
+    "top_hit": [
+      "Convert meeting agenda from calendar into Excel file meeting"
+    ]
+  },
+  "1-7/1": {
+    "success": false,
+    "sim": 0.91,
+    "level": 1,
+    "consult_em": true,
+    "injected_tokens": 7108,
+    "top_hit": [
+      "delete the first three students and their scores in score ex"
+    ]
+  },
+  "1-21/0": {
+    "success": false,
+    "sim": 0.91,
+    "level": 1,
+    "consult_em": true,
+    "injected_tokens": 3646,
+    "top_hit": [
+      "what is the subject of the email I sent to Bob?"
+    ]
+  },
+  "1-20/1": {
+    "success": false,
+    "sim": 0.9,
+    "level": 1,
+    "consult_em": true,
+    "injected_tokens": 1639,
+    "top_hit": [
+      "what is the subject of the earliest email that send to Bob?"
+    ]
+  },
+  "3-62/0": {
+    "success": false,
+    "sim": 0.88,
+    "level": 3,
+    "consult_em": true,
+    "injected_tokens": 3421,
+    "top_hit": [
+      "Generate a file report.docx based on midterm1 and midterm2 s"
+    ]
+  },
+  "3-26/0": {
+    "success": false,
+    "sim": 0.88,
+    "level": 3,
+    "consult_em": true,
+    "injected_tokens": 11455,
+    "top_hit": [
+      "Extract key points from PDF research papers, summarize them "
+    ]
+  },
+  "1-8/0": {
+    "success": false,
+    "sim": 0.88,
+    "level": 1,
+    "consult_em": true,
+    "injected_tokens": 8741,
+    "top_hit": [
+      "delete the first three students and their scores in score ex"
+    ]
+  },
+  "3-58/0": {
+    "success": false,
+    "sim": 0.87,
+    "level": 3,
+    "consult_em": true,
+    "injected_tokens": 3604,
+    "top_hit": [
+      "write all shopping item in docx file (shopping_list.docx) fr"
+    ]
+  },
+  "3-15/0": {
+    "success": false,
+    "sim": 0.87,
+    "level": 3,
+    "consult_em": true,
+    "injected_tokens": 2250,
+    "top_hit": [
+      "scan resume pdf file, extract name and contact information s"
+    ]
+  },
+  "3-12/0": {
+    "success": false,
+    "sim": 0.86,
+    "level": 3,
+    "consult_em": true,
+    "injected_tokens": 6297,
+    "top_hit": [
+      "extract text from power failure notification image and save "
+    ]
+  },
+  "2-23/0": {
+    "success": true,
+    "sim": 0.83,
+    "level": 2,
+    "consult_em": true,
+    "injected_tokens": 5644,
+    "top_hit": [
+      "Check the total due in Invoice_2.pdf and save it in costs.xl"
+    ]
+  },
+  "3-72/0": {
+    "success": false,
+    "sim": 0.82,
+    "level": 3,
+    "consult_em": true,
+    "injected_tokens": 7609,
+    "top_hit": [
+      "Extract schedule from PDF and add it to my calendar."
+    ]
+  },
+  "1-14/2": {
+    "success": false,
+    "sim": 0.8,
+    "level": 1,
+    "consult_em": true,
+    "injected_tokens": 6294,
+    "top_hit": [
+      "find the highest incoming in salary excel file, duplicate it"
+    ]
+  },
+  "1-14/1": {
+    "success": false,
+    "sim": 0.76,
+    "level": 1,
+    "consult_em": true,
+    "injected_tokens": 10776,
+    "top_hit": [
+      "Swap row of Alice and row of Bob in score excel file"
+    ]
+  },
+  "3-52/0": {
+    "success": false,
+    "sim": 0.75,
+    "level": 3,
+    "consult_em": true,
+    "injected_tokens": 11520,
+    "top_hit": [
+      "Create meeting agenda from Excel data and add it to my calen"
+    ]
+  },
+  "2-44/0": {
+    "success": false,
+    "sim": 0.73,
+    "level": 2,
+    "consult_em": true,
+    "injected_tokens": 8841,
+    "top_hit": [
+      "make a table email_counting.xlsx to show how many emails for"
+    ]
+  },
+  "2-2/1": {
+    "success": false,
+    "sim": 0.72,
+    "level": 2,
+    "consult_em": true,
+    "injected_tokens": 4256,
+    "top_hit": [
+      "scan resume pdf file, extract name and contact information s"
+    ]
+  },
+  "3-61/0": {
+    "success": false,
+    "sim": 0.71,
+    "level": 3,
+    "consult_em": true,
+    "injected_tokens": 13122,
+    "top_hit": [
+      "Retrieve Bill's past courses from the Excel file Bill_course"
+    ]
+  }
+}

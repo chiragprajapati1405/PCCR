@@ -1,0 +1,87 @@
+{
+  "task": "1-2",
+  "subtask": "3",
+  "level": 1,
+  "pattern": "lookup",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 7,
+  "llm_calls": 8,
+  "wall_s": 17.1,
+  "prompt_tokens": 11200,
+  "completion_tokens": 2758,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": false,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic"
+    ],
+    "injected_tokens": 2195,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.64,
+    "faiss_backed": true,
+    "batch_calls": 5,
+    "batch_actions": 5
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls -1 /testbed/data\"}",
+      "Successfully executed command: ls -1 /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls -1 /testbed/data\"}",
+      "Successfully executed command: ls -1 /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"list_events\", \"username\": \"Bob\"}",
+      "Successfully list events for Bob:\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: nap\nStart Time: 2024-05-01 13:00:00\nEnd Time: 2024-05-01 14:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: lunch\nStart Time: 2024-05-01 12:00:00"
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"list_events\", \"username\": \"Tom\"}",
+      "Successfully list events for Tom:\nSummary: lunch with David\nStart Time: 2024-05-01 12:30:00\nEnd Time: 2024-05-01 13:30:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: class\nStart Time: 2024-0"
+    ],
+    [
+      "Tom gets up earlier. Bob\u2019s schedule shows he is sleeping from\u202f08:00\u202fto\u202f11:00, so he wakes at\u202f11:00. Tom\u2019s first event of the day is a class that starts at\u202f08:00, meaning he must be awake before that time. Therefore Tom gets up earlier than Bob.",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"switch_app\",\n  \"target_app\": \"llm\"\n}",
+      "Successfully switched to app: llm"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"Tom\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -1 /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls -1 /testbed/data. The output was [].",
+    "step  2:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -1 /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls -1 /testbed/data. The output was [].",
+    "step  3:   SUBAGENT[calendar]  --do-->  list_events  {\"username\": \"Bob\"}",
+    "         OBSERVATION: Successfully list events for Bob:\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSumma",
+    "step  4:   SUBAGENT[calendar]  --do-->  list_events  {\"username\": \"Tom\"}",
+    "         OBSERVATION: Successfully list events for Tom:\nSummary: lunch with David\nStart Time: 2024-05-01 12:30:00\nEnd Time: 2024-05-01 13:30:00\nDescription: None\nLocation: None\n---------------------------------------------",
+    "step  5:   (unparsed) Tom gets up earlier. Bob\u2019s schedule shows he is sleeping from\u202f08:00\u202fto\u202f11:00, so he wakes at\u202f11:00. ",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6: ORCHESTRATOR  --delegate-->  [llm] agent",
+    "         OBSERVATION: Successfully switched to app: llm",
+    "step  7: ORCHESTRATOR  --finish--  answer='Tom'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "Who gets up earlier? Bob or Tom",
+  "_container": "ob-test-1",
+  "_t0": 1827.1,
+  "_t1": 1861.8
+}

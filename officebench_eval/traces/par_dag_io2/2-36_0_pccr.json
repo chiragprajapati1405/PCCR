@@ -1,0 +1,130 @@
+{
+  "task": "2-36",
+  "subtask": "0",
+  "level": 2,
+  "pattern": "doc_process",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 14,
+  "llm_calls": 15,
+  "wall_s": 25.7,
+  "prompt_tokens": 21314,
+  "completion_tokens": 5900,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 4743,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.628,
+    "faiss_backed": true,
+    "batch_calls": 6,
+    "batch_actions": 10
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"shell\"}",
+      "Successfully switched to app: shell"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": [\"ls\", \"-R\", \"/testbed/data\"]}",
+      "/testbed/data:\nsales_report.pdf\ntranscripts.png"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"ocr\"}",
+      "Successfully switched to app: ocr"
+    ],
+    [
+      "{\"app\": \"ocr\", \"action\": \"extract_text\", \"file_path\": \"/testbed/data/transcripts.png\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"ocr\",\"action\":\"recognize_file\",\"image_path\":\"/testbed/data/transcripts.png\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"ocr\",\"action\":\"recognize_file\",\"image_path\":\"/testbed/data/transcripts.png\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"ocr\",\"action\":\"recognize_file\",\"image_path\":\"/testbed/data/transcripts.png\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"ocr\",\"action\":\"recognize_file\",\"file_path\":\"/testbed/data/transcripts.png\"}",
+      "The text from /testbed/data/transcripts.png is:\nThe White House\nHigh School Tr rranscript 1600 Pennsylvania Ave\nWashington, DC 20500\n(202) 456-1111\nStudent: Teddy Roosevelt Date of Birth: Oct 27, 1910 Weighted GPA: = 3..78/4.00\nStreet Address: 1900 Pennsylvania Ave Place of Birth: Manhattan, NY Unweighted GPA: 3.65/4.00\nCity/State/Zip: Washington, DC 20500 Gender: Male\nPhone: (202) 456-1111 Credit"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"word\"}",
+      "Successfully switched to app: word"
+    ],
+    [
+      "{\"app\": \"word\", \"action\": \"create_document\", \"file_path\": \"/testbed/data/report.docx\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"word\",\"action\":\"create_new_file\",\"file_path\":\"/testbed/data/report.docx\"}",
+      "Successfully create new file /testbed/data/report.docx"
+    ],
+    [
+      "{\"app\": \"word\", \"action\": \"write_to_file\", \"file_path\": \"/testbed/data/report.docx\", \"contents\": \"Grade Report\\n\\nStudent: Teddy Roosevelt\\nDate of Birth: Oct 27, 1910\\nWeighted GPA: 3.78 / 4.00\\nUnweighted GPA: 3.65 / 4.00\\nCredits Earned: 23.00\\n\\nCourse Grades:\\n\\nFall/Winter:\\n- Physical Science: A (1.00 credit)\\n- Tennis: A (1.00 credit)\\n- U.S. History: A (1.00 credit)\\n- American Literature: A (1.00 credit)\\n- Art Appreciation: A (1.00 credit)\\n- Modern Literature: B (1.00 credit)\\n- Music Instruction: C (1.00 credit)\\n- Geography: A (1.00 credit)\\n- Economics: A (1.00 credit)\\n- Physics: A (1.00 credit)\\n\\nSpring/Summer:\\n- English Composition: A (1.00 credit)\\n- Algebra I: A (1.00 credit)\\n- Music Appreciation: B (1.00 credit)\\n- Algebra II: B (1.00 credit)\\n- World History: A (1.00 credit)\\n- Biology: A (1.00 credit)\\n- Geometry: A (1.00 credit)\\n- Trigonometry: A (1.00 credit)\\n- Chemistry: C (1.00 credit)\\n- Drama (DE): A (1.00 credit)\\n- World Literature (AP): B (1.00 credit)\\n\\nOverall GPA Summary:\\n- Cumulative GPA (most recent term): 3.78\\n- Total Credits Earned: 23.00\\n\\nThis report summarizes the academic performance of Teddy Roosevelt as recorded in the transcript.\"}",
+      "Successfully write contents to /testbed/data/report.docx"
+    ],
+    [
+      "{\"app\":\"word\",\"action\":\"write_to_file\",\"file_path\":\"/testbed/data/report.docx\",\"contents\":\"Grade Report\\n\\nStudent: Teddy Roosevelt\\nDate of Birth: Oct 27, 1910\\nWeighted GPA: 3.78 / 4.00\\nUnweighted GPA: 3.65 / 4.00\\nCredits Earned: 23.00\\n\\nCourse Grades:\\n\\nFall/Winter:\\n- Physical Science: A (1.00 credit)\\n- Tennis: A (1.00 credit)\\n- U.S. History: A (1.00 credit)\\n- American Literature: A (1.00 credit)\\n- Soccer: A (1.00 credit)\\n- Art Appreciation: A (1.00 credit)\\n- Modern Literature: B (1.00 credit)\\n- Baseball: A (1.00 credit)\\n- Music Instruction: C (1.00 credit)\\n- Geography: A (1.00 credit)\\n- Economics: A (1.00 credit)\\n- Physics: A (1.00 credit)\\n\\nSpring/Summer:\\n- English Composition: A (1.00 credit)\\n- Algebra I: A (1.00 credit)\\n- Music Appreciation: B (1.00 credit)\\n- Algebra II: B (1.00 credit)\\n- World History: A (1.00 credit)\\n- Biology: A (1.00 credit)\\n- Geometry: A (1.00 credit)\\n- Trigonometry: A (1.00 credit)\\n- Chemistry: C (1.00 credit)\\n- Drama (DE): A (1.00 credit)\\n- World Literature (AP): B (1.00 credit)\\n\\nOverall GPA Summary:\\n- Cumulative GPA (most recent term): 3.78\\n- Total Credits Earned: 23.00\\n\\nThis report summarizes the academic performance of Teddy Roosevelt as recorded in the transcript.\"}",
+      "Successfully write contents to /testbed/data/report.docx"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"finish_task\", \"answer\": \"None\"}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1: ORCHESTRATOR  --delegate-->  [shell] agent",
+    "         OBSERVATION: Successfully switched to app: shell",
+    "step  2:   SUBAGENT[shell]  --do-->  command  {\"command\": [\"ls\", \"-R\", \"/testbed/data\"]}",
+    "         OBSERVATION: /testbed/data:\nsales_report.pdf\ntranscripts.png",
+    "step  3: ORCHESTRATOR  --delegate-->  [ocr] agent",
+    "         OBSERVATION: Successfully switched to app: ocr",
+    "step  4:   SUBAGENT[ocr]  --do-->  extract_text  {\"file_path\": \"/testbed/data/transcripts.png\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  5:   SUBAGENT[ocr]  --do-->  recognize_file  {\"image_path\": \"/testbed/data/transcripts.png\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6:   SUBAGENT[ocr]  --do-->  recognize_file  {\"image_path\": \"/testbed/data/transcripts.png\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  7:   SUBAGENT[ocr]  --do-->  recognize_file  {\"image_path\": \"/testbed/data/transcripts.png\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  8:   SUBAGENT[ocr]  --do-->  recognize_file  {\"file_path\": \"/testbed/data/transcripts.png\"}",
+    "         OBSERVATION: The text from /testbed/data/transcripts.png is:\nThe White House\nHigh School Tr rranscript 1600 Pennsylvania Ave\nWashington, DC 20500\n(202) 456-1111\nStudent: Teddy Roosevelt Date of Birth: Oct 27, 1910",
+    "step  9: ORCHESTRATOR  --delegate-->  [word] agent",
+    "         OBSERVATION: Successfully switched to app: word",
+    "step 10:   SUBAGENT[word]  --do-->  create_document  {\"file_path\": \"/testbed/data/report.docx\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 11:   SUBAGENT[word]  --do-->  create_new_file  {\"file_path\": \"/testbed/data/report.docx\"}",
+    "         OBSERVATION: Successfully create new file /testbed/data/report.docx",
+    "step 12:   SUBAGENT[word]  --do-->  write_to_file  {\"file_path\": \"/testbed/data/report.docx\", \"contents\": \"Grade Report\\n\\nStudent: Teddy Roosevelt\\nDate of Birth: Oct 27,",
+    "         OBSERVATION: Successfully write contents to /testbed/data/report.docx",
+    "step 13:   SUBAGENT[word]  --do-->  write_to_file  {\"file_path\": \"/testbed/data/report.docx\", \"contents\": \"Grade Report\\n\\nStudent: Teddy Roosevelt\\nDate of Birth: Oct 27,",
+    "         OBSERVATION: Successfully write contents to /testbed/data/report.docx",
+    "step 14: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "Read grade in transcripts and generate a grade report report.docx",
+  "_container": "ob-test-2",
+  "_t0": 1387.5,
+  "_t1": 1430.9
+}

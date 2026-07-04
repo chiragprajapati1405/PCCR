@@ -1,0 +1,88 @@
+{
+  "task": "1-22",
+  "subtask": "3",
+  "level": 1,
+  "pattern": "lookup",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 7,
+  "llm_calls": 10,
+  "wall_s": 18.7,
+  "prompt_tokens": 10071,
+  "completion_tokens": 1827,
+  "rate_limit_wait_s": 1.5,
+  "rate_limit_hits": 2,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 3952,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.462,
+    "faiss_backed": true,
+    "batch_calls": 4,
+    "batch_actions": 5
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": [\"ls\", \"-R\", \"/testbed/data\"]}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"list_emails\", \"username\": \"Alice\"}",
+      "Successfully list emails for Alice:\nEmail ID: meeting.eml\nFrom: Alice@gmail.com\nTo: Bob123@gmail.com\nSubject: scheduled meeting\nContent: Can we have a zoom m...\n--------------------------------------------------\nEmail ID: scholarship approved.eml\nFrom: gradescope@gmail.com\nTo: Bob123@gmail.com\nSubject: application approved\nContent: Your scholarship app...\n------------------------------------------"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"read_email\", \"username\": \"Alice\", \"email_id\": \"scholarship approved.eml\"}",
+      "Successfully read email scholarship approved.eml for Alice:\nFrom: gradescope@gmail.com\nTo: Bob123@gmail.com\nSubject: application approved\nContent: Your scholarship application has been approved.\n\nSent at: 2024-04-02 10:00:00..."
+    ],
+    [
+      "Yes. Your scholarship application has been approved.",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "Yes. Your scholarship application has been approved.",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"switch_app\",\n  \"target_app\": \"llm\"\n}",
+      "Successfully switched to app: llm"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"finish_task\", \"answer\": \"Yes\"}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": [\"ls\", \"-R\", \"/testbed/data\"]}",
+    "         OBSERVATION: /testbed/data:",
+    "step  2:   SUBAGENT[email]  --do-->  list_emails  {\"username\": \"Alice\"}",
+    "         OBSERVATION: Successfully list emails for Alice:\nEmail ID: meeting.eml\nFrom: Alice@gmail.com\nTo: Bob123@gmail.com\nSubject: scheduled meeting\nContent: Can we have a zoom m...\n---------------------------------------",
+    "step  3:   SUBAGENT[email]  --do-->  read_email  {\"username\": \"Alice\", \"email_id\": \"scholarship approved.eml\"}",
+    "         OBSERVATION: Successfully read email scholarship approved.eml for Alice:\nFrom: gradescope@gmail.com\nTo: Bob123@gmail.com\nSubject: application approved\nContent: Your scholarship application has been approved.\n\nSent",
+    "step  4:   (unparsed) Yes. Your scholarship application has been approved.",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  5:   (unparsed) Yes. Your scholarship application has been approved.",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6: ORCHESTRATOR  --delegate-->  [llm] agent",
+    "         OBSERVATION: Successfully switched to app: llm",
+    "step  7: ORCHESTRATOR  --finish--  answer='Yes'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "Check the emails, and let me know if my scholarship application is approved. Yes or no?",
+  "_container": "ob-test-3",
+  "_t0": 2134.4,
+  "_t1": 2170.6
+}

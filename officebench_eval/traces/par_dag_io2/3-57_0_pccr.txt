@@ -1,0 +1,13 @@
+TASK 3-57/0 [None] pccr  success=False  steps=7 llm_calls=35
+  REAL tokens: prompt=21217 completion=8118 total=29335  injected_mem=352
+  latency: wall=67.5s  compute(no-429)=66.7s  429_wait=0.8s  429_hits=1
+  assign homework "read book and write essay" in hw1.docx for students in class 1, email hw1.docx to Carol and Anna in class1
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1, 1, 1, 1] widest=1 rounds=4 injected=352
+  [shell] command ls /testbed/data  ->  Task finished
+  [excel] {'action': 'read_file', 'file_path': '/testbed/data/class_member.xlsx'}  ->  Task finished
+  [shell] {'action': 'command', 'command': ['ls', '/testbed/data']}  ->  Task finished
+  [excel] read_file file_path='/testbed/data/class_member.xlsx'  ->  Task finished
+  [word] write_to_file file_path='/testbed/data/hw1.docx' content='Homework: read book and write essay'  ->  Task finished
+  [excel] read_file /testbed/data/class_member.xlsx  ->  Task finished
+  [shell] command ['ls','/testbed/data']  ->  Task finished

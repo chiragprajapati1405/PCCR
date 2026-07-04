@@ -1,0 +1,10 @@
+TASK 2-14/0 [None] pccr  success=False  steps=4 llm_calls=19
+  REAL tokens: prompt=15241 completion=4765 total=20006  injected_mem=352
+  latency: wall=35.5s  compute(no-429)=35.5s  429_wait=0.0s  429_hits=0
+  schedule a reward meeting for the top-three students in score excel file and create calendar events for each of them.
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1] widest=1 rounds=4 injected=352
+  [excel] read_file /testbed/data/score.xlsx  ->  Task finished
+  [excel] read_file /testbed/data/score.xlsx  ->  Task finished
+  [excel] read_file  ->  None
+  [excel] read_file /testbed/data/score.xlsx  ->  Task finished

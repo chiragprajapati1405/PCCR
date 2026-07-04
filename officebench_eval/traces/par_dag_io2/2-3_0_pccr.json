@@ -1,0 +1,76 @@
+{
+  "task": "2-3",
+  "subtask": "0",
+  "level": 2,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 5,
+  "llm_calls": 4,
+  "wall_s": 16.1,
+  "prompt_tokens": 6066,
+  "completion_tokens": 1087,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 2884,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.452,
+    "faiss_backed": true,
+    "batch_calls": 3,
+    "batch_actions": 5
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "google_form.pdf"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"pdf\"}",
+      "Successfully switched to app: pdf"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"convert_to_image\", \"pdf_file_path\": \"/testbed/data/google_form.pdf\", \"image_file_path\": \"/testbed/data/welcome.jpg\"}",
+      "Success"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"read_file\", \"pdf_file_path\": \"/testbed/data/google_form.pdf\"}",
+      "Google Form - Event Registration\nName:\nBob\nEmail:\nBob3@gmail.com\nPhone Number:\n123-456-7890\nEvent Date:\n2024-06-25\nComments:\nLooking forward to the event!"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: google_form.pdf",
+    "step  2: ORCHESTRATOR  --delegate-->  [pdf] agent",
+    "         OBSERVATION: Successfully switched to app: pdf",
+    "step  3:   SUBAGENT[pdf]  --do-->  convert_to_image  {\"pdf_file_path\": \"/testbed/data/google_form.pdf\", \"image_file_path\": \"/testbed/data/welcome.jpg\"}",
+    "         OBSERVATION: Success",
+    "step  4:   SUBAGENT[pdf]  --do-->  read_file  {\"pdf_file_path\": \"/testbed/data/google_form.pdf\"}",
+    "         OBSERVATION: Google Form - Event Registration\nName:\nBob\nEmail:\nBob3@gmail.com\nPhone Number:\n123-456-7890\nEvent Date:\n2024-06-25\nComments:\nLooking forward to the event!",
+    "step  5: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "read a pdf file google_form.pdf, make an image post welcome.jpg",
+  "_container": "ob-test-2",
+  "_t0": 1303.9,
+  "_t1": 1338.7
+}

@@ -1,0 +1,110 @@
+{
+  "task": "2-36",
+  "subtask": "2",
+  "level": 2,
+  "pattern": "lookup",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 11,
+  "llm_calls": 12,
+  "wall_s": 29.1,
+  "prompt_tokens": 9706,
+  "completion_tokens": 6193,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": false,
+    "stm_hit": false,
+    "consult_sm": false,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term"
+    ],
+    "injected_tokens": 807,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.369,
+    "faiss_backed": true,
+    "batch_calls": 4,
+    "batch_actions": 4
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "sales_report.pdf\ntranscripts.png"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"read\", \"path\": \"/testbed/data/sales_report.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"read\", \"path\": \"/testbed/data/sales_report.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"path\":\"/testbed/data/sales_report.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"file\":\"/testbed/data/sales_report.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"file_path\":\"/testbed/data/sales_report.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"read\",\"path\":\"/testbed/data/sales_report.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"pdf\",\n  \"action\": \"extract_text\",\n  \"file_path\": \"/testbed/data/sales_report.pdf\",\n  \"output_path\": \"/testbed/data/sales_report.txt\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"pdf\"}",
+      "Successfully switched to app: pdf"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"read_file\", \"pdf_file_path\": \"/testbed/data/sales_report.pdf\"}",
+      "Sales Report\nSales Data\nMonth Units Sold Sales Revenue ($) Region Product Line\nJanuary 212 7,844 North America Electronics\nJanuary 996 53,784 North America Clothing\nJanuary 482 43,380 North America Home Goods\nJanuary 114 9,234 North America Sports Equipment\n \n \n \n \n \n \n \n \n \n \n \nJanuary 614 26,402 South America Electronics\nJanuary 907 78,002 South America Clothing\nJanuary 475 14,250 South America "
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"The maximum sales revenue entry is: January, 907 units sold, $78,002, South America, Clothing.\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: sales_report.pdf\ntranscripts.png",
+    "step  2:   SUBAGENT[pdf]  --do-->  read  {\"path\": \"/testbed/data/sales_report.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  3:   SUBAGENT[pdf]  --do-->  read  {\"path\": \"/testbed/data/sales_report.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  4:   SUBAGENT[pdf]  --do-->  extract_text  {\"path\": \"/testbed/data/sales_report.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  5:   SUBAGENT[pdf]  --do-->  extract_text  {\"file\": \"/testbed/data/sales_report.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6:   SUBAGENT[pdf]  --do-->  extract_text  {\"file_path\": \"/testbed/data/sales_report.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  7:   SUBAGENT[pdf]  --do-->  read  {\"path\": \"/testbed/data/sales_report.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  8:   SUBAGENT[pdf]  --do-->  extract_text  {\"file_path\": \"/testbed/data/sales_report.pdf\", \"output_path\": \"/testbed/data/sales_report.txt\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  9: ORCHESTRATOR  --delegate-->  [pdf] agent",
+    "         OBSERVATION: Successfully switched to app: pdf",
+    "step 10:   SUBAGENT[pdf]  --do-->  read_file  {\"pdf_file_path\": \"/testbed/data/sales_report.pdf\"}",
+    "         OBSERVATION: Sales Report\nSales Data\nMonth Units Sold Sales Revenue ($) Region Product Line\nJanuary 212 7,844 North America Electronics\nJanuary 996 53,784 North America Clothing\nJanuary 482 43,380 North America Ho",
+    "step 11: ORCHESTRATOR  --finish--  answer='The maximum sales revenue entry is: January, 907 units sold, $78,002, South America, Clothing.'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "what the maximum sales revenue entry from sales report",
+  "_container": "ob-test-2",
+  "_t0": 1113.1,
+  "_t1": 1159.6
+}

@@ -1,5 +1,25 @@
 # PCCR: Phase-Conditioned Cascading Memory Routing for Multi-Agent LLM Systems
 
+> ## 📌 This branch: `pccr-perf-2d-dag-repro` — reproducible DAG re-plan architecture
+> A self-contained snapshot of the **PCCR + PERF + 2D + DAG re-plan** architecture with its
+> **traces and memory bank committed**, so the result reproduces.
+>
+> **Result (full 152, N=4, gpt-oss-120b):** **65/152 · 4.90 M real tokens · 2568 calls · 471 K injected · 36.2 min real N=4 wall** (L1 26/47, L2 24/48, L3 15/57).
+>
+> Per task at N=4: inject-once ρ-gate/memory (once/task) → DAG-first routing (structural
+> file-disjoint independence) → orchestrator RE-PLAN loop with parallel PCCR-agent leaves →
+> sequential chains fall back to a batched single PCCR agent. Three efficiency passes
+> (inject-once, round-cap 8→4, fallback batching) cut it from 64/152 @ 8.10 M to 65 @ 4.90 M,
+> architecture unchanged.
+>
+> - **Reproduce / source-file map:** [`REPRODUCE_DAG_ARCH.md`](REPRODUCE_DAG_ARCH.md)
+> - **Traces:** `officebench_eval/traces/par_dag_io2/` (152 `.json`+`.txt` pairs) · **Result:** `officebench_eval/par_dag_io2_progress.json` · **Memory bank:** `officebench_eval/em_bank.json` + `officebench_eval/calibration/`
+> - **Run:** `CEREBRAS_MAX_INFLIGHT=10 python -m officebench_eval.run_t1_parallel --improved --twod --plan --batch-size 3 --concurrency 4 --tasks-file officebench_eval/full152.json --tag dag_io2`
+>
+> The full PCCR project overview follows.
+
+---
+
 A central **memory manager** for multi-agent LLM agents that routes reads and
 writes across six cognitive memory types — **P**rocedural, **W**orking,
 **S**hort-**T**erm, **E**pisodic, **S**emantic, and **Ent**ity — over a

@@ -1,0 +1,10 @@
+TASK 1-19/1 [None] pccr  success=False  steps=4 llm_calls=21
+  REAL tokens: prompt=13878 completion=5509 total=19387  injected_mem=352
+  latency: wall=42.5s  compute(no-429)=41.8s  429_wait=0.7s  429_hits=1
+  extract paper's abstract and save in word file for review. The word file should be named as 'abstract.docx'
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1] widest=1 rounds=4 injected=352
+  [ocr] extract_text /testbed/data/abstract.png  ->  Successfully executed command: find /testbed/data -type f -name abstract.png. The output was [].
+  [pdf] convert_to_image /testbed/data/paper.pdf /testbed/data/abstract.png  ->  Task finished
+  [pdf] convert_to_image pdf_file_path:/testbed/data/paper.pdf image_file_path:/testbed/data/abstract.png  ->  Task finished
+  [pdf] convert_to_image pdf_file_path:/testbed/data/paper.pdf image_file_path:/testbed/data/abstract.png  ->  Task finished

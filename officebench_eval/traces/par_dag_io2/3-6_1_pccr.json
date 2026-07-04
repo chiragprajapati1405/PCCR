@@ -1,0 +1,68 @@
+{
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 7,
+  "llm_calls": 28,
+  "wall_s": 51.1,
+  "prompt_tokens": 20141,
+  "completion_tokens": 6434,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "consult_em": 0,
+    "injected_tokens": 352,
+    "stm_hit": false,
+    "top_em_sim": 0.0,
+    "consulted_stores": [],
+    "pm_used": false,
+    "replay": null,
+    "batch_calls": null,
+    "batch_actions": null
+  },
+  "task_text": "Schedule a team training as calendar event training.ics for next week and send out emails training.eml to only members in Section A from an excel file",
+  "trajectory": [
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"answer.txt\\nteam_training_schedule.xlsx\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1, 1, 1, 1] widest=1 rounds=4 injected=352",
+    "  [excel] read_file /testbed/data/team_training_schedule.xlsx  ->  Task finished",
+    "  [calendar] create_event summary='Team Training' start='2026-07-08T09:00:00' end='2026-07-08T11:00:00'  ->  Task finished",
+    "  [excel] read_file /testbed/data/team_training_schedule.xlsx  ->  Task finished",
+    "  [shell] {'action': 'command', 'command': 'ls /testbed/data'}  ->  Task finished",
+    "  [excel] {'action': 'read_file', 'file_path': '/testbed/data/team_training_schedule.xlsx'}  ->  Task finished",
+    "  [shell] ls /testbed/data  ->  Task finished",
+    "  [excel] read_file /testbed/data/team_training_schedule.xlsx  ->  Task finished"
+  ],
+  "pattern": null,
+  "_2d": true,
+  "_container": "ob-test-2",
+  "_t0": 961.2,
+  "_t1": 1025.7
+}

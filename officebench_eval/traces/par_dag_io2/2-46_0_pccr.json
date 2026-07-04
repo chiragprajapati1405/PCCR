@@ -1,0 +1,178 @@
+{
+  "task": "2-46",
+  "subtask": "0",
+  "level": 2,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_file_exist",
+  "steps": 22,
+  "llm_calls": 21,
+  "wall_s": 50.1,
+  "prompt_tokens": 22524,
+  "completion_tokens": 7469,
+  "rate_limit_wait_s": 0.7,
+  "rate_limit_hits": 1,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 5757,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.507,
+    "faiss_backed": true,
+    "batch_calls": 11,
+    "batch_actions": 22
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"parameters\": {\"command\": [\"ls\", \"/testbed/data\"]}}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"parameters\": {\n    \"command\": [\"ls\", \"/testbed/data\"]\n  }\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"parameters\": {\n    \"command\": \"ls /testbed/data\"\n  }\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"email\"}",
+      "Successfully switched to app: email"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"list_emails\", \"username\": \"alice\"}",
+      "No emails found for alice."
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"shell\"}",
+      "Successfully switched to app: shell"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"parameters\": {\"command\": [\"ls\", \"/testbed/data\"]}}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls -Rla /testbed/data\"}",
+      "/testbed/data:\ntotal 8\ndrwxr-xr-x 2 501 dialout 4096 Jun 25 11:39 .\ndrwxr-xr-x 5 501 dialout 4096 Jun 25 11:39 .."
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls -Rla /testbed/data\"}",
+      "/testbed/data:\ntotal 8\ndrwxr-xr-x 2 501 dialout 4096 Jun 25 11:39 .\ndrwxr-xr-x 5 501 dialout 4096 Jun 25 11:39 .."
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls -Rla /testbed/data\"}",
+      "/testbed/data:\ntotal 8\ndrwxr-xr-x 2 501 dialout 4096 Jun 25 11:39 .\ndrwxr-xr-x 5 501 dialout 4096 Jun 25 11:39 .."
+    ],
+    [
+      "{\"app\":\"email\",\"action\":\"list_emails\",\"username\":\"alice\"}",
+      "No emails found for alice."
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"search_emails\", \"username\": \"alice\", \"query\": \"class canceling\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls -R /testbed/data\"}",
+      "/testbed/data:"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"find /testbed/data -type f\"}",
+      "Successfully executed command: find /testbed/data -type f. The output was []."
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"find /testbed/data -type f -maxdepth 2\"}",
+      "Successfully executed command: find /testbed/data -type f -maxdepth 2. The output was []."
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"find /testbed/data -type f -maxdepth 2\"}",
+      "Successfully executed command: find /testbed/data -type f -maxdepth 2. The output was []."
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"find /testbed/data -type f -name \\\"*.eml\\\"\"}",
+      "Successfully executed command: find /testbed/data -type f -name \"*.eml\". The output was []."
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"parameters\": {\"command\": [\"ls\", \"/testbed/data\"]}}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  2:   SUBAGENT[shell]  --do-->  command  {\"parameters\": {\"command\": [\"ls\", \"/testbed/data\"]}}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  3:   SUBAGENT[shell]  --do-->  command  {\"parameters\": {\"command\": \"ls /testbed/data\"}}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  4: ORCHESTRATOR  --delegate-->  [email] agent",
+    "         OBSERVATION: Successfully switched to app: email",
+    "step  5:   SUBAGENT[email]  --do-->  list_emails  {\"username\": \"alice\"}",
+    "         OBSERVATION: No emails found for alice.",
+    "step  6: ORCHESTRATOR  --delegate-->  [shell] agent",
+    "         OBSERVATION: Successfully switched to app: shell",
+    "step  7:   SUBAGENT[shell]  --do-->  command  {\"parameters\": {\"command\": [\"ls\", \"/testbed/data\"]}}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  8:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step  9:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 10:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 11:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 12:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 13:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -Rla /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:\ntotal 8\ndrwxr-xr-x 2 501 dialout 4096 Jun 25 11:39 .\ndrwxr-xr-x 5 501 dialout 4096 Jun 25 11:39 ..",
+    "step 14:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -Rla /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:\ntotal 8\ndrwxr-xr-x 2 501 dialout 4096 Jun 25 11:39 .\ndrwxr-xr-x 5 501 dialout 4096 Jun 25 11:39 ..",
+    "step 15:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -Rla /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:\ntotal 8\ndrwxr-xr-x 2 501 dialout 4096 Jun 25 11:39 .\ndrwxr-xr-x 5 501 dialout 4096 Jun 25 11:39 ..",
+    "step 16:   SUBAGENT[email]  --do-->  list_emails  {\"username\": \"alice\"}",
+    "         OBSERVATION: No emails found for alice.",
+    "step 17:   SUBAGENT[email]  --do-->  search_emails  {\"username\": \"alice\", \"query\": \"class canceling\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 18:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed/data\"}",
+    "         OBSERVATION: /testbed/data:",
+    "step 19:   SUBAGENT[shell]  --do-->  command  {\"command\": \"find /testbed/data -type f\"}",
+    "         OBSERVATION: Successfully executed command: find /testbed/data -type f. The output was [].",
+    "step 20:   SUBAGENT[shell]  --do-->  command  {\"command\": \"find /testbed/data -type f -maxdepth 2\"}",
+    "         OBSERVATION: Successfully executed command: find /testbed/data -type f -maxdepth 2. The output was [].",
+    "step 21:   SUBAGENT[shell]  --do-->  command  {\"command\": \"find /testbed/data -type f -maxdepth 2\"}",
+    "         OBSERVATION: Successfully executed command: find /testbed/data -type f -maxdepth 2. The output was [].",
+    "step 22:   SUBAGENT[shell]  --do-->  command  {\"command\": \"find /testbed/data -type f -name \\\"*.eml\\\"\"}",
+    "         OBSERVATION: Successfully executed command: find /testbed/data -type f -name \"*.eml\". The output was []."
+  ],
+  "task_text": "extract class canceling notification from email, save it into a doc file and convert the doc file into a pdf named class_canceling.pdf",
+  "_container": "ob-test-1",
+  "_t0": 1573.1,
+  "_t1": 1640.9
+}

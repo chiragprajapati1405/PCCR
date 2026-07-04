@@ -1,0 +1,135 @@
+{
+  "task": "1-19",
+  "subtask": "4",
+  "level": 1,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_file_exist",
+  "steps": 15,
+  "llm_calls": 22,
+  "wall_s": 40.4,
+  "prompt_tokens": 15533,
+  "completion_tokens": 8410,
+  "rate_limit_wait_s": 1.4,
+  "rate_limit_hits": 2,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": false,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic"
+    ],
+    "injected_tokens": 4283,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.566,
+    "faiss_backed": true,
+    "batch_calls": 5,
+    "batch_actions": 5
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "contract_agreement.pdf\npaper.pdf"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"read_file\", \"file_path\": \"/testbed/data/contract_agreement.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"shell\",\n  \"action\": \"command\",\n  \"command\": \"ls /testbed/data\"\n}",
+      "contract_agreement.pdf\npaper.pdf"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"read_file\", \"file_path\": \"/testbed/data/contract_agreement.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"read\",\"file_path\":\"/testbed/data/contract_agreement.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"file_path\":\"/testbed/data/contract_agreement.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"parameters\":{\"file_path\":\"/testbed/data/contract_agreement.pdf\"}}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"file\":\"/testbed/data/contract_agreement.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"file\":\"/testbed/data/contract_agreement.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"file\":\"/testbed/data/contract_agreement.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"file\":\"/testbed/data/contract_agreement.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"file_path\":\"/testbed/data/contract_agreement.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"pdf\"}",
+      "Successfully switched to app: pdf"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"read_file\", \"pdf_file_path\": \"/testbed/data/contract_agreement.pdf\"}",
+      "Contract Agreement\nTerms and Conditions\n1. Introduction\nThis Contract Agreement (hereafter referred to as 'Agreement') is entered into by and between the\nfollowing parties:\n2. Terms\nThe parties agree to the following terms and conditions:\n- The service provider will offer the described services to the client for the specified period.\n- Payment will be made according to the agreed schedule.\n- Confi"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"word\"}",
+      "Successfully switched to app: word"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: contract_agreement.pdf\npaper.pdf",
+    "step  2:   SUBAGENT[pdf]  --do-->  read_file  {\"file_path\": \"/testbed/data/contract_agreement.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  3:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: contract_agreement.pdf\npaper.pdf",
+    "step  4:   SUBAGENT[pdf]  --do-->  read_file  {\"file_path\": \"/testbed/data/contract_agreement.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  5:   SUBAGENT[pdf]  --do-->  read  {\"file_path\": \"/testbed/data/contract_agreement.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6:   SUBAGENT[pdf]  --do-->  extract_text  {\"file_path\": \"/testbed/data/contract_agreement.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  7:   SUBAGENT[pdf]  --do-->  extract_text  {\"parameters\": {\"file_path\": \"/testbed/data/contract_agreement.pdf\"}}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  8:   SUBAGENT[pdf]  --do-->  extract_text  {\"file\": \"/testbed/data/contract_agreement.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  9:   SUBAGENT[pdf]  --do-->  extract_text  {\"file\": \"/testbed/data/contract_agreement.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 10:   SUBAGENT[pdf]  --do-->  extract_text  {\"file\": \"/testbed/data/contract_agreement.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 11:   SUBAGENT[pdf]  --do-->  extract_text  {\"file\": \"/testbed/data/contract_agreement.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 12:   SUBAGENT[pdf]  --do-->  extract_text  {\"file_path\": \"/testbed/data/contract_agreement.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 13: ORCHESTRATOR  --delegate-->  [pdf] agent",
+    "         OBSERVATION: Successfully switched to app: pdf",
+    "step 14:   SUBAGENT[pdf]  --do-->  read_file  {\"pdf_file_path\": \"/testbed/data/contract_agreement.pdf\"}",
+    "         OBSERVATION: Contract Agreement\nTerms and Conditions\n1. Introduction\nThis Contract Agreement (hereafter referred to as 'Agreement') is entered into by and between the\nfollowing parties:\n2. Terms\nThe parties agree ",
+    "step 15: ORCHESTRATOR  --delegate-->  [word] agent",
+    "         OBSERVATION: Successfully switched to app: word"
+  ],
+  "task_text": "extract terms from agreement pdf file, with all participated parties into summary.docx",
+  "_container": "ob-test-2",
+  "_t0": 1992.3,
+  "_t1": 2050.4
+}

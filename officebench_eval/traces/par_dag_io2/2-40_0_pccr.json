@@ -1,0 +1,53 @@
+{
+  "success": false,
+  "failed_predicate": "evaluate_contain:ERR:local variable 'email_account' reference",
+  "steps": 4,
+  "llm_calls": 22,
+  "wall_s": 37.0,
+  "prompt_tokens": 13675,
+  "completion_tokens": 5985,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "consult_em": 0,
+    "injected_tokens": 352,
+    "stm_hit": false,
+    "top_em_sim": 0.0,
+    "consulted_stores": [],
+    "pm_used": false,
+    "replay": null,
+    "batch_calls": null,
+    "batch_actions": null
+  },
+  "task_text": "read Bob's calendar event and send email using event names to Bob for all events in calendar",
+  "trajectory": [
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"Summary: class\\nStart Time: 2024-05-01 16:00:00\\nEnd Time: 2024-05-01 18:00:00\\nDescription: None\\nLocation: None\\n--------------------------------------------------\\nSummary: nap\\nStart Time: 2024-05-01 13:00:00\\nEnd Time: 2024-05-01 14:00:00\\nDescription: None\\nLocation: None\\n--------------------------------------------------\\nSummary: lunch\\nStart Time: 2024-05-01 12:00:00\\nEnd Time: 2024-05-01 13:00:00\\nDescription: None\\nLocation: None\\n--------------------------------------------------\\nSummary: dinner\\nStart Time: 2024-05-01 18:30:00\\nEnd Time: 2024-05-01 19:30:00\\nDescription: None\\nLocation: None\\n--------------------------------------------------\\nSummary: sleeping\\nStart Time: 2024-05-01 08:00:00\\nEnd Time: 2024-05-01 11:00:00\\nDescription: None\\nLocation: None\\n--------------------------------------------------\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"Here are the events in Bob's calendar for 2020-05-01:\\n\\n- Summary: sleeping\\n  Start Time: 2024-05-01 08:00:00\\n  End Time: 2024-05-01 11:00:00\\n  Description: None\\n  Location: None\\n\\n- Summary: lunch\\n  Start Time: 2024-05-01 12:00:00\\n  End Time: 2024-05-01 13:00:00\\n  Description: None\\n  Location: None\\n\\n- Summary: nap\\n  Start Time: 2024-05-01 13:00:00\\n  End Time: 2024-05-01 14:00:00\\n  Description: None\\n  Location: None\\n\\n- Summary: class\\n  Start Time: 2024-05-01 16:00:00\\n  End Time: 2024-05-01 18:00:00\\n  Description: None\\n  Location: None\\n\\n- Summary: dinner\\n  Start Time: 2024-05-01 18:30:00\\n  End Time: 2024-05-01 19:30:00\\n  Description: None\\n  Location: None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1] widest=1 rounds=4 injected=352",
+    "  [shell] command='ls /testbed/data'  ->  Task finished",
+    "  [calendar] list_events for user Bob  ->  Task finished",
+    "  [calendar] list_events  ->  Task finished",
+    "  [calendar] list_events  ->  Task finished"
+  ],
+  "pattern": null,
+  "_2d": true,
+  "_container": "ob-test-1",
+  "_t0": 1198.3,
+  "_t1": 1248.7
+}

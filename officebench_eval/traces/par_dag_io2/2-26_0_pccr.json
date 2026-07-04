@@ -1,0 +1,130 @@
+{
+  "task": "2-26",
+  "subtask": "0",
+  "level": 2,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 14,
+  "llm_calls": 14,
+  "wall_s": 23.3,
+  "prompt_tokens": 15153,
+  "completion_tokens": 7433,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 4326,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.63,
+    "faiss_backed": true,
+    "batch_calls": 4,
+    "batch_actions": 6
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "invitation_letter.pdf\nmarket_analysis.pdf"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"convert_to_word\", \"pdf_file_path\": \"/testbed/data/market_analysis.pdf\", \"word_file_path\": \"/testbed/data/market_analysis.docx\"}",
+      "Success"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "invitation_letter.pdf\nmarket_analysis.docx\nmarket_analysis.pdf"
+    ],
+    [
+      "{\"app\": \"word\", \"action\": \"read_file\", \"file_path\": \"/testbed/data/market_analysis.docx\"}",
+      "The following is the content from the word file:\n\nMarket Analysis and Marketing Plan for the Business Plan: Tips and Discussion \nWho is Your Customer? \nHow Large is Your Potential Market?\nWhat Would they be Willing to Spend, and Why Would they Buy your Product?"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"read_file\", \"file_path\": \"/testbed/data/market_analysis.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"convert_to_text\", \"pdf_file_path\": \"/testbed/data/market_analysis.pdf\", \"txt_file_path\": \"/testbed/data/market_analysis.txt\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"pdftotext /testbed/data/market_analysis.pdf /testbed/data/market_analysis_extracted.txt\"}",
+      "/bin/bash: line 1: pdftotext: command not found"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"extract_text\", \"pdf_file_path\": \"/testbed/data/market_analysis.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"pdf\",\n  \"action\": \"extract_text\",\n  \"pdf_file_path\": \"/testbed/data/market_analysis.pdf\",\n  \"output_text_path\": \"/testbed/data/market_analysis_extracted.txt\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"pdf\",\n  \"action\": \"extract_text\",\n  \"pdf_file_path\": \"/testbed/data/market_analysis.pdf\",\n  \"output_text_path\": \"/testbed/data/market_analysis_extracted.txt\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"pdf\",\n  \"action\": \"extract_text\",\n  \"pdf_file_path\": \"/testbed/data/market_analysis.pdf\",\n  \"output_text_path\": \"/testbed/data/market_analysis_extracted.txt\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"pdf\",\n  \"action\": \"extract_text\",\n  \"pdf_file_path\": \"/testbed/data/market_analysis.pdf\",\n  \"output_text_path\": \"/testbed/data/market_analysis_extracted.txt\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"pdf_file_path\":\"/testbed/data/market_analysis.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{'app': 'system', 'action': 'got_stuck'}",
+      "Task failed"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: invitation_letter.pdf\nmarket_analysis.pdf",
+    "step  2:   SUBAGENT[pdf]  --do-->  convert_to_word  {\"pdf_file_path\": \"/testbed/data/market_analysis.pdf\", \"word_file_path\": \"/testbed/data/market_analysis.docx\"}",
+    "         OBSERVATION: Success",
+    "step  3:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: invitation_letter.pdf\nmarket_analysis.docx\nmarket_analysis.pdf",
+    "step  4:   SUBAGENT[word]  --do-->  read_file  {\"file_path\": \"/testbed/data/market_analysis.docx\"}",
+    "         OBSERVATION: The following is the content from the word file:\n\nMarket Analysis and Marketing Plan for the Business Plan: Tips and Discussion \nWho is Your Customer? \nHow Large is Your Potential Market?\nWhat Would t",
+    "step  5:   SUBAGENT[pdf]  --do-->  read_file  {\"file_path\": \"/testbed/data/market_analysis.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6:   SUBAGENT[pdf]  --do-->  convert_to_text  {\"pdf_file_path\": \"/testbed/data/market_analysis.pdf\", \"txt_file_path\": \"/testbed/data/market_analysis.txt\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  7:   SUBAGENT[shell]  --do-->  command  {\"command\": \"pdftotext /testbed/data/market_analysis.pdf /testbed/data/market_analysis_extracted.txt\"}",
+    "         OBSERVATION: /bin/bash: line 1: pdftotext: command not found",
+    "step  8:   SUBAGENT[pdf]  --do-->  extract_text  {\"pdf_file_path\": \"/testbed/data/market_analysis.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  9:   SUBAGENT[pdf]  --do-->  extract_text  {\"pdf_file_path\": \"/testbed/data/market_analysis.pdf\", \"output_text_path\": \"/testbed/data/market_analysis_extracted.txt\"",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 10:   SUBAGENT[pdf]  --do-->  extract_text  {\"pdf_file_path\": \"/testbed/data/market_analysis.pdf\", \"output_text_path\": \"/testbed/data/market_analysis_extracted.txt\"",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 11:   SUBAGENT[pdf]  --do-->  extract_text  {\"pdf_file_path\": \"/testbed/data/market_analysis.pdf\", \"output_text_path\": \"/testbed/data/market_analysis_extracted.txt\"",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 12:   SUBAGENT[pdf]  --do-->  extract_text  {\"pdf_file_path\": \"/testbed/data/market_analysis.pdf\", \"output_text_path\": \"/testbed/data/market_analysis_extracted.txt\"",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 13:   SUBAGENT[pdf]  --do-->  extract_text  {\"pdf_file_path\": \"/testbed/data/market_analysis.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 14:   SUBAGENT[system]  --do-->  got_stuck  {}",
+    "         OBSERVATION: Task failed"
+  ],
+  "task_text": "Extract text from PDF and insert it to a new Word file of the same name.",
+  "_container": "ob-test-1",
+  "_t0": 1026.8,
+  "_t1": 1068.7
+}

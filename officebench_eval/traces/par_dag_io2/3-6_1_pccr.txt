@@ -1,0 +1,13 @@
+TASK 3-6/1 [None] pccr  success=False  steps=7 llm_calls=28
+  REAL tokens: prompt=20141 completion=6434 total=26575  injected_mem=352
+  latency: wall=51.1s  compute(no-429)=51.1s  429_wait=0.0s  429_hits=0
+  Schedule a team training as calendar event training.ics for next week and send out emails training.eml to only members in Section A from an excel file
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1, 1, 1, 1] widest=1 rounds=4 injected=352
+  [excel] read_file /testbed/data/team_training_schedule.xlsx  ->  Task finished
+  [calendar] create_event summary='Team Training' start='2026-07-08T09:00:00' end='2026-07-08T11:00:00'  ->  Task finished
+  [excel] read_file /testbed/data/team_training_schedule.xlsx  ->  Task finished
+  [shell] {'action': 'command', 'command': 'ls /testbed/data'}  ->  Task finished
+  [excel] {'action': 'read_file', 'file_path': '/testbed/data/team_training_schedule.xlsx'}  ->  Task finished
+  [shell] ls /testbed/data  ->  Task finished
+  [excel] read_file /testbed/data/team_training_schedule.xlsx  ->  Task finished

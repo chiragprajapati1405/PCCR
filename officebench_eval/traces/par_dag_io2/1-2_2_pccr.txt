@@ -1,0 +1,14 @@
+TASK 1-2/2 [None] pccr  success=False  steps=8 llm_calls=36
+  REAL tokens: prompt=21314 completion=7206 total=28520  injected_mem=352
+  latency: wall=65.4s  compute(no-429)=64.0s  429_wait=1.4s  429_hits=2
+  Bob and Tom need to shopping, help they find one hour at 5/1/2024
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1, 1, 1, 1, 1] widest=1 rounds=4 injected=352
+  [calendar] {'action': 'create_event', 'user': 'Bob', 'summary': 'Shopping', 'time_start': '2024-05-01 10:00:00', 'time_end': '2024-05-01 11:00:00'}  ->  Task finished
+  [calendar] {'action': 'create_event', 'user': 'Tom', 'summary': 'Shopping', 'time_start': '2024-05-01 10:00:00', 'time_end': '2024-05-01 11:00:00'}  ->  Task finished
+  [calendar] {'action': 'create_event', 'user': 'Bob', 'summary': 'Shopping', 'time_start': '2024-05-01 10:00:00', 'time_end': '2024-05-01 11:00:00'}  ->  Task finished
+  [calendar] {'action': 'create_event', 'user': 'Tom', 'summary': 'Shopping', 'time_start': '2024-05-01 10:00:00', 'time_end': '2024-05-01 11:00:00'}  ->  Task finished
+  [calendar] {"action":"create_event","user":"Bob","summary":"Shopping","time_start":"2024-05-01 09:00:00","time_end":"2024-05-01 10:00:00"}  ->  Task finished
+  [calendar] {"action":"create_event","user":"Tom","summary":"Shopping","time_start":"2024-05-01 09:00:00","time_end":"2024-05-01 10:00:00"}  ->  Task finished
+  [calendar] {"action":"create_event","user":"Bob","summary":"Shopping","time_start":"2024-05-01 10:00:00","time_end":"2024-05-01 11:00:00"}  ->  Task finished
+  [calendar] {"action":"create_event","user":"Tom","summary":"Shopping","time_start":"2024-05-01 10:00:00","time_end":"2024-05-01 11:00:00"}  ->  Task finished

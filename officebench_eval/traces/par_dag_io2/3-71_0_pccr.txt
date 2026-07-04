@@ -1,0 +1,15 @@
+TASK 3-71/0 [None] pccr  success=False  steps=9 llm_calls=55
+  REAL tokens: prompt=25653 completion=9503 total=35156  injected_mem=352
+  latency: wall=94.2s  compute(no-429)=82.4s  429_wait=11.8s  429_hits=15
+  Extract schedule from PDF and add it to a calendar meeting_agenda.ics, also save it as agenda.jpg
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1, 1, 1, 1, 1, 1] widest=1 rounds=4 injected=352
+  [pdf] read_file /testbed/data/meeting_agenda.pdf  ->  Task finished
+  [shell] command ls /testbed/data  ->  Task finished
+  [pdf] read_file file_path='/testbed/data/meeting_agenda.pdf'  ->  Task finished
+  [shell] command ls /testbed/data  ->  Task finished
+  [pdf] convert_to_image /testbed/data/meeting_agenda.pdf /testbed/data/agenda.jpg  ->  Task finished
+  [pdf] read_file /testbed/data/meeting_agenda.pdf  ->  Task finished
+  [ocr] extract_text file_path='/testbed/data/meeting_agenda.pdf'  ->  Task finished
+  [pdf] read_file file_path='/testbed/data/meeting_agenda.pdf'  ->  Task finished
+  [shell] command='convert -density 300 /testbed/data/meeting_agenda.pdf /testbed/data/agenda.jpg'  ->  Task finished

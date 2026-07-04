@@ -1,0 +1,129 @@
+{
+  "task": "2-41",
+  "subtask": "1",
+  "level": 2,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_file_exist",
+  "steps": 14,
+  "llm_calls": 13,
+  "wall_s": 26.7,
+  "prompt_tokens": 14094,
+  "completion_tokens": 9264,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": false,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "semantic"
+    ],
+    "injected_tokens": 1899,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.45,
+    "faiss_backed": true,
+    "batch_calls": 3,
+    "batch_actions": 9
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "Successfully executed command: ls /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"list_emails\", \"username\": \"Alice\"}",
+      "Successfully list emails for Alice:\nEmail ID: body_test.eml\nFrom: your_email@gmail.com\nTo: bob@example.com, alice@example.com, tom@example.com\nSubject: Body Test Email\nContent: Dear Bob, Alice, and...\n--------------------------------------------------\nEmail ID: multi_tasks.eml\nFrom: your_email@gmail.com\nTo: bob@example.com, tom@example.com\nSubject: Body Test Email\nContent: Dear Bob and Tom,\n\nW...\n"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"read_email\", \"username\": \"Alice\", \"email_id\": \"body_test.eml\"}",
+      "Successfully read email body_test.eml for Alice:\nFrom: your_email@gmail.com\nTo: bob@example.com, alice@example.com, tom@example.com\nSubject: Body Test Email\nContent: Dear Bob, Alice, and Tom,\n\nThis is a test email to verify the body of the message for today.\n\nBest regards,\nYour Name\n..."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"title\": \"Body Test Email\", \"start_date\": \"2020-05-01\", \"end_date\": \"2020-05-01\", \"description\": \"Dear Bob, Alice, and Tom,\\n\\nThis is a test email to verify the body of the message for today.\\n\\nBest regards,\\nYour Name\", \"file_path\": \"/testbed/data/Bob.ics\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "Successfully executed command: ls /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"title\": \"Body Test Email\", \"start_date\": \"2020-05-01\", \"end_date\": \"2020-05-01\", \"description\": \"Dear Bob, Alice, and Tom,\\n\\nThis is a test email to verify the body of the message for today.\\n\\nBest regards,\\nYour Name\", \"file_path\": \"/testbed/data/Bob.ics\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"create_event\",\"title\":\"Body Test Email\",\"date\":\"2020-05-01\",\"description\":\"Dear Bob, Alice, and Tom,\\n\\nThis is a test email to verify the body of the message for today.\\n\\nBest regards,\\nYour Name\",\"file_path\":\"/testbed/data/Bob.ics\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"create_event\",\"title\":\"Body Test Email\",\"description\":\"Dear Bob, Alice, and Tom,\\n\\nThis is a test email to verify the body of the message for today.\\n\\nBest regards,\\nYour Name\",\"start_time\":\"2020-05-01T10:00:00\",\"end_time\":\"2020-05-01T11:00:00\",\"attendees\":[\"bob@example.com\",\"alice@example.com\",\"tom@example.com\"],\"output_path\":\"/testbed/data/Bob.ics\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"llm\",\n  \"action\": \"prompt\",\n  \"prompt\": \"List the available actions and required parameters for the calendar app.\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"llm\",\n  \"action\": \"prompt\",\n  \"prompt\": \"List the available actions and required parameters for the calendar app.\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"llm\",\n  \"action\": \"prompt\",\n  \"prompt\": \"List the available actions and required parameters for the calendar app.\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\n  \"app\": \"llm\",\n  \"action\": \"prompt\",\n  \"prompt\": \"List the available actions and required parameters for the calendar app.\"\n}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"calendar\",\"action\":\"list_events\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{'app': 'system', 'action': 'got_stuck'}",
+      "Task failed"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].",
+    "step  2:   SUBAGENT[email]  --do-->  list_emails  {\"username\": \"Alice\"}",
+    "         OBSERVATION: Successfully list emails for Alice:\nEmail ID: body_test.eml\nFrom: your_email@gmail.com\nTo: bob@example.com, alice@example.com, tom@example.com\nSubject: Body Test Email\nContent: Dear Bob, Alice, and...",
+    "step  3:   SUBAGENT[email]  --do-->  read_email  {\"username\": \"Alice\", \"email_id\": \"body_test.eml\"}",
+    "         OBSERVATION: Successfully read email body_test.eml for Alice:\nFrom: your_email@gmail.com\nTo: bob@example.com, alice@example.com, tom@example.com\nSubject: Body Test Email\nContent: Dear Bob, Alice, and Tom,\n\nThis is",
+    "step  4:   SUBAGENT[calendar]  --do-->  create_event  {\"title\": \"Body Test Email\", \"start_date\": \"2020-05-01\", \"end_date\": \"2020-05-01\", \"description\": \"Dear Bob, Alice, and ",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  5:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].",
+    "step  6:   SUBAGENT[calendar]  --do-->  create_event  {\"title\": \"Body Test Email\", \"start_date\": \"2020-05-01\", \"end_date\": \"2020-05-01\", \"description\": \"Dear Bob, Alice, and ",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  7:   SUBAGENT[calendar]  --do-->  create_event  {\"title\": \"Body Test Email\", \"date\": \"2020-05-01\", \"description\": \"Dear Bob, Alice, and Tom,\\n\\nThis is a test email to ",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  8:   SUBAGENT[calendar]  --do-->  create_event  {\"title\": \"Body Test Email\", \"description\": \"Dear Bob, Alice, and Tom,\\n\\nThis is a test email to verify the body of the",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  9:   SUBAGENT[llm]  --do-->  prompt  {\"prompt\": \"List the available actions and required parameters for the calendar app.\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 10:   SUBAGENT[llm]  --do-->  prompt  {\"prompt\": \"List the available actions and required parameters for the calendar app.\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 11:   SUBAGENT[llm]  --do-->  prompt  {\"prompt\": \"List the available actions and required parameters for the calendar app.\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 12:   SUBAGENT[llm]  --do-->  prompt  {\"prompt\": \"List the available actions and required parameters for the calendar app.\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 13:   SUBAGENT[calendar]  --do-->  list_events  {}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 14:   SUBAGENT[system]  --do-->  got_stuck  {}",
+    "         OBSERVATION: Task failed"
+  ],
+  "task_text": "read my body test email, save as recipients' calendar event using their names as file names",
+  "_container": "ob-test-0",
+  "_t0": 1221.9,
+  "_t1": 1272.2
+}

@@ -1,0 +1,73 @@
+{
+  "success": false,
+  "failed_predicate": "evaluate_file_exist",
+  "steps": 8,
+  "llm_calls": 36,
+  "wall_s": 83.1,
+  "prompt_tokens": 25552,
+  "completion_tokens": 9060,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "consult_em": 0,
+    "injected_tokens": 352,
+    "stm_hit": false,
+    "top_em_sim": 0.0,
+    "consulted_stores": [],
+    "pm_used": false,
+    "replay": null,
+    "batch_calls": null,
+    "batch_actions": null
+  },
+  "task_text": "Scan Conference Invitation PDF and search for conference date, add event to that date on calender, save as invitation.ics, record date, location, conference name, etc. in excel conference.xlsx",
+  "trajectory": [
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"read_file\",\"pdf_file_path\":\"/testbed/data/invitation_letter.pdf\"}",
+      "Dear :  \n \n \nI am writing to formally request your presence at the IAEM 72nd Annual Conference & EMEX, November  15-\n21, 2024, in Colorado Springs , Colorado, USA.  \n \nIf you must  pick just  one conference  to attend  next  year,  the 2024 IAEM 7 2nd Annual  Conference  & EMEX \u2013 \nEmergency  Management is the one. This multi -day training and educational  event  provides  many benefits  to \nemerge"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1, 1, 2, 1] widest=2 rounds=4 injected=352",
+    "  [pdf] read_file file_path=/testbed/data/invitation_letter.pdf  ->  Task finished",
+    "  [pdf] read_file /testbed/data/invitation_letter.pdf  ->  Task finished",
+    "  [excel] create_file /testbed/data/conference.xlsx  ->  Task finished",
+    "  [pdf] {'action': 'read_file', 'file_path': '/testbed/data/invitation_letter.pdf'}  ->  Task finished",
+    "  [shell] {'action': 'command', 'command': 'ls /testbed/data'}  ->  Task finished",
+    "  [excel] read_file /testbed/data/conference.xlsx  ->  Task finished",
+    "  [pdf] extract_text /testbed/data/invitation_letter.pdf  ->  Dear :  \n \n \nI am writing to formally request your presence at the IAEM 72nd Annual Conference & EMEX, November  15-\n21,",
+    "  [pdf] read_file /testbed/data/invitation_letter.pdf  ->  Task finished"
+  ],
+  "pattern": null,
+  "_2d": true,
+  "_container": "ob-test-0",
+  "_t0": 739.8,
+  "_t1": 836.3
+}

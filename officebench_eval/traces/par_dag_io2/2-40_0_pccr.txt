@@ -1,0 +1,10 @@
+TASK 2-40/0 [None] pccr  success=False  steps=4 llm_calls=22
+  REAL tokens: prompt=13675 completion=5985 total=19660  injected_mem=352
+  latency: wall=37.0s  compute(no-429)=37.0s  429_wait=0.0s  429_hits=0
+  read Bob's calendar event and send email using event names to Bob for all events in calendar
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1] widest=1 rounds=4 injected=352
+  [shell] command='ls /testbed/data'  ->  Task finished
+  [calendar] list_events for user Bob  ->  Task finished
+  [calendar] list_events  ->  Task finished
+  [calendar] list_events  ->  Task finished

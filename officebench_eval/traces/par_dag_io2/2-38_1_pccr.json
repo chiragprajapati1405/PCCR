@@ -1,0 +1,124 @@
+{
+  "task": "2-38",
+  "subtask": "1",
+  "level": 2,
+  "pattern": "single_action",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 13,
+  "llm_calls": 15,
+  "wall_s": 24.9,
+  "prompt_tokens": 15213,
+  "completion_tokens": 6567,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 3867,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.658,
+    "faiss_backed": true,
+    "batch_calls": 7,
+    "batch_actions": 11
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "notification.docx\nparty.pdf"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"send_email\", \"username\": \"Alice\", \"to\": \"Bob\", \"subject\": \"Party Invitation\", \"body\": \"Hi Bob,\\n\\nYou are invited to a party hosted by Jane Doe. Hope you can join!\\n\\nBest regards,\\nAlice\", \"email_id\": \"party.eml\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "notification.docx\nparty.pdf"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "notification.docx\nparty.pdf"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"send_email\", \"username\": \"Alice\", \"to\": \"Bob\", \"subject\": \"Party Invitation\", \"body\": \"Hi Bob,\\n\\nYou are invited to a party hosted by Jane Doe. Hope you can join!\\n\\nBest regards,\\nAlice\", \"email_id\": \"party.eml\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"email\",\"action\":\"list_emails\",\"username\":\"Alice\"}",
+      "No emails found for Alice."
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls -R /testbed\"}",
+      "/testbed:\ncalendar\ndata\nemails\n\n/testbed/calendar:\n\n/testbed/data:\nnotification.docx\nparty.pdf\n\n/testbed/emails:\nAlice\n\n/testbed/emails/Alice:"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"printf \\\"From: Alice <alice@example.com>\\\\nTo: Bob <bob@example.com>\\\\nSubject: Party Invitation\\\\nDate: Fri, 01 May 2020 10:00:00 -0400\\\\n\\\\nDear Bob,\\\\n\\\\nYou are invited to a party hosted by Jane Doe.\\\\n\\\\nBest regards,\\\\nAlice\\\\n\\\" > /testbed/data/party.eml\"}",
+      "From:"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"send_email\", \"username\": \"Alice\", \"to\": \"Bob\", \"subject\": \"Party Invitation\", \"body\": \"Dear Bob,\\n\\nYou are invited to a party hosted by Jane Doe.\\n\\nBest regards,\\nAlice\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"email\"}",
+      "Successfully switched to app: email"
+    ],
+    [
+      "{\"app\": \"email\", \"action\": \"send_email\", \"sender\": \"Alice <alice@example.com>\", \"recipient\": \"Bob <bob@example.com>\", \"subject\": \"Party Invitation\", \"content\": \"Dear Bob,\\n\\nYou are invited to a party hosted by Jane Doe.\\n\\nBest regards,\\nAlice\"}",
+      "/bin/bash: line 1: alice@example.com: No such file or directory"
+    ],
+    [
+      "{\n  \"app\": \"email\",\n  \"action\": \"send_email\",\n  \"sender\": \"alice@example.com\",\n  \"recipient\": \"bob@example.com\",\n  \"subject\": \"Party Invitation\",\n  \"content\": \"Dear Bob,\\n\\nYou are invited to a party hosted by Jane Doe.\\n\\nBest regards,\\nAlice\"\n}",
+      "Successfully sent email to bob@example.com."
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: notification.docx\nparty.pdf",
+    "step  2:   SUBAGENT[email]  --do-->  send_email  {\"username\": \"Alice\", \"to\": \"Bob\", \"subject\": \"Party Invitation\", \"body\": \"Hi Bob,\\n\\nYou are invited to a party hosted ",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  3:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: notification.docx\nparty.pdf",
+    "step  4:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: notification.docx\nparty.pdf",
+    "step  5:   SUBAGENT[email]  --do-->  send_email  {\"username\": \"Alice\", \"to\": \"Bob\", \"subject\": \"Party Invitation\", \"body\": \"Hi Bob,\\n\\nYou are invited to a party hosted ",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6:   SUBAGENT[email]  --do-->  list_emails  {\"username\": \"Alice\"}",
+    "         OBSERVATION: No emails found for Alice.",
+    "step  7:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls -R /testbed\"}",
+    "         OBSERVATION: /testbed:\ncalendar\ndata\nemails\n\n/testbed/calendar:\n\n/testbed/data:\nnotification.docx\nparty.pdf\n\n/testbed/emails:\nAlice\n\n/testbed/emails/Alice:",
+    "step  8:   SUBAGENT[shell]  --do-->  command  {\"command\": \"printf \\\"From: Alice <alice@example.com>\\\\nTo: Bob <bob@example.com>\\\\nSubject: Party Invitation\\\\nDate: Fr",
+    "         OBSERVATION: From:",
+    "step  9:   SUBAGENT[email]  --do-->  send_email  {\"username\": \"Alice\", \"to\": \"Bob\", \"subject\": \"Party Invitation\", \"body\": \"Dear Bob,\\n\\nYou are invited to a party hoste",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step 10: ORCHESTRATOR  --delegate-->  [email] agent",
+    "         OBSERVATION: Successfully switched to app: email",
+    "step 11:   SUBAGENT[email]  --do-->  send_email  {\"sender\": \"Alice <alice@example.com>\", \"recipient\": \"Bob <bob@example.com>\", \"subject\": \"Party Invitation\", \"content\": ",
+    "         OBSERVATION: /bin/bash: line 1: alice@example.com: No such file or directory",
+    "step 12:   SUBAGENT[email]  --do-->  send_email  {\"sender\": \"alice@example.com\", \"recipient\": \"bob@example.com\", \"subject\": \"Party Invitation\", \"content\": \"Dear Bob,\\n\\n",
+    "         OBSERVATION: Successfully sent email to bob@example.com.",
+    "step 13: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "Bob was invited to party hold by Jane Doe, send an email party.eml to Bob to notify Bob",
+  "_container": "ob-test-0",
+  "_t0": 1049.8,
+  "_t1": 1092.6
+}

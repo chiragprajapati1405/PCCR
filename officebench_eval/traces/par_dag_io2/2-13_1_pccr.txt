@@ -1,0 +1,10 @@
+TASK 2-13/1 [None] pccr  success=False  steps=4 llm_calls=19
+  REAL tokens: prompt=14022 completion=3177 total=17199  injected_mem=352
+  latency: wall=36.5s  compute(no-429)=35.1s  429_wait=1.4s  429_hits=2
+  Schedule a team training session for members in section A from excel file, create calendar events file for each member in their name
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1] widest=1 rounds=4 injected=352
+  [excel] read_file /testbed/data/team_training_schedule.xlsx  ->  Task finished
+  [excel] read_file file_path=/testbed/data/team_training_schedule.xlsx  ->  Task finished
+  [excel] read_file file_path='/testbed/data/team_training_schedule.xlsx'  ->  Task finished
+  [excel] read_file file_path=/testbed/data/team_training_schedule.xlsx  ->  Task finished

@@ -1,0 +1,11 @@
+TASK 2-45/2 [None] pccr  success=False  steps=5 llm_calls=20
+  REAL tokens: prompt=12542 completion=5085 total=17627  injected_mem=352
+  latency: wall=35.3s  compute(no-429)=34.6s  429_wait=0.7s  429_hits=1
+  extract today's schedule from image, send email schedules.eml containg all events in schedule to Bob
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1, 1] widest=1 rounds=4 injected=352
+  [shell] command='ls /testbed/data'  ->  Task finished
+  [shell] command ls /testbed/data  ->  Task finished
+  [ocr] extract_text file_path='/testbed/data/daily_schedule.jpg'  ->  Task finished
+  [shell] command='ls /testbed/data'  ->  Task finished
+  [ocr] read_image file_path='/testbed/data/daily_schedule.jpg'  ->  Task finished

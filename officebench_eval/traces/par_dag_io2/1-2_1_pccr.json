@@ -1,0 +1,94 @@
+{
+  "task": "1-2",
+  "subtask": "1",
+  "level": 1,
+  "pattern": "single_action",
+  "method": "pccr",
+  "success": false,
+  "failed_predicate": "evaluate_calendar_no_overlap",
+  "steps": 8,
+  "llm_calls": 5,
+  "wall_s": 23.0,
+  "prompt_tokens": 9239,
+  "completion_tokens": 2846,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": true,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic",
+      "semantic"
+    ],
+    "injected_tokens": 2626,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.728,
+    "faiss_backed": true,
+    "batch_calls": 4,
+    "batch_actions": 8
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Bob\", \"summary\": \"Dinner with Tom\", \"time_start\": \"2024-05-01 19:00:00\", \"time_end\": \"2024-05-01 20:00:00\"}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Tom\", \"summary\": \"Dinner with Bob\", \"time_start\": \"2024-05-01 19:00:00\", \"time_end\": \"2024-05-01 20:00:00\"}",
+      "Successfully create a new event to Tom's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"list_events\", \"username\": \"Bob\"}",
+      "Successfully list events for Bob:\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: nap\nStart Time: 2024-05-01 13:00:00\nEnd Time: 2024-05-01 14:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: lunch\nStart Time: 2024-05-01 12:00:00"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "Successfully executed command: ls /testbed/data. The output was []."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"list_events\", \"username\": \"Tom\"}",
+      "Successfully list events for Tom:\nSummary: lunch with David\nStart Time: 2024-05-01 12:30:00\nEnd Time: 2024-05-01 13:30:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSummary: class\nStart Time: 2024-0"
+    ],
+    [
+      "{\n  \"app\": \"calendar\",\n  \"action\": \"create_event\",\n  \"user\": \"Bob\",\n  \"summary\": \"Dinner together\",\n  \"time_start\": \"2024-05-01 20:00:00\",\n  \"time_end\": \"2024-05-01 21:00:00\"\n}",
+      "Successfully create a new event to Bob's calendar."
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Tom\", \"summary\": \"Dinner together\", \"time_start\": \"2024-05-01 20:00:00\", \"time_end\": \"2024-05-01 21:00:00\"}",
+      "Successfully create a new event to Tom's calendar."
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"finish_task\"}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Dinner with Tom\", \"time_start\": \"2024-05-01 19:00:00\", \"time_end\": \"2024-05-01 20:00:00\"}",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step  2:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Tom\", \"summary\": \"Dinner with Bob\", \"time_start\": \"2024-05-01 19:00:00\", \"time_end\": \"2024-05-01 20:00:00\"}",
+    "         OBSERVATION: Successfully create a new event to Tom's calendar.",
+    "step  3:   SUBAGENT[calendar]  --do-->  list_events  {\"username\": \"Bob\"}",
+    "         OBSERVATION: Successfully list events for Bob:\nSummary: class\nStart Time: 2024-05-01 16:00:00\nEnd Time: 2024-05-01 18:00:00\nDescription: None\nLocation: None\n--------------------------------------------------\nSumma",
+    "step  4:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: Successfully executed command: ls /testbed/data. The output was [].",
+    "step  5:   SUBAGENT[calendar]  --do-->  list_events  {\"username\": \"Tom\"}",
+    "         OBSERVATION: Successfully list events for Tom:\nSummary: lunch with David\nStart Time: 2024-05-01 12:30:00\nEnd Time: 2024-05-01 13:30:00\nDescription: None\nLocation: None\n---------------------------------------------",
+    "step  6:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Bob\", \"summary\": \"Dinner together\", \"time_start\": \"2024-05-01 20:00:00\", \"time_end\": \"2024-05-01 21:00:00\"}",
+    "         OBSERVATION: Successfully create a new event to Bob's calendar.",
+    "step  7:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Tom\", \"summary\": \"Dinner together\", \"time_start\": \"2024-05-01 20:00:00\", \"time_end\": \"2024-05-01 21:00:00\"}",
+    "         OBSERVATION: Successfully create a new event to Tom's calendar.",
+    "step  8: ORCHESTRATOR  --finish--  answer=None",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "Can Bob and Tom have dinner together at 5/1/2024? Add a common time on their calendar.",
+  "_container": "ob-test-0",
+  "_t0": 2073.0,
+  "_t1": 2117.2
+}

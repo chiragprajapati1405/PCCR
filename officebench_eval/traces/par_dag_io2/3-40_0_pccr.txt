@@ -1,0 +1,10 @@
+TASK 3-40/0 [None] pccr  success=False  steps=4 llm_calls=28
+  REAL tokens: prompt=10679 completion=5207 total=15886  injected_mem=283
+  latency: wall=48.6s  compute(no-429)=44.5s  429_wait=4.1s  429_hits=6
+  Collect car trading records and organize them into car_records.xlsx, schedule a meeting meeting.ics between the first case buyer and seller at 6/1/2024 1:00 p.m
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1] widest=1 rounds=4 injected=283
+  [shell] command ls /testbed/data  ->  Task finished
+  [ocr] read_image file_path=/testbed/data/car_trading.png  ->  Task finished
+  [shell] command ls /testbed/data  ->  Task finished
+  [ocr] ocr:read_file file_path='/testbed/data/car_trading.png'  ->  Task finished

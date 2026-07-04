@@ -1,0 +1,17 @@
+TASK 3-28/0 [None] pccr  success=False  steps=11 llm_calls=50
+  REAL tokens: prompt=31434 completion=13468 total=44902  injected_mem=352
+  latency: wall=73.9s  compute(no-429)=73.9s  429_wait=0.0s  429_hits=0
+  Use OCR to extract text from Bob's card and convert them into contact.xlsx with contact information, schedule a meeting with manager Alice at 1:00 p.m 5/21/2024 named meeting.ics
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 2, 1, 2, 1, 1, 1] widest=2 rounds=4 injected=352
+  [ocr] extract_text file_path='/testbed/data/Bob_card.png'  ->  Task finished
+  [calendar] schedule_meeting username='Alice' start='2024-05-21T13:00:00' title='meeting' output_file='/testbed/data/meeting.ics'  ->  Task finished
+  [ocr] extract_text file_path='/testbed/data/Bob_card.png'  ->  Task finished
+  [calendar] create_event username='Alice' start='2024-05-21T13:00:00' title='meeting' output_file='/testbed/data/meeting.ics'  ->  Task finished
+  [excel] create_file file_path='/testbed/data/contact.xlsx'  ->  Task finished
+  [ocr] extract_text file_path='/testbed/data/Bob_card.png'  ->  Task finished
+  [calendar] create_event username='Alice' title='meeting' start_time='2024-05-21T13:00:00' file_path='/testbed/data/meeting.ics'  ->  Successfully switched to app: calendar
+  [excel] create_file file_path='/testbed/data/contact.xlsx'  ->  Task finished
+  [ocr] extract_text /testbed/data/Bob_card.png  ->  Task finished
+  [calendar] create_event title='meeting' start='2024-05-21T13:00:00' participants='Alice'  ->  Task finished
+  [excel] create_file /testbed/data/contact.xlsx  ->  Task finished

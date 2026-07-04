@@ -1,0 +1,117 @@
+{
+  "task": "2-29",
+  "subtask": "0",
+  "level": 2,
+  "pattern": "multi_app",
+  "method": "pccr",
+  "success": true,
+  "failed_predicate": null,
+  "steps": 12,
+  "llm_calls": 15,
+  "wall_s": 31.2,
+  "prompt_tokens": 14494,
+  "completion_tokens": 3199,
+  "rate_limit_wait_s": 0.7,
+  "rate_limit_hits": 1,
+  "em": {
+    "method": "pccr",
+    "consult_em": true,
+    "stm_hit": false,
+    "consult_sm": false,
+    "consult_ent": false,
+    "pm_used": true,
+    "consulted_stores": [
+      "procedural",
+      "working",
+      "short_term",
+      "episodic"
+    ],
+    "injected_tokens": 3541,
+    "orchestrator_hits": [],
+    "agent_hits": [],
+    "top_em_sim": 0.538,
+    "faiss_backed": true,
+    "batch_calls": 6,
+    "batch_actions": 9
+  },
+  "trajectory": [
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "invitation_letter.pdf"
+    ],
+    [
+      "{\"app\": \"shell\", \"action\": \"command\", \"command\": \"ls /testbed/data\"}",
+      "invitation_letter.pdf"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"read_file\", \"file_path\": \"/testbed/data/invitation_letter.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"shell\",\"action\":\"command\",\"command\":\"ls /testbed/data\"}",
+      "invitation_letter.pdf"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"read_file\", \"file_path\": \"/testbed/data/invitation_letter.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"read_file\",\"file_path\":\"/testbed/data/invitation_letter.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"pdf\",\"action\":\"extract_text\",\"file_path\":\"/testbed/data/invitation_letter.pdf\"}",
+      "Malformed action! You must follow the given action format! Try a different action."
+    ],
+    [
+      "{\"app\":\"system\",\"action\":\"switch_app\",\"target_app\":\"pdf\"}",
+      "Successfully switched to app: pdf"
+    ],
+    [
+      "{\"app\": \"pdf\", \"action\": \"read_file\", \"pdf_file_path\": \"/testbed/data/invitation_letter.pdf\"}",
+      "Dear :  \n \n \nI am writing to formally request your presence at the IAEM 72nd Annual Conference & EMEX, November  15-\n21, 2024, in Colorado Springs , Colorado, USA.  \n \nIf you must  pick just  one conference  to attend  next  year,  the 2024 IAEM 7 2nd Annual  Conference  & EMEX \u2013 \nEmergency  Management is the one. This multi -day training and educational  event  provides  many benefits  to \nemerge"
+    ],
+    [
+      "{\"app\": \"system\", \"action\": \"switch_app\", \"target_app\": \"calendar\"}",
+      "Successfully switched to app: calendar"
+    ],
+    [
+      "{\"app\": \"calendar\", \"action\": \"create_event\", \"user\": \"Alice\", \"summary\": \"IAEM 72nd Annual Conference & EMEX\", \"time_start\": \"2024-11-15 09:00:00\", \"time_end\": \"2024-11-21 17:00:00\"}",
+      "Successfully create a new event to Alice's calendar."
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "step  1:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: invitation_letter.pdf",
+    "step  2:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: invitation_letter.pdf",
+    "step  3:   SUBAGENT[pdf]  --do-->  read_file  {\"file_path\": \"/testbed/data/invitation_letter.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  4:   SUBAGENT[shell]  --do-->  command  {\"command\": \"ls /testbed/data\"}",
+    "         OBSERVATION: invitation_letter.pdf",
+    "step  5:   SUBAGENT[pdf]  --do-->  read_file  {\"file_path\": \"/testbed/data/invitation_letter.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  6:   SUBAGENT[pdf]  --do-->  read_file  {\"file_path\": \"/testbed/data/invitation_letter.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  7:   SUBAGENT[pdf]  --do-->  extract_text  {\"file_path\": \"/testbed/data/invitation_letter.pdf\"}",
+    "         OBSERVATION: Malformed action! You must follow the given action format! Try a different action.",
+    "step  8: ORCHESTRATOR  --delegate-->  [pdf] agent",
+    "         OBSERVATION: Successfully switched to app: pdf",
+    "step  9:   SUBAGENT[pdf]  --do-->  read_file  {\"pdf_file_path\": \"/testbed/data/invitation_letter.pdf\"}",
+    "         OBSERVATION: Dear :  \n \n \nI am writing to formally request your presence at the IAEM 72nd Annual Conference & EMEX, November  15-\n21, 2024, in Colorado Springs , Colorado, USA.  \n \nIf you must  pick just  one conf",
+    "step 10: ORCHESTRATOR  --delegate-->  [calendar] agent",
+    "         OBSERVATION: Successfully switched to app: calendar",
+    "step 11:   SUBAGENT[calendar]  --do-->  create_event  {\"user\": \"Alice\", \"summary\": \"IAEM 72nd Annual Conference & EMEX\", \"time_start\": \"2024-11-15 09:00:00\", \"time_end\": \"202",
+    "         OBSERVATION: Successfully create a new event to Alice's calendar.",
+    "step 12: ORCHESTRATOR  --finish--  answer='None'",
+    "         OBSERVATION: Task finished"
+  ],
+  "task_text": "Scan Conference Invitation PDF and search for conference date, add event to that date on calender, save in my calendar.",
+  "_container": "ob-test-2",
+  "_t0": 1338.7,
+  "_t1": 1387.5
+}

@@ -1,0 +1,63 @@
+{
+  "success": false,
+  "failed_predicate": "evaluate_file_exist",
+  "steps": 6,
+  "llm_calls": 26,
+  "wall_s": 48.3,
+  "prompt_tokens": 15558,
+  "completion_tokens": 6182,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "consult_em": 0,
+    "injected_tokens": 352,
+    "stm_hit": false,
+    "top_em_sim": 0.0,
+    "consulted_stores": [],
+    "pm_used": false,
+    "replay": null,
+    "batch_calls": null,
+    "batch_actions": null
+  },
+  "task_text": "Scan printed car inventory lists from PDF, convert them to Excel file car_inventory.xlsx, create a meeting.ics to schedule meeting for Bob with the first driver in car_inventory.xlsx at 6/1/2024 10:00 a.m",
+  "trajectory": [
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"Car IDMakeMake\\n(Full\\nName)ModelModel\\n(Full\\nName)Manufactur e\\nYearAge MilesMiles\\n/\\nYearColor DriverWarantee\\nMilesCover ed?New\\nCar\\nID\\n0FD06MTG001 NaN NaN NaN NaN NaN NaN 40326.8 NaN Black Smith 50000.0 NaN NaN\\n1FD06MTG002 NaN NaN NaN NaN NaN NaN 44974.8 NaN White McCall 50000.0 NaN NaN\\n2FD08MTG003 NaN NaN NaN NaN NaN NaN 44946.5 NaN Green Lyon 50000.0 NaN NaN\\n3FD08MTG004 NaN NaN NaN NaN NaN NaN 37558.8 NaN Black Jones 50000.0 NaN NaN\\n4FD08MTG005 NaN NaN NaN NaN NaN NaN 36438.5 NaN White Smith 50000.0 NaN NaN\\n5FDO6FCS006 NaN NaN NaN NaN NaN NaN 4631 1.4 NaN Green Ewenty 75000.0 NaN NaN\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"answer.txt\\ncar_inventory.pdf\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"Car IDMakeMake\\n(Full\\nName)ModelModel\\n(Full\\nName)Manufactur e\\nYearAge MilesMiles\\n/\\nYearColor DriverWarantee\\nMilesCover ed?New\\nCar\\nID\\n0FD06MTG001 NaN NaN NaN NaN NaN NaN 40326.8 NaN Black Smith 50000.0 NaN NaN\\n1FD06MTG002 NaN NaN NaN NaN NaN NaN 44974.8 NaN White McCall 50000.0 NaN NaN\\n2FD08MTG003 NaN NaN NaN NaN NaN NaN 44946.5 NaN Green Lyon 50000.0 NaN NaN\\n3FD08MTG004 NaN NaN NaN NaN NaN NaN 37558.8 NaN Black Jones 50000.0 NaN NaN\\n4FD08MTG005 NaN NaN NaN NaN NaN NaN 36438.5 NaN White Smith 50000.0 NaN NaN\\n5FDO6FCS006 NaN NaN NaN NaN NaN NaN 4631 1.4 NaN Green Ewenty 75000.0 NaN NaN\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1, 1, 1] widest=1 rounds=4 injected=352",
+    "  [shell] command 'ls /testbed/data'  ->  Task finished",
+    "  [pdf] read_file file_path='/testbed/data/car_inventory.pdf'  ->  Task finished",
+    "  [shell] command='ls /testbed/data'  ->  Task finished",
+    "  [shell] command ls /testbed/data  ->  Task finished",
+    "  [pdf] read_file file_path='/testbed/data/car_inventory.pdf'  ->  Task finished",
+    "  [shell] command='ls /testbed/data'  ->  Task finished"
+  ],
+  "pattern": null,
+  "_2d": true,
+  "_container": "ob-test-3",
+  "_t0": 270.3,
+  "_t1": 332.0
+}

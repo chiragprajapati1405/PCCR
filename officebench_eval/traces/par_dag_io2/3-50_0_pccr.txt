@@ -1,0 +1,10 @@
+TASK 3-50/0 [None] pccr  success=False  steps=4 llm_calls=17
+  REAL tokens: prompt=10472 completion=5528 total=16000  injected_mem=352
+  latency: wall=72.5s  compute(no-429)=72.5s  429_wait=0.0s  429_hits=0
+  Convert meeting agenda from calendar into Excel file meeting_agenda.xlsx for further analysis, create an image post agenda.jpg
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1] widest=1 rounds=4 injected=352
+  [shell] command='ls /testbed/data'  ->  Task finished
+  [shell] command='ls /testbed/data'  ->  Task finished
+  [shell] ls /testbed/data  ->  Task finished
+  [shell] ls /testbed/data  ->  Task finished

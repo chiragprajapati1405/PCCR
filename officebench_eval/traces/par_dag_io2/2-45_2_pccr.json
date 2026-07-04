@@ -1,0 +1,58 @@
+{
+  "success": false,
+  "failed_predicate": "evaluate_contain:ERR:local variable 'email_account' reference",
+  "steps": 5,
+  "llm_calls": 20,
+  "wall_s": 35.3,
+  "prompt_tokens": 12542,
+  "completion_tokens": 5085,
+  "rate_limit_wait_s": 0.7072650839999369,
+  "rate_limit_hits": 1,
+  "em": {
+    "consult_em": 0,
+    "injected_tokens": 352,
+    "stm_hit": false,
+    "top_em_sim": 0.0,
+    "consulted_stores": [],
+    "pm_used": false,
+    "replay": null,
+    "batch_calls": null,
+    "batch_actions": null
+  },
+  "task_text": "extract today's schedule from image, send email schedules.eml containg all events in schedule to Bob",
+  "trajectory": [
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"business_travel.jpg\\ndaily_schedule.jpg\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"bes\\n\\n2.\\n06:\\n6.\\n07.\\n8.\\n\\nSPSPEy eye ee\\n\\nbes\\n\\n2.\\n04:\\n8.\\n07.\\n\\nBes\\n\\nEPPPSP Eye ee\\n\\nbreakfast\\n\u2018Team Meeting\\nProject York\\n\\nLumch Break\\n\\nClient calls\\n\\nCoffee Break\\nDevelopment Tine\\nReading / Relaxation\\nPrepare for Bed\\n\\nDaily schedule for Bob\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"bes\\n\\n2.\\n06:\\n6.\\n07.\\n8.\\n\\nSPSPEy eye ee\\n\\nbes\\n\\n2.\\n04:\\n8.\\n07.\\n\\nBes\\n\\nEPPPSP Eye ee\\n\\nbreakfast\\n\u2018Team Meeting\\nProject York\\n\\nLumch Break\\n\\nClient calls\\n\\nCoffee Break\\nDevelopment Tine\\nReading / Relaxation\\nPrepare for Bed\\n\\nDaily schedule for Bob\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1, 1] widest=1 rounds=4 injected=352",
+    "  [shell] command='ls /testbed/data'  ->  Task finished",
+    "  [shell] command ls /testbed/data  ->  Task finished",
+    "  [ocr] extract_text file_path='/testbed/data/daily_schedule.jpg'  ->  Task finished",
+    "  [shell] command='ls /testbed/data'  ->  Task finished",
+    "  [ocr] read_image file_path='/testbed/data/daily_schedule.jpg'  ->  Task finished"
+  ],
+  "pattern": null,
+  "_2d": true,
+  "_container": "ob-test-2",
+  "_t0": 1210.2,
+  "_t1": 1259.0
+}

@@ -1,0 +1,88 @@
+{
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "steps": 11,
+  "llm_calls": 50,
+  "wall_s": 73.9,
+  "prompt_tokens": 31434,
+  "completion_tokens": 13468,
+  "rate_limit_wait_s": 0.0,
+  "rate_limit_hits": 0,
+  "em": {
+    "consult_em": 0,
+    "injected_tokens": 352,
+    "stm_hit": false,
+    "top_em_sim": 0.0,
+    "consulted_stores": [],
+    "pm_used": false,
+    "replay": null,
+    "batch_calls": null,
+    "batch_actions": null
+  },
+  "task_text": "Use OCR to extract text from Bob's card and convert them into contact.xlsx with contact information, schedule a meeting with manager Alice at 1:00 p.m 5/21/2024 named meeting.ics",
+  "trajectory": [
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"Name: Bob\\nPhone: +4 (555) 123-4567\\nEmail: BobGexample.com\\nAddress: 1224 EIn street, Anytown, USK\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"Name: Bob\\nPhone: +4 (555) 123-4567\\nEmail: BobGexample.com\\nAddress: 1224 EIn street, Anytown, USK\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"switch_app\",\n  \"target_app\": \"calendar\"\n}",
+      "Successfully switched to app: calendar"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"ane: Bob\\n\\nPhone: +4 (555) 123-4567\\n\\nEmail: BobGexample.com\\n\\nAddress: 1224 EIn street, Anytown, USK\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ],
+    [
+      "{\n  \"app\": \"system\",\n  \"action\": \"finish_task\",\n  \"answer\": \"None\"\n}",
+      "Task finished"
+    ]
+  ],
+  "sequence": [
+    "[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 2, 1, 2, 1, 1, 1] widest=2 rounds=4 injected=352",
+    "  [ocr] extract_text file_path='/testbed/data/Bob_card.png'  ->  Task finished",
+    "  [calendar] schedule_meeting username='Alice' start='2024-05-21T13:00:00' title='meeting' output_file='/testbed/data/meeting.ics'  ->  Task finished",
+    "  [ocr] extract_text file_path='/testbed/data/Bob_card.png'  ->  Task finished",
+    "  [calendar] create_event username='Alice' start='2024-05-21T13:00:00' title='meeting' output_file='/testbed/data/meeting.ics'  ->  Task finished",
+    "  [excel] create_file file_path='/testbed/data/contact.xlsx'  ->  Task finished",
+    "  [ocr] extract_text file_path='/testbed/data/Bob_card.png'  ->  Task finished",
+    "  [calendar] create_event username='Alice' title='meeting' start_time='2024-05-21T13:00:00' file_path='/testbed/data/meeting.ics'  ->  Successfully switched to app: calendar",
+    "  [excel] create_file file_path='/testbed/data/contact.xlsx'  ->  Task finished",
+    "  [ocr] extract_text /testbed/data/Bob_card.png  ->  Task finished",
+    "  [calendar] create_event title='meeting' start='2024-05-21T13:00:00' participants='Alice'  ->  Task finished",
+    "  [excel] create_file /testbed/data/contact.xlsx  ->  Task finished"
+  ],
+  "pattern": null,
+  "_2d": true,
+  "_container": "ob-test-2",
+  "_t0": 1025.8,
+  "_t1": 1113.1
+}

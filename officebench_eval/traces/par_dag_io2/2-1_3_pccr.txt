@@ -1,0 +1,10 @@
+TASK 2-1/3 [None] pccr  success=False  steps=4 llm_calls=26
+  REAL tokens: prompt=17177 completion=8925 total=26102  injected_mem=352
+  latency: wall=41.2s  compute(no-429)=41.2s  429_wait=0.0s  429_hits=0
+  extract text from combined notification image and split into two pdf files, named party.pdf and meeting.pdf
+======================================================================
+[2D DAG, PCCR leaves, inject-once] path=replan waves=[1, 1, 1, 1] widest=1 rounds=4 injected=352
+  [ocr] recognize_file /testbed/data/combined_notifications.jpg  ->  Task finished
+  [ocr] recognize_file /testbed/data/combined_notifications.jpg  ->  Task finished
+  [ocr] recognize_file /testbed/data/combined_notifications.jpg  ->  Task finished
+  [ocr] recognize_file /testbed/data/combined_notifications.jpg  ->  Task finished

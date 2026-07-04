@@ -1,0 +1,65 @@
+{
+  "data_compute": {
+    "orchestrator": 0.0,
+    "agent": 0.0
+  },
+  "single_action": {
+    "orchestrator": 0.0,
+    "agent": 0.0
+  },
+  "lookup": {
+    "orchestrator": 0.0,
+    "agent": 0.0
+  },
+  "doc_process": {
+    "orchestrator": 0.0,
+    "agent": 0.0
+  },
+  "multi_app": {
+    "orchestrator": 0.0,
+    "agent": 0.0
+  },
+  "_method": "U = clamp(P(on, LOO) - P_off[T0a no-memory], 0, 1)",
+  "_raw": {
+    "data_compute|on": [
+      6,
+      7
+    ],
+    "data_compute|off(T0a)": [
+      7,
+      7
+    ],
+    "single_action|on": [
+      12,
+      24
+    ],
+    "single_action|off(T0a)": [
+      13,
+      24
+    ],
+    "lookup|on": [
+      7,
+      15
+    ],
+    "lookup|off(T0a)": [
+      8,
+      15
+    ],
+    "doc_process|on": [
+      7,
+      30
+    ],
+    "doc_process|off(T0a)": [
+      13,
+      30
+    ],
+    "multi_app|on": [
+      16,
+      72
+    ],
+    "multi_app|off(T0a)": [
+      21,
+      72
+    ]
+  }
+}
