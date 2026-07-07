@@ -31,6 +31,7 @@ class TaskSpec:
     text: str
     waves: list                        # list[list[SubtaskSpec]] — dependency waves
     will_succeed: bool = True          # modeled outcome (real mode: from evaluation)
+    task_id: int = 0                   # used by DockerExecutor for the per-task workdir
 
 
 @dataclass
@@ -47,6 +48,9 @@ async def run_task(spec: TaskSpec, mm, executor) -> TaskResult:
     t0 = time.perf_counter()
     wm: list = []                                          # WM: per-task PRIVATE buffer, no lock
 
+    # per-task isolated context (Docker: a workdir; modeled: None)
+    ctx = await asyncio.to_thread(executor.setup_task, spec.task_id)
+
     # 1. ORCHESTRATOR — read PM (by similarity), then plan (modeled: plan == spec.waves)
     _past, pm_read_wait = await mm.orchestrator_read_pm(spec.text)
     plan = spec.waves
@@ -56,7 +60,7 @@ async def run_task(spec: TaskSpec, mm, executor) -> TaskResult:
     for wave in plan:
         async def run_sub(sub: SubtaskSpec):
             usage = mm.subagent_read_tool_memory(sub.app)     # READ-ONLY tool memory (sub-agent side)
-            return await executor.run_action(sub.app, sub.text, usage)
+            return await executor.run_action(sub.app, sub.text, usage, ctx)
         results = await asyncio.gather(*[run_sub(s) for s in wave])
         wm.extend(results)                                    # accumulate LOCALLY
         n_sub += len(wave)

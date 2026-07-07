@@ -40,7 +40,8 @@ def make_tasks(n: int, subagents: int, success_rate: float, seed: int = 0) -> li
         act_wave = [SubtaskSpec(app=a, text=f"task {i} do {a} step") for a in apps]
         tasks.append(TaskSpec(text=f"task {i} across {' '.join(apps)}",
                               waves=[read_wave, act_wave],
-                              will_succeed=(rng.random() < success_rate)))
+                              will_succeed=(rng.random() < success_rate),
+                              task_id=i))
     return tasks
 
 
@@ -70,7 +71,42 @@ async def run_batch(tasks, strategy, pm_latency, call_latency):
     }
 
 
+async def run_docker_bench(args):
+    """STEP 8 — real one-container Docker latency. Fixed actions (no LLM), lock-free PM."""
+    import concurrent.futures
+    from concurrent_mm.executors import DockerExecutor
+    Ns = [int(x) for x in args.N.split(",")]
+    loop = asyncio.get_running_loop()
+    loop.set_default_executor(concurrent.futures.ThreadPoolExecutor(max_workers=args.threads))
+    print(f"\nConcurrent Memory Manager — REAL Docker benchmark (Step 8)")
+    print(f"  ONE container '{args.container}' · per-task workdirs · {args.subagents} sub-agents/task · no LLM\n")
+    ex = DockerExecutor(container=args.container)
+    tool = default_tool_memory()
+    print(f"{'N':>5} {'wall_s':>8} {'thruput':>9} {'speedup':>8} {'sec/task':>9} {'exec_calls':>11} {'PMwait':>8}")
+    per_task_base = None
+    for N in Ns:
+        pm = ProceduralMemory(strategy="lockfree", access_latency=0.0)   # real in-process PM
+        mm = MemoryManager(tool, pm)
+        ex.cleanup_workdirs()
+        tasks = make_tasks(N, args.subagents, args.success_rate, seed=args.seed)
+        t0 = time.perf_counter()
+        results = await asyncio.gather(*[run_task(t, mm, ex) for t in tasks])
+        wall = time.perf_counter() - t0
+        per_task = wall / N
+        if per_task_base is None:
+            per_task_base = per_task
+        speedup = per_task_base / per_task if per_task else 0.0
+        pm_wait = 1000 * (pm.read_wait_s + pm.write_wait_s)
+        print(f"{N:>5} {wall:>8.2f} {N/wall:>9.1f} {speedup:>7.2f}x {per_task:>8.3f}s "
+              f"{ex.actions:>11} {pm_wait:>6.1f}ms")
+    if args.save_outputs:
+        ex.save_outputs(args.save_outputs)
+        print(f"\nper-task outputs copied to {args.save_outputs} (deferred eval)")
+
+
 async def main_async(args):
+    if args.docker:
+        return await run_docker_bench(args)
     Ns = [int(x) for x in args.N.split(",")]
     strategies = args.strategies.split(",")
     print(f"\nConcurrent Memory Manager — modeled benchmark")
@@ -108,6 +144,12 @@ def main():
                     help="modeled sub-agent step latency (s) — the LLM/tool call")
     ap.add_argument("--success-rate", type=float, default=0.7, dest="success_rate")
     ap.add_argument("--seed", type=int, default=0)
+    # STEP 8 — real Docker mode
+    ap.add_argument("--docker", action="store_true", help="Step 8: real one-container Docker execution")
+    ap.add_argument("--container", default="cmm-bench", help="the single shared container name")
+    ap.add_argument("--threads", type=int, default=64, help="thread pool for concurrent docker-exec")
+    ap.add_argument("--save-outputs", default="", dest="save_outputs",
+                    help="copy per-task workdirs here for deferred eval")
     asyncio.run(main_async(ap.parse_args()))
 
 
