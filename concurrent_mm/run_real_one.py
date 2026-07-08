@@ -246,6 +246,7 @@ async def run_one_task(it, box, mm, model, ob):
                                                  plan=[d.subtask for d in dels], subagent_steps=wm))
     return {"task": f"{tid}/{sid}", "level": it["level"], "success": ok, "failed_predicate": fp,
             "latency_s": round(latency, 1), "llm_calls": getattr(llm, "calls", 0), "used_pm": used_pm,
+            "pm_hit_task": (pm_hit.task if pm_hit else None),    # WHICH past trajectory was retrieved
             "steps": len(wm), "plan": [f"{d.agent_type}: {d.subtask}" for d in dels], "trajectory": wm}
 
 
@@ -273,7 +274,10 @@ def _save_trace(r):
     json.dump(r, open(base + ".json", "w"), indent=2, default=str)
     with open(base + ".txt", "w") as fh:
         fh.write(f"TASK {r['task']} L{r['level']} success={r['success']} latency={r['latency_s']}s "
-                 f"calls={r['llm_calls']} failed={r['failed_predicate']}\nPLAN:\n")
+                 f"calls={r['llm_calls']} failed={r['failed_predicate']}\n")
+        if r.get("pm_hit_task"):
+            fh.write(f"RETRIEVED FROM PM (vector search): {r['pm_hit_task']}\n")
+        fh.write("PLAN:\n")
         for p in r["plan"]:
             fh.write(f"  - {p}\n")
         fh.write("STEPS:\n")
@@ -282,6 +286,7 @@ def _save_trace(r):
 
 
 async def main_async(args):
+    args.pm_bank = os.path.abspath(args.pm_bank)           # resolve BEFORE _setup chdirs into OfficeBench
     ob = _lazy_imports()
     split = json.load(open(os.path.join(os.path.dirname(__file__), "..", "officebench_eval", "split.json")))
     test = split["test"]
@@ -302,8 +307,15 @@ async def main_async(args):
     def _embed(text):
         return _st.encode([text], normalize_embeddings=True)[0]
     pm = ProceduralMemory(strategy="lockfree", embedder=_embed)
-    _load_pm(pm, _embed)                                    # WARM PM from prior runs (persistent bank)
-    print(f"PM loaded with {len(pm)} past trajectories (vector search)")
+    if args.pm_bank and os.path.exists(args.pm_bank):      # SEED PM from the bank of past successes
+        bank = json.load(open(args.pm_bank))
+        for r in bank:
+            traj = Trajectory(task=r["task"], plan=r.get("plan", []), subagent_steps=r.get("steps", []))
+            traj.embedding = _embed(r["task"])
+            pm._log.append(traj)
+        print(f"PM SEEDED from {os.path.basename(args.pm_bank)}: {len(pm)} past successful trajectories")
+    _load_pm(pm, _embed)                                    # also warm from prior runs (persistent)
+    print(f"PM has {len(pm)} trajectories (vector search retrieval)")
     mm = MemoryManager(default_tool_memory(), pm)
     sem = asyncio.Semaphore(args.concurrency)
     lock = asyncio.Lock()
@@ -315,8 +327,9 @@ async def main_async(args):
             r = await run_one_task(it, box, mm, args.model, ob)   # async: parallel sub-agent waves
         async with lock:
             _save_trace(r); results.append(r)
+            hit = (" <- PM:'%s'" % r['pm_hit_task'][:45]) if r.get('pm_hit_task') else ""
             print(f"  [{len(results)}/{len(tasks)}] {r['task']} L{r['level']} success={r['success']} "
-                  f"latency={r['latency_s']}s calls={r['llm_calls']} used_pm={r['used_pm']} PM={len(mm.pm)}", flush=True)
+                  f"latency={r['latency_s']}s calls={r['llm_calls']} used_pm={r['used_pm']}{hit}", flush=True)
         return r
 
     print(f"\nONE-CONTAINER real OfficeBench (Option B) — {len(tasks)} tasks, in-container concurrency {args.concurrency}\n")
@@ -341,6 +354,9 @@ def main():
     ap.add_argument("--n", type=int, default=15)
     ap.add_argument("--concurrency", type=int, default=15, help="in-container parallel tasks")
     ap.add_argument("--model", default="gpt-oss-120b")
+    ap.add_argument("--pm-bank", dest="pm_bank",
+                    default=os.path.join(os.path.dirname(__file__), "pm_bank.json"),
+                    help="seed PM from this bank of past successful trajectories (default: concurrent_mm/pm_bank.json)")
     asyncio.run(main_async(ap.parse_args()))
 
 

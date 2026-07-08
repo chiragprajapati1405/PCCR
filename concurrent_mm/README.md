@@ -21,8 +21,10 @@ numbers and traces are under [`one_traces/`](one_traces/) (`_summary.json` + one
 
 - **PM** (`procedural_memory.py`) — append-only log of successful **full trajectories** (plan +
   sub-agent steps). Retrieval is **vector search** (sentence-transformers `all-MiniLM-L6-v2`, cosine
-  top-k). Lock-free (snapshot reads + atomic appends). Persisted to `pm_store.json` so it warms across
-  runs.
+  top-k). Lock-free (snapshot reads + atomic appends). **Seeded at startup from
+  [`pm_bank.json`](pm_bank.json)** — 62 past successful trajectories — so retrieval is live from the
+  first task (`used_pm=True`); the retrieved trajectory's plan is injected into the orchestrator's
+  planning. Also persisted to `pm_store.json` to warm across runs.
 - **Tool Memory** (`tool_memory.py`) — read-only, per-app tool manual (schema/format), looked up by app
   name (O(1), no locks). Injected into the sub-agent prompt.
 - **WM** — each task's private in-progress step buffer; discarded on failure (success-gate: only
