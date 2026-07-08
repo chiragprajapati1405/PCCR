@@ -45,24 +45,39 @@ numbers and traces are under [`one_traces/`](one_traces/) (`_summary.json` + one
 
 ## Reproduce
 
+Run from the **repo root** (this branch already contains `officebench_eval/` and `memory_manager/`,
+which `run_real_one.py` imports). Only `OfficeBench/` (the benchmark + Docker image) is external.
+
 ```bash
-# 1. deps
+# 1. Python deps (Python 3.9)
 python -m venv .venv && source .venv/bin/activate
-pip install sentence-transformers docker openai fire icalendar openpyxl python-docx
+pip install sentence-transformers numpy docker openai fire icalendar openpyxl python-docx pypdf
 
-# 2. clone OfficeBench and APPLY THE PATCH (required for one-container isolation)
+# 2. clone OfficeBench (provides the tasks, the apps, and the Dockerfile)
 git clone https://github.com/zlwang-cs/OfficeBench.git
-python -m concurrent_mm.patch_officebench
+#    also install OfficeBench's own requirements if present:
+#    pip install -r OfficeBench/requirements.txt
 
-# 3. Docker (one container is created automatically as 'cmm-onebox')
+# 3. BUILD the OfficeBench Docker image named 'officebench' (REQUIRED — the runner
+#    creates the shared container 'cmm-onebox' from this image):
+docker build -t officebench OfficeBench/       # uses OfficeBench's Dockerfile
 #    macOS/colima: export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
 
-# 4. Cerebras API keys (gpt-oss-120b)
-#    export CEREBRAS_KEY_1=...   (one or more)
+# 4. APPLY THE PATCH (required for one-container isolation — TESTBED_ROOT namespacing)
+python -m concurrent_mm.patch_officebench
 
-# 5. run 20 tasks in parallel through ONE container
+# 5. Cerebras API key(s) for gpt-oss-120b
+export CEREBRAS_KEY_1=...        # one or more: CEREBRAS_KEY_1, CEREBRAS_KEY_2, ...
+
+# 6. run 20 tasks in parallel through ONE container
 python -m concurrent_mm.run_real_one --n 20 --concurrency 20
 ```
+
+**Dependency map** (all in this repo except OfficeBench):
+`run_real_one.py` → `concurrent_mm/{manager,procedural_memory,tool_memory}.py` +
+`officebench_eval/{runner,cerebras_llm,subagent_parallel}.py` + `officebench_eval/split.json` +
+`memory_manager/parallel.py` + (from the OfficeBench clone) `utils/evaluate.py`, `utils/env.py`,
+`tasks/`, `apps/`. It does **not** need `em_bank.json`/`patterns.json` (no PCCR gate here).
 
 Outputs: per-task latency table + total wall-clock to stdout; traces to `one_traces/`; task outputs to
 `one_results/<task>/testbed/` (for deferred eval via `python -m concurrent_mm.eval_real`).
