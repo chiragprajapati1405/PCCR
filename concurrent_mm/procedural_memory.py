@@ -163,6 +163,21 @@ class ProceduralMemory:
         self.read_count += 1
         return self._score(query, snapshot_len, k)       # VECTOR search (or Jaccard fallback)
 
+    def read_sync_scored(self, query: str, k: int = 1):
+        """Like read_sync but returns [(cosine_score, trajectory), ...] so the trace can log the
+        similarity score of the retrieved trajectory."""
+        snapshot_len = len(self._log)
+        self.read_count += 1
+        if self.embedder is not None:
+            import numpy as np
+            qvec = self._embed(query)
+            scored = [(float(np.dot(qvec, t.embedding)) if t.embedding is not None else -1.0, t)
+                      for t in self._log[:snapshot_len]]
+        else:
+            scored = [(_jaccard(query, t.task), t) for t in self._log[:snapshot_len]]
+        scored.sort(key=lambda x: -x[0])
+        return scored[:k]
+
     def write_sync(self, traj: "Trajectory"):
         if self.embedder is not None and traj.embedding is None:
             traj.embedding = self._embed(traj.task)      # embed once, at write time

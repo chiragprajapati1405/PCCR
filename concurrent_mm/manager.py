@@ -39,5 +39,8 @@ class MemoryManager:
     def orchestrator_read_pm_sync(self, query, k: int = 3):
         return self.pm.read_sync(query, k)
 
+    def orchestrator_read_pm_scored(self, query, k: int = 1):
+        return self.pm.read_sync_scored(query, k)      # [(cosine_score, trajectory), ...]
+
     def orchestrator_write_pm_sync(self, traj):
         self.pm.write_sync(traj)

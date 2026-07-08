@@ -40,27 +40,28 @@ class ToolMemory:
 
 
 # --- default OfficeBench tool manual (from subagent_parallel.VALID_ACTIONS/ARG_SCHEMA/ACTION_HINTS) ---
+# Arg names verified against each OfficeBench app's construct_action(args[...]) — the ground truth.
 DEFAULT_SPEC = {
     "shell":    {"command": {"args": ["command"], "note": "only 'command' exists; e.g. ls /testbed/data"}},
     "excel":    {"read_file": {"args": ["file_path"]},
                  "set_cell": {"args": ["file_path", "text", "row_idx", "column_idx"], "note": "row/col 1-based ints"},
                  "delete_cell": {"args": ["file_path", "row_idx", "column_idx"]},
                  "create_new_file": {"args": ["file_path"]},
-                 "convert_to_pdf": {"args": ["file_path"]}},
+                 "convert_to_pdf": {"args": ["excel_file_path", "pdf_file_path"]}},
     "word":     {"read_file": {"args": ["file_path"]},
                  "write_to_file": {"args": ["file_path", "contents"]},
                  "create_new_file": {"args": ["file_path"]},
-                 "convert_to_pdf": {"args": ["file_path"]}},
+                 "convert_to_pdf": {"args": ["word_file_path", "pdf_file_path"]}},
     "pdf":      {"read_file": {"args": ["pdf_file_path"]},
-                 "convert_to_word": {"args": ["pdf_file_path"]},
-                 "convert_to_image": {"args": ["pdf_file_path"]}},
+                 "convert_to_word": {"args": ["pdf_file_path", "word_file_path"]},
+                 "convert_to_image": {"args": ["pdf_file_path", "image_file_path"]}},
     "ocr":      {"recognize_file": {"args": ["file_path"], "note": "arg is file_path (not image_path)"}},
     "calendar": {"create_event": {"args": ["user", "summary", "time_start", "time_end"],
                                   "format": "times = 'YYYY-MM-DD HH:MM:SS' (with seconds)"},
                  "delete_event": {"args": ["user", "summary"]},
-                 "list_events": {"args": ["user"]}},
-    "email":    {"list_emails": {"args": ["user"]},
-                 "read_email": {"args": ["user"]},
+                 "list_events": {"args": ["username"], "note": "arg is username (not user)"}},
+    "email":    {"list_emails": {"args": ["username"], "note": "arg is username (not user)"},
+                 "read_email": {"args": ["username", "email_id"]},
                  "send_email": {"args": ["sender", "recipient", "subject", "content"],
                                 "note": "sender/recipient are person names, not addresses"}},
 }

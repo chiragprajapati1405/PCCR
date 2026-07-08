@@ -67,12 +67,11 @@ class OneBox:
         act = action.get("action")
         if act not in ob["VALID_ACTIONS"].get(app, []):
             return f"Malformed action! Unknown '{act}' for '{app}'."
-        need = ob["ARG_SCHEMA"].get(f"{app}.{act}", [])
-        payload = {}
-        for k, v in action.items():
-            payload[ob["ARG_ALIAS"].get(k, k) if ob["ARG_ALIAS"].get(k, k) in need else k] = v
-        if "contents" in need and "content" in action and "contents" not in payload:
-            payload["contents"] = action["content"]
+        # pass the LLM's args straight through (tool memory now gives verified arg names, so no
+        # buggy re-aliasing that used to turn a correct 'username' into 'user' against a stale schema)
+        payload = {k: v for k, v in action.items() if k != "action"}
+        if "content" in payload and "contents" not in payload:       # common convenience only
+            payload["contents"] = payload["content"]
         payload["action"], payload["app"] = act, app
         try:
             command = apps.AVAILABLE_ACTIONS[app][act].construct_action(ns, args=payload)
@@ -142,13 +141,14 @@ def _plan(task, files, pm_hit, llm, ob):
             dels.append(ob["Delegation"](agent_type=app, subtask=sub))
     if not dels:
         dels = [ob["Delegation"](agent_type="shell", subtask=task)]
-    return dels
+    return dels, prompt                                          # prompt returned for the trace
 
 
 def _subagent_prompt(app, subtask, usage, last_obs, blackboard, ob):
     """FIX: the sub-agent now SEES the real file list + data read so far (from the blackboard), so it
-    stops hallucinating filenames, plus the Tool Memory usage (how to call the tool)."""
-    hint = ob["_arg_hint"](app, ob["VALID_ACTIONS"][app])
+    stops hallucinating filenames, plus the Tool Memory usage (how to call the tool). The action hint
+    is built FROM tool memory (verified arg names), not the stale ARG_SCHEMA."""
+    hint = "; ".join(f"{a}({', '.join(s.get('args', []))})" for a, s in (usage or {}).items())
     notes = "".join(f"  {a}: {s.get('format','')} {s.get('note','')}\n"
                     for a, s in (usage or {}).items() if s.get("format") or s.get("note"))
     data = (blackboard.get("data", "") or "")[:900]
@@ -163,19 +163,21 @@ def _subagent_prompt(app, subtask, usage, last_obs, blackboard, ob):
 
 
 async def _run_subagent(box, llm, d, mm, ns, blackboard, ob):
-    """One sub-agent: reads ITS tool memory, runs an LLM->action->exec loop. FIX: breaks on a repeated
-    identical failing action (no more 6x identical fails). Blocking calls go through to_thread so
-    same-wave sub-agents overlap."""
+    """One sub-agent: reads ITS tool memory, runs an LLM->action->exec loop. Returns (steps, sa_trace)
+    where sa_trace captures the tool memory retrieved + the system prompt + every step (for the trace)."""
     usage = mm.subagent_read_tool_memory(d.agent_type)          # per-app Tool Memory (read-only)
     steps, obs, sigs = [], "", []
     fan = ob["_is_fanout"](d.subtask)
+    first_prompt = None
     for _ in range(6):
         prompt = _subagent_prompt(d.agent_type, d.subtask, usage, obs, blackboard, ob)
+        if first_prompt is None:
+            first_prompt = prompt                               # the sub-agent's system prompt (step 1)
         action = ob["_parse_action"](await asyncio.to_thread(llm.generate, prompt))
         if not action or str(action.get("action")).lower() in ("done", "finish", "none", ""):
             break
         obs = await asyncio.to_thread(box.exec_action, d.agent_type, action, ns)
-        steps.append({"agent": d.agent_type, "action": action, "obs": obs[:200]})
+        steps.append({"agent": d.agent_type, "action": action, "obs": obs[:220]})
         failed = ("Malformed" in obs or "Fail" in obs or "does not exist" in obs)
         sig = json.dumps(action, sort_keys=True)
         if sig in sigs:                                         # repeated identical action (ok OR fail) -> stop
@@ -183,7 +185,10 @@ async def _run_subagent(box, llm, d, mm, ns, blackboard, ob):
         sigs.append(sig)
         if (not failed) and (not fan):                          # single-item sub-task done
             break
-    return steps
+    sa_trace = {"app": d.agent_type, "subtask": d.subtask,
+                "tool_memory_retrieved": usage,                 # what THIS sub-agent read from Tool Mem
+                "system_prompt": first_prompt, "steps": steps}
+    return steps, sa_trace
 
 
 def _expand_fanout(acts, data, ob):
@@ -214,40 +219,54 @@ async def run_one_task(it, box, mm, model, ob):
     names = [n for n in _out.decode("utf-8", "ignore").split() if n]
     files = ", ".join(f"/testbed/data/{n}" for n in names)   # FULL paths + exact case (agent copies verbatim)
 
-    # ORCHESTRATOR: PM VECTOR search (top-1) -> USE the hit in planning
-    pm_hits = mm.orchestrator_read_pm_sync(cfg["task"], k=1)
-    pm_hit = pm_hits[0] if pm_hits else None
-    dels = await asyncio.to_thread(_plan, cfg["task"], files, pm_hit, llm, ob)
+    tr = {"task": f"{tid}/{sid}", "level": it["level"], "task_text": cfg["task"], "files": files}
 
-    # split into a READ wave and an ACT wave (dependency: read before act)
+    # ORCHESTRATOR: PM VECTOR search (top-1, WITH similarity score) -> USE the hit in planning
+    scored = mm.orchestrator_read_pm_scored(cfg["task"], k=1)
+    pm_sim, pm_hit = (scored[0][0], scored[0][1]) if scored else (None, None)
+    tr["pm"] = {"query": cfg["task"], "retrieved": (pm_hit.task if pm_hit else None),
+                "sim_score": (round(pm_sim, 3) if pm_sim is not None else None),
+                "retrieved_plan": (pm_hit.plan if pm_hit else [])}
+    dels, orch_prompt = await asyncio.to_thread(_plan, cfg["task"], files, pm_hit, llm, ob)
+    tr["orchestrator_system_prompt"] = orch_prompt
+    tr["orchestrator_delegations"] = [{"app": d.agent_type, "subtask": d.subtask,
+                                       "category": ob["categorize"](d.subtask)} for d in dels]
+
+    # WAVE COMPUTATION: split by dependency category (read before act)
     reads = [d for d in dels if ob["categorize"](d.subtask) == "read"]
     acts = [d for d in dels if ob["categorize"](d.subtask) != "read"]
     blackboard = {"files": files, "data": ""}
+    tr["waves"] = {"read_wave": [f"[{d.agent_type}] {d.subtask}" for d in reads],
+                   "act_wave_planned": [f"[{d.agent_type}] {d.subtask}" for d in acts]}
+    subagents = []
 
     # READ WAVE — sub-agents in PARALLEL (2nd dimension)
     if reads:
         rres = await asyncio.gather(*[_run_subagent(box, llm, d, mm, ns, blackboard, ob) for d in reads])
-        for steps in rres:
-            wm.extend(steps)
+        for steps, sa in rres:
+            wm.extend(steps); subagents.append({**sa, "wave": "read"})
             blackboard["data"] += "\n".join(s["obs"] for s in steps) + "\n"
 
     # FAN-OUT EXPANSION using the read data, then ACT WAVE in PARALLEL
+    acts_before = [f"[{d.agent_type}] {d.subtask}" for d in acts]
     acts = _expand_fanout(acts, blackboard["data"], ob)
+    tr["waves"]["fanout_expanded"] = {"before": acts_before,
+                                      "after": [f"[{d.agent_type}] {d.subtask}" for d in acts]}
     if acts:
         ares = await asyncio.gather(*[_run_subagent(box, llm, d, mm, ns, blackboard, ob) for d in acts])
-        for steps in ares:
-            wm.extend(steps)
+        for steps, sa in ares:
+            wm.extend(steps); subagents.append({**sa, "wave": "act"})
+    tr["subagents"] = subagents
 
     ok, fp = await asyncio.to_thread(box.save_and_eval, tid, sid, ns, cfg["evaluation"])
     latency = time.perf_counter() - t0
-    used_pm = pm_hit is not None
     if ok:                                                       # SUCCESS-GATE -> append to PM
         mm.orchestrator_write_pm_sync(Trajectory(task=cfg["task"],
                                                  plan=[d.subtask for d in dels], subagent_steps=wm))
-    return {"task": f"{tid}/{sid}", "level": it["level"], "success": ok, "failed_predicate": fp,
-            "latency_s": round(latency, 1), "llm_calls": getattr(llm, "calls", 0), "used_pm": used_pm,
-            "pm_hit_task": (pm_hit.task if pm_hit else None),    # WHICH past trajectory was retrieved
-            "steps": len(wm), "plan": [f"{d.agent_type}: {d.subtask}" for d in dels], "trajectory": wm}
+    tr.update({"success": ok, "failed_predicate": fp, "latency_s": round(latency, 1),
+               "llm_calls": getattr(llm, "calls", 0), "used_pm": pm_hit is not None,
+               "pm_hit_task": (pm_hit.task if pm_hit else None), "steps": len(wm)})
+    return tr
 
 
 PM_STORE = os.path.join(os.path.dirname(__file__), "pm_store.json")
@@ -268,21 +287,70 @@ def _save_pm(pm):
               open(PM_STORE, "w"), indent=1, default=str)
 
 
+def _blk(fh, title, body):
+    fh.write(f"\n{'-'*78}\n{title}\n{'-'*78}\n{body.rstrip()}\n")
+
+
 def _save_trace(r):
+    """Write the FULL flow so a task is understandable from the trace alone: PM retrieval + sim score,
+    orchestrator system prompt + delegations + wave computation, and per sub-agent the tool memory
+    retrieved + its system prompt + every step."""
     os.makedirs(TRACE_DIR, exist_ok=True)
     base = os.path.join(TRACE_DIR, r["task"].replace("/", "_"))
     json.dump(r, open(base + ".json", "w"), indent=2, default=str)
     with open(base + ".txt", "w") as fh:
-        fh.write(f"TASK {r['task']} L{r['level']} success={r['success']} latency={r['latency_s']}s "
-                 f"calls={r['llm_calls']} failed={r['failed_predicate']}\n")
-        if r.get("pm_hit_task"):
-            fh.write(f"RETRIEVED FROM PM (vector search): {r['pm_hit_task']}\n")
-        fh.write("PLAN:\n")
-        for p in r["plan"]:
-            fh.write(f"  - {p}\n")
-        fh.write("STEPS:\n")
-        for st in r["trajectory"]:
-            fh.write(f"  [{st['agent']}] {json.dumps(st['action'])[:110]} -> {st['obs'][:90]}\n")
+        fh.write("=" * 78 + "\n")
+        fh.write(f"TASK {r['task']}  L{r['level']}  success={r['success']}  "
+                 f"failed_predicate={r.get('failed_predicate')}\n")
+        fh.write(f"latency={r['latency_s']}s  llm_calls={r['llm_calls']}  steps={r['steps']}\n")
+        fh.write(f"TASK TEXT: {r.get('task_text','')}\n")
+        fh.write(f"FILES: {r.get('files','')}\n")
+        fh.write("=" * 78 + "\n")
+
+        # [1] PM retrieval
+        pm = r.get("pm", {})
+        _blk(fh, "[1] PM RETRIEVAL  (vector search over the seeded trajectory bank)",
+             f"query        : {pm.get('query','')}\n"
+             f"retrieved    : {pm.get('retrieved')}\n"
+             f"cosine score : {pm.get('sim_score')}\n"
+             f"retrieved plan (injected into the orchestrator prompt):\n" +
+             "".join(f"   - {p}\n" for p in (pm.get('retrieved_plan') or [])))
+
+        # [2] Orchestrator
+        _blk(fh, "[2] ORCHESTRATOR — SYSTEM PROMPT (given to the orchestrator)",
+             r.get("orchestrator_system_prompt", ""))
+        _blk(fh, "[2b] ORCHESTRATOR — DELEGATIONS (its output)",
+             "".join(f"   {i+1}. [{d['app']}] ({d['category']}) {d['subtask']}\n"
+                     for i, d in enumerate(r.get("orchestrator_delegations", []))))
+
+        # [3] Wave computation
+        w = r.get("waves", {})
+        fo = w.get("fanout_expanded", {})
+        _blk(fh, "[3] WAVE COMPUTATION (dependency: read wave  ->  act wave; fan-out expands per item)",
+             "READ WAVE (parallel):\n" + "".join(f"   {x}\n" for x in w.get("read_wave", [])) +
+             "ACT WAVE planned (parallel):\n" + "".join(f"   {x}\n" for x in w.get("act_wave_planned", [])) +
+             ("FAN-OUT EXPANSION:\n   before: " + str(fo.get("before", [])) +
+              "\n   after : " + str(fo.get("after", [])) + "\n" if fo else ""))
+
+        # [4] Sub-agents
+        fh.write(f"\n{'-'*78}\n[4] SUB-AGENTS ({len(r.get('subagents',[]))})\n{'-'*78}\n")
+        for i, sa in enumerate(r.get("subagents", [])):
+            fh.write(f"\n>> SUB-AGENT #{i+1}  wave={sa.get('wave')}  app={sa['app']}\n")
+            fh.write(f"   SUB-TASK: {sa['subtask']}\n")
+            tm = sa.get("tool_memory_retrieved", {})
+            fh.write(f"   TOOL MEMORY retrieved (app='{sa['app']}'):\n")
+            for act, spec in tm.items():
+                fh.write(f"      {act}({', '.join(spec.get('args', []))})"
+                         + (f"  [{spec.get('format') or spec.get('note')}]" if (spec.get('format') or spec.get('note')) else "") + "\n")
+            _blk(fh, f"   SUB-AGENT #{i+1} — SYSTEM PROMPT (given to the sub-agent)",
+                 sa.get("system_prompt", "") or "")
+            fh.write("   STEPS:\n")
+            for j, st in enumerate(sa.get("steps", [])):
+                fh.write(f"      step {j+1}: {json.dumps(st['action'])[:140]}\n"
+                         f"              -> {st['obs'][:140]}\n")
+
+        _blk(fh, "[5] EVALUATION",
+             f"success={r['success']}  failed_predicate={r.get('failed_predicate')}")
 
 
 async def main_async(args):
@@ -327,7 +395,8 @@ async def main_async(args):
             r = await run_one_task(it, box, mm, args.model, ob)   # async: parallel sub-agent waves
         async with lock:
             _save_trace(r); results.append(r)
-            hit = (" <- PM:'%s'" % r['pm_hit_task'][:45]) if r.get('pm_hit_task') else ""
+            _sim = (r.get('pm') or {}).get('sim_score')
+            hit = (" <- PM(sim=%s):'%s'" % (_sim, r['pm_hit_task'][:40])) if r.get('pm_hit_task') else ""
             print(f"  [{len(results)}/{len(tasks)}] {r['task']} L{r['level']} success={r['success']} "
                   f"latency={r['latency_s']}s calls={r['llm_calls']} used_pm={r['used_pm']}{hit}", flush=True)
         return r
