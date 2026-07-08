@@ -1,0 +1,129 @@
+==============================================================================
+TASK 2-38/1  L2  success=False  failed_predicate=evaluate_contain
+latency=14.9s  llm_calls=7  steps=3
+TASK TEXT: Bob was invited to party hold by Jane Doe, send an email party.eml to Bob to notify Bob
+FILES: /testbed/data/notification.docx, /testbed/data/party.pdf
+==============================================================================
+
+------------------------------------------------------------------------------
+[1] PM RETRIEVAL  (vector search over the seeded trajectory bank)
+------------------------------------------------------------------------------
+query        : Bob was invited to party hold by Jane Doe, send an email party.eml to Bob to notify Bob
+retrieved    : what is the subject of the email I sent to Bob?
+cosine score : 0.658
+retrieved plan (injected into the orchestrator prompt):
+   - Switch to email app (email agent).
+   - List Alice's emails (email agent).
+
+------------------------------------------------------------------------------
+[2] ORCHESTRATOR — SYSTEM PROMPT (given to the orchestrator)
+------------------------------------------------------------------------------
+A SIMILAR PAST TASK succeeded with this plan — ADAPT it:
+  - Switch to email app (email agent).
+  - List Alice's emails (email agent).
+
+Decompose this office-automation task into the SMALLEST independent sub-tasks. Return ONLY a JSON array of {"app": <shell,excel,word,pdf,ocr,calendar,email>, "subtask": <one concrete instruction>}. RULES: (1) a sub-task that READS/lists source data MUST come before sub-tasks that use it; (2) if the task repeats an operation over each item (each member/row/person), phrase the subtask with 'for each'; (3) use ONLY the EXACT filenames below — never invent one.
+Available files: /testbed/data/notification.docx, /testbed/data/party.pdf
+
+TASK: Bob was invited to party hold by Jane Doe, send an email party.eml to Bob to notify Bob
+
+JSON:
+
+------------------------------------------------------------------------------
+[2b] ORCHESTRATOR — DELEGATIONS (its output)
+------------------------------------------------------------------------------
+   1. [email] (send) switch to email app
+   2. [email] (send) compose a new email to Bob with subject "Party" and body "You are invited to the party held by Jane Doe"
+   3. [email] (send) send the composed email to Bob
+
+------------------------------------------------------------------------------
+[3] WAVE COMPUTATION (dependency: read wave  ->  act wave; fan-out expands per item)
+------------------------------------------------------------------------------
+READ WAVE (parallel):
+ACT WAVE planned (parallel):
+   [email] switch to email app
+   [email] compose a new email to Bob with subject "Party" and body "You are invited to the party held by Jane Doe"
+   [email] send the composed email to Bob
+FAN-OUT EXPANSION:
+   before: ['[email] switch to email app', '[email] compose a new email to Bob with subject "Party" and body "You are invited to the party held by Jane Doe"', '[email] send the composed email to Bob']
+   after : ['[email] switch to email app', '[email] compose a new email to Bob with subject "Party" and body "You are invited to the party held by Jane Doe"', '[email] send the composed email to Bob']
+
+------------------------------------------------------------------------------
+[4] SUB-AGENTS (3)
+------------------------------------------------------------------------------
+
+>> SUB-AGENT #1  wave=act  app=email
+   SUB-TASK: switch to email app
+   TOOL MEMORY retrieved (app='email'):
+      list_emails(username)  [arg is username (not user)]
+      read_email(username, email_id)
+      send_email(sender, recipient, subject, content)  [sender/recipient are person names, not addresses]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #1 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the email sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: switch to email app
+Available files (use EXACT names): /testbed/data/notification.docx, /testbed/data/party.pdf
+Actions (exact args): list_emails(username); read_email(username, email_id); send_email(sender, recipient, subject, content)
+Tool notes:
+  list_emails:  arg is username (not user)
+  send_email:  sender/recipient are person names, not addresses
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+      step 1: {"action": "list_emails", "username": "user"}
+              -> No emails found for user.
+
+>> SUB-AGENT #2  wave=act  app=email
+   SUB-TASK: compose a new email to Bob with subject "Party" and body "You are invited to the party held by Jane Doe"
+   TOOL MEMORY retrieved (app='email'):
+      list_emails(username)  [arg is username (not user)]
+      read_email(username, email_id)
+      send_email(sender, recipient, subject, content)  [sender/recipient are person names, not addresses]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #2 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the email sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: compose a new email to Bob with subject "Party" and body "You are invited to the party held by Jane Doe"
+Available files (use EXACT names): /testbed/data/notification.docx, /testbed/data/party.pdf
+Actions (exact args): list_emails(username); read_email(username, email_id); send_email(sender, recipient, subject, content)
+Tool notes:
+  list_emails:  arg is username (not user)
+  send_email:  sender/recipient are person names, not addresses
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+      step 1: {"action": "send_email", "sender": "Jane Doe", "recipient": "Bob", "subject": "Party", "content": "You are invited to the party held by Jane
+              -> ERROR: Could not consume arg: Doe
+Usage: email_send_email.py --sender Jane Doe --recipient Bob --subject Party --content <command>
+  availab
+
+>> SUB-AGENT #3  wave=act  app=email
+   SUB-TASK: send the composed email to Bob
+   TOOL MEMORY retrieved (app='email'):
+      list_emails(username)  [arg is username (not user)]
+      read_email(username, email_id)
+      send_email(sender, recipient, subject, content)  [sender/recipient are person names, not addresses]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #3 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the email sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: send the composed email to Bob
+Available files (use EXACT names): /testbed/data/notification.docx, /testbed/data/party.pdf
+Actions (exact args): list_emails(username); read_email(username, email_id); send_email(sender, recipient, subject, content)
+Tool notes:
+  list_emails:  arg is username (not user)
+  send_email:  sender/recipient are person names, not addresses
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+      step 1: {"action": "send_email", "sender": "User", "recipient": "Bob", "subject": "Your Requested Email", "content": "Please see the attached docume
+              -> Successfully sent email to Bob.
+
+------------------------------------------------------------------------------
+[5] EVALUATION
+------------------------------------------------------------------------------
+success=False  failed_predicate=evaluate_contain

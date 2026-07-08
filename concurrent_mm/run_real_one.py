@@ -70,6 +70,8 @@ class OneBox:
         # pass the LLM's args straight through (tool memory now gives verified arg names, so no
         # buggy re-aliasing that used to turn a correct 'username' into 'user' against a stale schema)
         payload = {k: v for k, v in action.items() if k != "action"}
+        if isinstance(payload.get("args"), dict):                    # LLM sometimes nests args in "args"
+            payload.update(payload.pop("args"))
         if "content" in payload and "contents" not in payload:       # common convenience only
             payload["contents"] = payload["content"]
         payload["action"], payload["app"] = act, app
@@ -426,7 +428,12 @@ def main():
     ap.add_argument("--pm-bank", dest="pm_bank",
                     default=os.path.join(os.path.dirname(__file__), "pm_bank.json"),
                     help="seed PM from this bank of past successful trajectories (default: concurrent_mm/pm_bank.json)")
-    asyncio.run(main_async(ap.parse_args()))
+    ap.add_argument("--tag", default="", help="save traces/results to one_traces_<tag>/ one_results_<tag>/")
+    args = ap.parse_args()
+    if args.tag:                                            # isolate this run's traces/results
+        globals()["TRACE_DIR"] = os.path.join(os.path.dirname(__file__), f"one_traces_{args.tag}")
+        globals()["RESULTS_DIR"] = os.path.join(os.path.dirname(__file__), f"one_results_{args.tag}")
+    asyncio.run(main_async(args))
 
 
 if __name__ == "__main__":

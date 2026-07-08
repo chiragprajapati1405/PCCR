@@ -1,0 +1,213 @@
+==============================================================================
+TASK 1-1/0  L1  success=False  failed_predicate=evaluate_contain
+latency=17.2s  llm_calls=11  steps=4
+TASK TEXT: Add a meeting to Bob's calendar at 5/17/2024 10:30 a.m to 11:00 a.m
+FILES: 
+==============================================================================
+
+------------------------------------------------------------------------------
+[1] PM RETRIEVAL  (vector search over the seeded trajectory bank)
+------------------------------------------------------------------------------
+query        : Add a meeting to Bob's calendar at 5/17/2024 10:30 a.m to 11:00 a.m
+retrieved    : remind Bob that he has a dinner at 5/18/2024 7:00 p.m
+cosine score : 0.724
+retrieved plan (injected into the orchestrator prompt):
+   - Switch to calendar app (system).
+   - Create dinner event for Bob on 2024-05-18 19:00-20:00 (calendar_agent).
+
+------------------------------------------------------------------------------
+[2] ORCHESTRATOR — SYSTEM PROMPT (given to the orchestrator)
+------------------------------------------------------------------------------
+A SIMILAR PAST TASK succeeded with this plan — ADAPT it:
+  - Switch to calendar app (system).
+  - Create dinner event for Bob on 2024-05-18 19:00-20:00 (calendar_agent).
+
+Decompose this office-automation task into the SMALLEST independent sub-tasks. Return ONLY a JSON array of {"app": <shell,excel,word,pdf,ocr,calendar,email>, "subtask": <one concrete instruction>}. RULES: (1) a sub-task that READS/lists source data MUST come before sub-tasks that use it; (2) if the task repeats an operation over each item (each member/row/person), phrase the subtask with 'for each'; (3) use ONLY the EXACT filenames below — never invent one.
+Available files: 
+
+TASK: Add a meeting to Bob's calendar at 5/17/2024 10:30 a.m to 11:00 a.m
+
+JSON:
+
+------------------------------------------------------------------------------
+[2b] ORCHESTRATOR — DELEGATIONS (its output)
+------------------------------------------------------------------------------
+   1. [calendar] (other) open calendar application
+   2. [calendar] (read) search for Bob's calendar
+   3. [calendar] (create) create new event titled "Meeting" on 2024-05-17
+   4. [calendar] (create) set event start time to 10:30 a.m
+   5. [calendar] (create) set event end time to 11:00 a.m
+   6. [calendar] (other) save the event
+
+------------------------------------------------------------------------------
+[3] WAVE COMPUTATION (dependency: read wave  ->  act wave; fan-out expands per item)
+------------------------------------------------------------------------------
+READ WAVE (parallel):
+   [calendar] search for Bob's calendar
+ACT WAVE planned (parallel):
+   [calendar] open calendar application
+   [calendar] create new event titled "Meeting" on 2024-05-17
+   [calendar] set event start time to 10:30 a.m
+   [calendar] set event end time to 11:00 a.m
+   [calendar] save the event
+FAN-OUT EXPANSION:
+   before: ['[calendar] open calendar application', '[calendar] create new event titled "Meeting" on 2024-05-17', '[calendar] set event start time to 10:30 a.m', '[calendar] set event end time to 11:00 a.m', '[calendar] save the event']
+   after : ['[calendar] open calendar application', '[calendar] create new event titled "Meeting" on 2024-05-17', '[calendar] set event start time to 10:30 a.m', '[calendar] set event end time to 11:00 a.m', '[calendar] save the event']
+
+------------------------------------------------------------------------------
+[4] SUB-AGENTS (6)
+------------------------------------------------------------------------------
+
+>> SUB-AGENT #1  wave=read  app=calendar
+   SUB-TASK: search for Bob's calendar
+   TOOL MEMORY retrieved (app='calendar'):
+      create_event(user, summary, time_start, time_end)  [times = 'YYYY-MM-DD HH:MM:SS' (with seconds)]
+      delete_event(user, summary)
+      list_events(username)  [arg is username (not user)]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #1 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: search for Bob's calendar
+Available files (use EXACT names): 
+Actions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)
+Tool notes:
+  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) 
+  list_events:  arg is username (not user)
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+      step 1: {"action": "list_events", "username": "Bob"}
+              -> No events found for Bob.
+
+>> SUB-AGENT #2  wave=act  app=calendar
+   SUB-TASK: open calendar application
+   TOOL MEMORY retrieved (app='calendar'):
+      create_event(user, summary, time_start, time_end)  [times = 'YYYY-MM-DD HH:MM:SS' (with seconds)]
+      delete_event(user, summary)
+      list_events(username)  [arg is username (not user)]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #2 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: open calendar application
+Available files (use EXACT names): 
+DATA read so far:
+No events found for Bob.
+
+Actions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)
+Tool notes:
+  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) 
+  list_events:  arg is username (not user)
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+      step 1: {"action": "list_events", "username": "Bob"}
+              -> No events found for Bob.
+
+>> SUB-AGENT #3  wave=act  app=calendar
+   SUB-TASK: create new event titled "Meeting" on 2024-05-17
+   TOOL MEMORY retrieved (app='calendar'):
+      create_event(user, summary, time_start, time_end)  [times = 'YYYY-MM-DD HH:MM:SS' (with seconds)]
+      delete_event(user, summary)
+      list_events(username)  [arg is username (not user)]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #3 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: create new event titled "Meeting" on 2024-05-17
+Available files (use EXACT names): 
+DATA read so far:
+No events found for Bob.
+
+Actions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)
+Tool notes:
+  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) 
+  list_events:  arg is username (not user)
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+      step 1: {"action": "create_event", "user": "Bob", "summary": "Meeting", "time_start": "2024-05-17 09:00:00", "time_end": "2024-05-17 10:00:00"}
+              -> Successfully create a new event to Bob's calendar.
+
+>> SUB-AGENT #4  wave=act  app=calendar
+   SUB-TASK: set event start time to 10:30 a.m
+   TOOL MEMORY retrieved (app='calendar'):
+      create_event(user, summary, time_start, time_end)  [times = 'YYYY-MM-DD HH:MM:SS' (with seconds)]
+      delete_event(user, summary)
+      list_events(username)  [arg is username (not user)]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #4 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: set event start time to 10:30 a.m
+Available files (use EXACT names): 
+DATA read so far:
+No events found for Bob.
+
+Actions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)
+Tool notes:
+  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) 
+  list_events:  arg is username (not user)
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+      step 1: {"action": "create_event", "user": "Bob", "summary": "New Event", "time_start": "2026-07-08 10:30:00", "time_end": "2026-07-08 11:30:00"}
+              -> Successfully create a new event to Bob's calendar.
+
+>> SUB-AGENT #5  wave=act  app=calendar
+   SUB-TASK: set event end time to 11:00 a.m
+   TOOL MEMORY retrieved (app='calendar'):
+      create_event(user, summary, time_start, time_end)  [times = 'YYYY-MM-DD HH:MM:SS' (with seconds)]
+      delete_event(user, summary)
+      list_events(username)  [arg is username (not user)]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #5 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: set event end time to 11:00 a.m
+Available files (use EXACT names): 
+DATA read so far:
+No events found for Bob.
+
+Actions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)
+Tool notes:
+  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) 
+  list_events:  arg is username (not user)
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+
+>> SUB-AGENT #6  wave=act  app=calendar
+   SUB-TASK: save the event
+   TOOL MEMORY retrieved (app='calendar'):
+      create_event(user, summary, time_start, time_end)  [times = 'YYYY-MM-DD HH:MM:SS' (with seconds)]
+      delete_event(user, summary)
+      list_events(username)  [arg is username (not user)]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #6 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: save the event
+Available files (use EXACT names): 
+DATA read so far:
+No events found for Bob.
+
+Actions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)
+Tool notes:
+  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) 
+  list_events:  arg is username (not user)
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+
+------------------------------------------------------------------------------
+[5] EVALUATION
+------------------------------------------------------------------------------
+success=False  failed_predicate=evaluate_contain

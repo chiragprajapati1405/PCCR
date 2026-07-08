@@ -1,0 +1,164 @@
+==============================================================================
+TASK 2-37/1  L2  success=False  failed_predicate=evaluate_contain
+latency=27.3s  llm_calls=50  steps=4
+TASK TEXT: for calendar data, which event has longest total time?
+FILES: 
+==============================================================================
+
+------------------------------------------------------------------------------
+[1] PM RETRIEVAL  (vector search over the seeded trajectory bank)
+------------------------------------------------------------------------------
+query        : for calendar data, which event has longest total time?
+retrieved    : Bob has a travelling from 6/19/2024 to 6/23/2024 at Florida, set as a calendar event
+cosine score : 0.328
+retrieved plan (injected into the orchestrator prompt):
+   - Switch to the calendar app.
+   - calendar_agent creates a travel event in Bob's calendar.
+
+------------------------------------------------------------------------------
+[2] ORCHESTRATOR — SYSTEM PROMPT (given to the orchestrator)
+------------------------------------------------------------------------------
+A SIMILAR PAST TASK succeeded with this plan — ADAPT it:
+  - Switch to the calendar app.
+  - calendar_agent creates a travel event in Bob's calendar.
+
+Decompose this office-automation task into the SMALLEST independent sub-tasks. Return ONLY a JSON array of {"app": <shell,excel,word,pdf,ocr,calendar,email>, "subtask": <one concrete instruction>}. RULES: (1) a sub-task that READS/lists source data MUST come before sub-tasks that use it; (2) if the task repeats an operation over each item (each member/row/person), phrase the subtask with 'for each'; (3) use ONLY the EXACT filenames below — never invent one.
+Available files: 
+
+TASK: for calendar data, which event has longest total time?
+
+JSON:
+
+------------------------------------------------------------------------------
+[2b] ORCHESTRATOR — DELEGATIONS (its output)
+------------------------------------------------------------------------------
+   1. [calendar] (read) list all events in the calendar
+   2. [calendar] (other) for each event, calculate its total duration (end time minus start time)
+   3. [calendar] (other) identify the event with the longest total duration
+   4. [calendar] (other) output the details of the longest event
+
+------------------------------------------------------------------------------
+[3] WAVE COMPUTATION (dependency: read wave  ->  act wave; fan-out expands per item)
+------------------------------------------------------------------------------
+READ WAVE (parallel):
+   [calendar] list all events in the calendar
+ACT WAVE planned (parallel):
+   [calendar] for each event, calculate its total duration (end time minus start time)
+   [calendar] identify the event with the longest total duration
+   [calendar] output the details of the longest event
+FAN-OUT EXPANSION:
+   before: ['[calendar] for each event, calculate its total duration (end time minus start time)', '[calendar] identify the event with the longest total duration', '[calendar] output the details of the longest event']
+   after : ['[calendar] for each event, calculate its total duration (end time minus start time)', '[calendar] identify the event with the longest total duration', '[calendar] output the details of the longest event']
+
+------------------------------------------------------------------------------
+[4] SUB-AGENTS (4)
+------------------------------------------------------------------------------
+
+>> SUB-AGENT #1  wave=read  app=calendar
+   SUB-TASK: list all events in the calendar
+   TOOL MEMORY retrieved (app='calendar'):
+      create_event(user, summary, time_start, time_end)  [times = 'YYYY-MM-DD HH:MM:SS' (with seconds)]
+      delete_event(user, summary)
+      list_events(username)  [arg is username (not user)]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #1 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: list all events in the calendar
+Available files (use EXACT names): 
+Actions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)
+Tool notes:
+  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) 
+  list_events:  arg is username (not user)
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+      step 1: {"action": "list_events", "username": "user"}
+              -> No events found for user.
+      step 2: {"action": "list_events", "username": "user"}
+              -> No events found for user.
+
+>> SUB-AGENT #2  wave=act  app=calendar
+   SUB-TASK: for each event, calculate its total duration (end time minus start time)
+   TOOL MEMORY retrieved (app='calendar'):
+      create_event(user, summary, time_start, time_end)  [times = 'YYYY-MM-DD HH:MM:SS' (with seconds)]
+      delete_event(user, summary)
+      list_events(username)  [arg is username (not user)]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #2 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: for each event, calculate its total duration (end time minus start time)
+Available files (use EXACT names): 
+DATA read so far:
+No events found for user.
+No events found for user.
+
+Actions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)
+Tool notes:
+  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) 
+  list_events:  arg is username (not user)
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+
+>> SUB-AGENT #3  wave=act  app=calendar
+   SUB-TASK: identify the event with the longest total duration
+   TOOL MEMORY retrieved (app='calendar'):
+      create_event(user, summary, time_start, time_end)  [times = 'YYYY-MM-DD HH:MM:SS' (with seconds)]
+      delete_event(user, summary)
+      list_events(username)  [arg is username (not user)]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #3 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: identify the event with the longest total duration
+Available files (use EXACT names): 
+DATA read so far:
+No events found for user.
+No events found for user.
+
+Actions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)
+Tool notes:
+  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) 
+  list_events:  arg is username (not user)
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+      step 1: {"action": "list_events", "username": "user"}
+              -> No events found for user.
+
+>> SUB-AGENT #4  wave=act  app=calendar
+   SUB-TASK: output the details of the longest event
+   TOOL MEMORY retrieved (app='calendar'):
+      create_event(user, summary, time_start, time_end)  [times = 'YYYY-MM-DD HH:MM:SS' (with seconds)]
+      delete_event(user, summary)
+      list_events(username)  [arg is username (not user)]
+
+------------------------------------------------------------------------------
+   SUB-AGENT #4 — SYSTEM PROMPT (given to the sub-agent)
+------------------------------------------------------------------------------
+You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.
+SUB-TASK: output the details of the longest event
+Available files (use EXACT names): 
+DATA read so far:
+No events found for user.
+No events found for user.
+
+Actions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)
+Tool notes:
+  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) 
+  list_events:  arg is username (not user)
+Reply with ONE JSON {"action": <name>, <args>}. If already done, {"action": "done"}.
+JSON:
+   STEPS:
+      step 1: {"action": "list_events", "username": "user"}
+              -> No events found for user.
+
+------------------------------------------------------------------------------
+[5] EVALUATION
+------------------------------------------------------------------------------
+success=False  failed_predicate=evaluate_contain

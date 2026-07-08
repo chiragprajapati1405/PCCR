@@ -1,0 +1,243 @@
+{
+  "task": "3-90/0",
+  "level": 3,
+  "task_text": "for calendar data, find frequency of meeting, generate a file report.pdf about meeting frequency",
+  "files": "",
+  "pm": {
+    "query": "for calendar data, find frequency of meeting, generate a file report.pdf about meeting frequency",
+    "retrieved": "Create meeting agenda from Excel data and add it to my calendar",
+    "sim_score": 0.596,
+    "retrieved_plan": [
+      "Locate and read the meeting agenda file using shell and excel agents.",
+      "Add each agenda item as a calendar events using the calendar agent."
+    ]
+  },
+  "orchestrator_system_prompt": "A SIMILAR PAST TASK succeeded with this plan \u2014 ADAPT it:\n  - Locate and read the meeting agenda file using shell and excel agents.\n  - Add each agenda item as a calendar events using the calendar agent.\n\nDecompose this office-automation task into the SMALLEST independent sub-tasks. Return ONLY a JSON array of {\"app\": <shell,excel,word,pdf,ocr,calendar,email>, \"subtask\": <one concrete instruction>}. RULES: (1) a sub-task that READS/lists source data MUST come before sub-tasks that use it; (2) if the task repeats an operation over each item (each member/row/person), phrase the subtask with 'for each'; (3) use ONLY the EXACT filenames below \u2014 never invent one.\nAvailable files: \n\nTASK: for calendar data, find frequency of meeting, generate a file report.pdf about meeting frequency\n\nJSON:",
+  "orchestrator_delegations": [
+    {
+      "app": "shell",
+      "subtask": "locate the calendar data file in the filesystem",
+      "category": "other"
+    },
+    {
+      "app": "calendar",
+      "subtask": "read/list all calendar events from the located file",
+      "category": "read"
+    },
+    {
+      "app": "calendar",
+      "subtask": "for each calendar event, extract the meeting date",
+      "category": "other"
+    },
+    {
+      "app": "calendar",
+      "subtask": "compute the frequency of meetings (e.g., count per week)",
+      "category": "other"
+    },
+    {
+      "app": "pdf",
+      "subtask": "generate a file report.pdf that contains the meeting frequency analysis",
+      "category": "other"
+    }
+  ],
+  "waves": {
+    "read_wave": [
+      "[calendar] read/list all calendar events from the located file"
+    ],
+    "act_wave_planned": [
+      "[shell] locate the calendar data file in the filesystem",
+      "[calendar] for each calendar event, extract the meeting date",
+      "[calendar] compute the frequency of meetings (e.g., count per week)",
+      "[pdf] generate a file report.pdf that contains the meeting frequency analysis"
+    ],
+    "fanout_expanded": {
+      "before": [
+        "[shell] locate the calendar data file in the filesystem",
+        "[calendar] for each calendar event, extract the meeting date",
+        "[calendar] compute the frequency of meetings (e.g., count per week)",
+        "[pdf] generate a file report.pdf that contains the meeting frequency analysis"
+      ],
+      "after": [
+        "[shell] locate the calendar data file in the filesystem",
+        "[calendar] for each calendar event, extract the meeting date",
+        "[calendar] compute the frequency of meetings (e.g., count per week)",
+        "[pdf] generate a file report.pdf that contains the meeting frequency analysis"
+      ]
+    }
+  },
+  "subagents": [
+    {
+      "app": "calendar",
+      "subtask": "read/list all calendar events from the located file",
+      "tool_memory_retrieved": {
+        "create_event": {
+          "args": [
+            "user",
+            "summary",
+            "time_start",
+            "time_end"
+          ],
+          "format": "times = 'YYYY-MM-DD HH:MM:SS' (with seconds)"
+        },
+        "delete_event": {
+          "args": [
+            "user",
+            "summary"
+          ]
+        },
+        "list_events": {
+          "args": [
+            "username"
+          ],
+          "note": "arg is username (not user)"
+        }
+      },
+      "system_prompt": "You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.\nSUB-TASK: read/list all calendar events from the located file\nAvailable files (use EXACT names): \nActions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)\nTool notes:\n  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) \n  list_events:  arg is username (not user)\nReply with ONE JSON {\"action\": <name>, <args>}. If already done, {\"action\": \"done\"}.\nJSON:",
+      "steps": [
+        {
+          "agent": "calendar",
+          "action": {
+            "action": "list_events",
+            "username": "user"
+          },
+          "obs": "No events found for user."
+        },
+        {
+          "agent": "calendar",
+          "action": {
+            "action": "list_events",
+            "username": "user"
+          },
+          "obs": "No events found for user."
+        }
+      ],
+      "wave": "read"
+    },
+    {
+      "app": "shell",
+      "subtask": "locate the calendar data file in the filesystem",
+      "tool_memory_retrieved": {
+        "command": {
+          "args": [
+            "command"
+          ],
+          "note": "only 'command' exists; e.g. ls /testbed/data"
+        }
+      },
+      "system_prompt": "You are the shell sub-agent. Do ONLY this sub-task with ONE tool call.\nSUB-TASK: locate the calendar data file in the filesystem\nAvailable files (use EXACT names): \nDATA read so far:\nNo events found for user.\nNo events found for user.\n\nActions (exact args): command(command)\nTool notes:\n  command:  only 'command' exists; e.g. ls /testbed/data\nReply with ONE JSON {\"action\": <name>, <args>}. If already done, {\"action\": \"done\"}.\nJSON:",
+      "steps": [
+        {
+          "agent": "shell",
+          "action": {
+            "action": "command",
+            "command": "find / -type f -name '*calendar*' 2>/dev/null"
+          },
+          "obs": "/usr/local/bin/icalendar\n/usr/local/lib/python3.14/dist-packages/icalendar/tests/test_icalendar.py\n/usr/local/lib/python3.14/dist-packages/icalendar/tests/test_issue_218_parse_calendar.py\n/usr/local/lib/python3.14/dist-p"
+        }
+      ],
+      "wave": "act"
+    },
+    {
+      "app": "calendar",
+      "subtask": "for each calendar event, extract the meeting date",
+      "tool_memory_retrieved": {
+        "create_event": {
+          "args": [
+            "user",
+            "summary",
+            "time_start",
+            "time_end"
+          ],
+          "format": "times = 'YYYY-MM-DD HH:MM:SS' (with seconds)"
+        },
+        "delete_event": {
+          "args": [
+            "user",
+            "summary"
+          ]
+        },
+        "list_events": {
+          "args": [
+            "username"
+          ],
+          "note": "arg is username (not user)"
+        }
+      },
+      "system_prompt": "You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.\nSUB-TASK: for each calendar event, extract the meeting date\nAvailable files (use EXACT names): \nDATA read so far:\nNo events found for user.\nNo events found for user.\n\nActions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)\nTool notes:\n  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) \n  list_events:  arg is username (not user)\nReply with ONE JSON {\"action\": <name>, <args>}. If already done, {\"action\": \"done\"}.\nJSON:",
+      "steps": [],
+      "wave": "act"
+    },
+    {
+      "app": "calendar",
+      "subtask": "compute the frequency of meetings (e.g., count per week)",
+      "tool_memory_retrieved": {
+        "create_event": {
+          "args": [
+            "user",
+            "summary",
+            "time_start",
+            "time_end"
+          ],
+          "format": "times = 'YYYY-MM-DD HH:MM:SS' (with seconds)"
+        },
+        "delete_event": {
+          "args": [
+            "user",
+            "summary"
+          ]
+        },
+        "list_events": {
+          "args": [
+            "username"
+          ],
+          "note": "arg is username (not user)"
+        }
+      },
+      "system_prompt": "You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.\nSUB-TASK: compute the frequency of meetings (e.g., count per week)\nAvailable files (use EXACT names): \nDATA read so far:\nNo events found for user.\nNo events found for user.\n\nActions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)\nTool notes:\n  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) \n  list_events:  arg is username (not user)\nReply with ONE JSON {\"action\": <name>, <args>}. If already done, {\"action\": \"done\"}.\nJSON:",
+      "steps": [
+        {
+          "agent": "calendar",
+          "action": {
+            "action": "list_events",
+            "username": "user"
+          },
+          "obs": "No events found for user."
+        }
+      ],
+      "wave": "act"
+    },
+    {
+      "app": "pdf",
+      "subtask": "generate a file report.pdf that contains the meeting frequency analysis",
+      "tool_memory_retrieved": {
+        "read_file": {
+          "args": [
+            "pdf_file_path"
+          ]
+        },
+        "convert_to_word": {
+          "args": [
+            "pdf_file_path",
+            "word_file_path"
+          ]
+        },
+        "convert_to_image": {
+          "args": [
+            "pdf_file_path",
+            "image_file_path"
+          ]
+        }
+      },
+      "system_prompt": "You are the pdf sub-agent. Do ONLY this sub-task with ONE tool call.\nSUB-TASK: generate a file report.pdf that contains the meeting frequency analysis\nAvailable files (use EXACT names): \nDATA read so far:\nNo events found for user.\nNo events found for user.\n\nActions (exact args): read_file(pdf_file_path); convert_to_word(pdf_file_path, word_file_path); convert_to_image(pdf_file_path, image_file_path)\nReply with ONE JSON {\"action\": <name>, <args>}. If already done, {\"action\": \"done\"}.\nJSON:",
+      "steps": [],
+      "wave": "act"
+    }
+  ],
+  "success": false,
+  "failed_predicate": "evaluate_file_exist",
+  "latency_s": 27.9,
+  "llm_calls": 40,
+  "used_pm": true,
+  "pm_hit_task": "Create meeting agenda from Excel data and add it to my calendar",
+  "steps": 4
+}

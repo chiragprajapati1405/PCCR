@@ -1,0 +1,195 @@
+{
+  "task": "3-71/0",
+  "level": 3,
+  "task_text": "Extract schedule from PDF and add it to a calendar meeting_agenda.ics, also save it as agenda.jpg",
+  "files": "/testbed/data/meeting_agenda.pdf",
+  "pm": {
+    "query": "Extract schedule from PDF and add it to a calendar meeting_agenda.ics, also save it as agenda.jpg",
+    "retrieved": "Extract schedule from PDF and add it to my calendar.",
+    "sim_score": 0.853,
+    "retrieved_plan": [
+      "Use the shell app to list files and identify the meeting agenda PDF.",
+      "Switch to the pdf app to read the agenda details.",
+      "Use the calendar app to create a series of events for Alice based on the agenda items."
+    ]
+  },
+  "orchestrator_system_prompt": "A SIMILAR PAST TASK succeeded with this plan \u2014 ADAPT it:\n  - Use the shell app to list files and identify the meeting agenda PDF.\n  - Switch to the pdf app to read the agenda details.\n  - Use the calendar app to create a series of events for Alice based on the agenda items.\n\nDecompose this office-automation task into the SMALLEST independent sub-tasks. Return ONLY a JSON array of {\"app\": <shell,excel,word,pdf,ocr,calendar,email>, \"subtask\": <one concrete instruction>}. RULES: (1) a sub-task that READS/lists source data MUST come before sub-tasks that use it; (2) if the task repeats an operation over each item (each member/row/person), phrase the subtask with 'for each'; (3) use ONLY the EXACT filenames below \u2014 never invent one.\nAvailable files: /testbed/data/meeting_agenda.pdf\n\nTASK: Extract schedule from PDF and add it to a calendar meeting_agenda.ics, also save it as agenda.jpg\n\nJSON:",
+  "orchestrator_delegations": [
+    {
+      "app": "shell",
+      "subtask": "list files in /testbed/data",
+      "category": "read"
+    },
+    {
+      "app": "pdf",
+      "subtask": "extract text from /testbed/data/meeting_agenda.pdf and save to /tmp/agenda.txt",
+      "category": "other"
+    },
+    {
+      "app": "pdf",
+      "subtask": "render /testbed/data/meeting_agenda.pdf as an image and save as agenda.jpg",
+      "category": "other"
+    },
+    {
+      "app": "calendar",
+      "subtask": "for each line in /tmp/agenda.txt create a calendar event in meeting_agenda.ics",
+      "category": "create"
+    }
+  ],
+  "waves": {
+    "read_wave": [
+      "[shell] list files in /testbed/data"
+    ],
+    "act_wave_planned": [
+      "[pdf] extract text from /testbed/data/meeting_agenda.pdf and save to /tmp/agenda.txt",
+      "[pdf] render /testbed/data/meeting_agenda.pdf as an image and save as agenda.jpg",
+      "[calendar] for each line in /tmp/agenda.txt create a calendar event in meeting_agenda.ics"
+    ],
+    "fanout_expanded": {
+      "before": [
+        "[pdf] extract text from /testbed/data/meeting_agenda.pdf and save to /tmp/agenda.txt",
+        "[pdf] render /testbed/data/meeting_agenda.pdf as an image and save as agenda.jpg",
+        "[calendar] for each line in /tmp/agenda.txt create a calendar event in meeting_agenda.ics"
+      ],
+      "after": [
+        "[pdf] extract text from /testbed/data/meeting_agenda.pdf and save to /tmp/agenda.txt",
+        "[pdf] render /testbed/data/meeting_agenda.pdf as an image and save as agenda.jpg",
+        "[calendar] for each line in /tmp/agenda.txt create a calendar event in meeting_agenda.ics"
+      ]
+    }
+  },
+  "subagents": [
+    {
+      "app": "shell",
+      "subtask": "list files in /testbed/data",
+      "tool_memory_retrieved": {
+        "command": {
+          "args": [
+            "command"
+          ],
+          "note": "only 'command' exists; e.g. ls /testbed/data"
+        }
+      },
+      "system_prompt": "You are the shell sub-agent. Do ONLY this sub-task with ONE tool call.\nSUB-TASK: list files in /testbed/data\nAvailable files (use EXACT names): /testbed/data/meeting_agenda.pdf\nActions (exact args): command(command)\nTool notes:\n  command:  only 'command' exists; e.g. ls /testbed/data\nReply with ONE JSON {\"action\": <name>, <args>}. If already done, {\"action\": \"done\"}.\nJSON:",
+      "steps": [
+        {
+          "agent": "shell",
+          "action": {
+            "action": "command",
+            "command": "ls /testbed/data"
+          },
+          "obs": "meeting_agenda.pdf"
+        }
+      ],
+      "wave": "read"
+    },
+    {
+      "app": "pdf",
+      "subtask": "extract text from /testbed/data/meeting_agenda.pdf and save to /tmp/agenda.txt",
+      "tool_memory_retrieved": {
+        "read_file": {
+          "args": [
+            "pdf_file_path"
+          ]
+        },
+        "convert_to_word": {
+          "args": [
+            "pdf_file_path",
+            "word_file_path"
+          ]
+        },
+        "convert_to_image": {
+          "args": [
+            "pdf_file_path",
+            "image_file_path"
+          ]
+        }
+      },
+      "system_prompt": "You are the pdf sub-agent. Do ONLY this sub-task with ONE tool call.\nSUB-TASK: extract text from /testbed/data/meeting_agenda.pdf and save to /tmp/agenda.txt\nAvailable files (use EXACT names): /testbed/data/meeting_agenda.pdf\nDATA read so far:\nmeeting_agenda.pdf\n\nActions (exact args): read_file(pdf_file_path); convert_to_word(pdf_file_path, word_file_path); convert_to_image(pdf_file_path, image_file_path)\nReply with ONE JSON {\"action\": <name>, <args>}. If already done, {\"action\": \"done\"}.\nJSON:",
+      "steps": [
+        {
+          "agent": "pdf",
+          "action": {
+            "action": "read_file",
+            "pdf_file_path": "/testbed/data/meeting_agenda.pdf"
+          },
+          "obs": "FINANCIALMEETING\nAGENDADate:September9\nTime:11:00am\nFacilitator:MirjamNilsson\nMirjamNilsson\nPresidentRajeshSantoshi\nCOOElizabethMoore\nSEOStrategist\nFloraBerggren\nCEOGrahamBarne\nVPMarketingRobinKline\nProductDesigner\nMirja"
+        }
+      ],
+      "wave": "act"
+    },
+    {
+      "app": "pdf",
+      "subtask": "render /testbed/data/meeting_agenda.pdf as an image and save as agenda.jpg",
+      "tool_memory_retrieved": {
+        "read_file": {
+          "args": [
+            "pdf_file_path"
+          ]
+        },
+        "convert_to_word": {
+          "args": [
+            "pdf_file_path",
+            "word_file_path"
+          ]
+        },
+        "convert_to_image": {
+          "args": [
+            "pdf_file_path",
+            "image_file_path"
+          ]
+        }
+      },
+      "system_prompt": "You are the pdf sub-agent. Do ONLY this sub-task with ONE tool call.\nSUB-TASK: render /testbed/data/meeting_agenda.pdf as an image and save as agenda.jpg\nAvailable files (use EXACT names): /testbed/data/meeting_agenda.pdf\nDATA read so far:\nmeeting_agenda.pdf\n\nActions (exact args): read_file(pdf_file_path); convert_to_word(pdf_file_path, word_file_path); convert_to_image(pdf_file_path, image_file_path)\nReply with ONE JSON {\"action\": <name>, <args>}. If already done, {\"action\": \"done\"}.\nJSON:",
+      "steps": [
+        {
+          "agent": "pdf",
+          "action": {
+            "action": "convert_to_image",
+            "pdf_file_path": "/testbed/data/meeting_agenda.pdf",
+            "image_file_path": "agenda.jpg"
+          },
+          "obs": "Success"
+        }
+      ],
+      "wave": "act"
+    },
+    {
+      "app": "calendar",
+      "subtask": "for each line in /tmp/agenda.txt create a calendar event in meeting_agenda.ics",
+      "tool_memory_retrieved": {
+        "create_event": {
+          "args": [
+            "user",
+            "summary",
+            "time_start",
+            "time_end"
+          ],
+          "format": "times = 'YYYY-MM-DD HH:MM:SS' (with seconds)"
+        },
+        "delete_event": {
+          "args": [
+            "user",
+            "summary"
+          ]
+        },
+        "list_events": {
+          "args": [
+            "username"
+          ],
+          "note": "arg is username (not user)"
+        }
+      },
+      "system_prompt": "You are the calendar sub-agent. Do ONLY this sub-task with ONE tool call.\nSUB-TASK: for each line in /tmp/agenda.txt create a calendar event in meeting_agenda.ics\nAvailable files (use EXACT names): /testbed/data/meeting_agenda.pdf\nDATA read so far:\nmeeting_agenda.pdf\n\nActions (exact args): create_event(user, summary, time_start, time_end); delete_event(user, summary); list_events(username)\nTool notes:\n  create_event: times = 'YYYY-MM-DD HH:MM:SS' (with seconds) \n  list_events:  arg is username (not user)\nReply with ONE JSON {\"action\": <name>, <args>}. If already done, {\"action\": \"done\"}.\nJSON:",
+      "steps": [],
+      "wave": "act"
+    }
+  ],
+  "success": false,
+  "failed_predicate": "evaluate_file_exist",
+  "latency_s": 16.5,
+  "llm_calls": 7,
+  "used_pm": true,
+  "pm_hit_task": "Extract schedule from PDF and add it to my calendar.",
+  "steps": 3
+}
