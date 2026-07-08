@@ -20,6 +20,7 @@ concurrency" exactly to the extent it holds a lock across that latency.
 from __future__ import annotations
 
 import asyncio
+import threading
 import time
 from dataclasses import dataclass, field
 
@@ -29,11 +30,11 @@ class Trajectory:
     task: str
     plan: list                         # orchestrator-level plan
     subagent_steps: list               # [{agent, action, obs}, ...]  ← sub-agent memory lives here
-    embedding: object = None           # optional; modeled mode uses token overlap instead
+    embedding: object = None           # 384-d normalized vector (filled by the embedder on write)
 
 
-def _sim(a: str, b: str) -> float:
-    """Cheap, dependency-free similarity (token Jaccard) so PM.read does real scan work."""
+def _jaccard(a: str, b: str) -> float:
+    """Dependency-free fallback similarity (token Jaccard) — used when no embedder is set."""
     sa, sb = set(a.lower().split()), set(b.lower().split())
     return (len(sa & sb) / len(sa | sb)) if (sa or sb) else 0.0
 
@@ -66,11 +67,13 @@ class _AsyncRWLock:
 
 
 class ProceduralMemory:
-    def __init__(self, strategy: str = "lockfree", access_latency: float = 0.02):
+    def __init__(self, strategy: str = "lockfree", access_latency: float = 0.02, embedder=None):
         assert strategy in ("lockfree", "global", "rwlock")
         self.strategy = strategy
         self.access_latency = access_latency
-        self._log: list[Trajectory] = []           # append-only; entries never mutated
+        self.embedder = embedder                    # callable text -> normalized 384-d np.array (or None)
+        self._elock = threading.Lock()              # serialize encode() across worker threads
+        self._log: list[Trajectory] = []            # append-only; entries never mutated
         self._global = asyncio.Lock()
         self._rw = _AsyncRWLock()
         # instrumentation
@@ -79,6 +82,24 @@ class ProceduralMemory:
         self.read_wait_s = 0.0
         self.write_wait_s = 0.0
 
+    def _embed(self, text: str):
+        with self._elock:                           # torch/ST forward pass isn't thread-safe
+            return self.embedder(text)
+
+    def _score(self, query, upto: int, k: int, qvec=None):
+        """Rank the first `upto` trajectories against the query. VECTOR search (cosine on normalized
+        embeddings) when an embedder is set; token-Jaccard fallback otherwise."""
+        if self.embedder is not None:
+            import numpy as np
+            if qvec is None:
+                qvec = self._embed(query)
+            scored = [(float(np.dot(qvec, t.embedding)) if t.embedding is not None else -1.0, t)
+                      for t in self._log[:upto]]
+        else:
+            scored = [(_jaccard(query, t.task), t) for t in self._log[:upto]]
+        scored.sort(key=lambda x: -x[0])
+        return [t for _s, t in scored[:k]]
+
     async def read(self, query: str, k: int = 3):
         """Return the top-k most similar past trajectories. Records lock-wait separately from work."""
         self.read_count += 1
@@ -86,14 +107,14 @@ class ProceduralMemory:
             wait = 0.0
             snapshot_len = len(self._log)                    # snapshot: consistent prefix, no lock
             await asyncio.sleep(self.access_latency)         # modeled access cost — overlaps freely
-            hits = self._topk(query, snapshot_len, k)
+            hits = self._score(query, snapshot_len, k)
         elif self.strategy == "global":
             t0 = time.perf_counter()
             await self._global.acquire()
             wait = time.perf_counter() - t0
             try:
                 await asyncio.sleep(self.access_latency)     # held UNDER the lock -> serializes
-                hits = self._topk(query, len(self._log), k)
+                hits = self._score(query, len(self._log), k)
             finally:
                 self._global.release()
         else:  # rwlock
@@ -102,7 +123,7 @@ class ProceduralMemory:
             wait = time.perf_counter() - t0
             try:
                 await asyncio.sleep(self.access_latency)     # readers share -> overlap
-                hits = self._topk(query, len(self._log), k)
+                hits = self._score(query, len(self._log), k)
             finally:
                 await self._rw.release_read()
         self.read_wait_s += wait
@@ -136,10 +157,17 @@ class ProceduralMemory:
         self.write_wait_s += wait
         return wait
 
-    def _topk(self, query: str, upto: int, k: int):
-        scored = [(_sim(query, t.task), t) for t in self._log[:upto]]
-        scored.sort(key=lambda x: -x[0])
-        return [t for _s, t in scored[:k]]
+    # -- sync (thread-safe) API for the real threaded runner (lock-free: GIL-atomic) --
+    def read_sync(self, query: str, k: int = 3):
+        snapshot_len = len(self._log)                    # consistent prefix, no lock
+        self.read_count += 1
+        return self._score(query, snapshot_len, k)       # VECTOR search (or Jaccard fallback)
+
+    def write_sync(self, traj: "Trajectory"):
+        if self.embedder is not None and traj.embedding is None:
+            traj.embedding = self._embed(traj.task)      # embed once, at write time
+        self._log.append(traj)                           # atomic under the GIL
+        self.write_count += 1
 
     def __len__(self):
         return len(self._log)

@@ -1,0 +1,26 @@
+{
+  "task": "2-38/1",
+  "level": 2,
+  "success": false,
+  "failed_predicate": "evaluate_contain",
+  "latency_s": 3.2,
+  "llm_calls": 2,
+  "used_pm": true,
+  "steps": 1,
+  "plan": [
+    "email: send email to Bob with subject \"Party\" and body \"You are invited to the party held by Jane Doe.\""
+  ],
+  "trajectory": [
+    {
+      "agent": "email",
+      "action": {
+        "action": "send_email",
+        "sender": "Jane Doe",
+        "recipient": "Bob",
+        "subject": "Party",
+        "content": "You are invited to the party held by Jane Doe."
+      },
+      "obs": "ERROR: Could not consume arg: Doe\nUsage: email_send_email.py --sender Jane Doe --recipient Bob --subject Party --content <command>\n  available commands:    capitalize | casefold | center | count | enc"
+    }
+  ]
+}

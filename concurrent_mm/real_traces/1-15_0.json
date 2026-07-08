@@ -1,0 +1,27 @@
+{
+  "task": "1-15/0",
+  "level": 1,
+  "success": true,
+  "failed_predicate": null,
+  "latency_s": 8.9,
+  "llm_calls": 9,
+  "prompt_tokens": 476,
+  "completion_tokens": 1425,
+  "n_subtasks": 1,
+  "steps": 1,
+  "plan": [
+    "word: Open House_creak.docx, append the sentence \"This is a test sentence for task 1-15-0.\" to the end of the document, and save the file."
+  ],
+  "trajectory": [
+    {
+      "agent": "word",
+      "action": {
+        "action": "write_to_file",
+        "file_path": "/testbed/data/House_creak.docx",
+        "contents": "This is a test sentence for task 1-15-0."
+      },
+      "obs": "Successfully write contents to /testbed/data/House_creak.docx"
+    }
+  ],
+  "committed_to_pm": true
+}

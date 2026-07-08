@@ -1,0 +1,70 @@
+/Users/chirag/Documents/Agentic_MM/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+[INFO] -------------
+Execution Container Reset
+[INFO] -------------
+Execution Container Reset
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] Beginning environment shutdown...
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] Beginning environment shutdown...
+[INFO] Agent, evaluation containers stopped
+
+REAL OfficeBench through concurrent_mm — 2 tasks, concurrency 2
+
+COMMAND: /bin/bash -c """ git reset --hard; git clean -fd; """
+COMMAND: /bin/bash -c """ git reset --hard; git clean -fd; """
+COMMAND: /bin/bash -c """ python3 /apps/excel_app/excel_read_file.py --file_path /testbed/data/task.xlsx """
+COMMAND: /bin/bash -c """ python3 /apps/excel_app/excel_read_file.py --file_path /testbed/data/task.xlsx """
+COMMAND: /bin/bash -c """ python3 /apps/excel_app/excel_read_file.py --file_path /testbed/data/task.xlsx """
+COMMAND: /bin/bash -c """ python3 /apps/excel_app/excel_read_file.py --file_path /testbed/data/task.xlsx """
+COMMAND: /bin/bash -c """ python3 /apps/excel_app/excel_read_file.py --file_path /testbed/data/task.xlsx """
+COMMAND: /bin/bash -c """ python3 /apps/excel_app/excel_read_file.py --file_path /testbed/data/car_trading.png """
+COMMAND: /bin/bash -c """ python3 /apps/excel_app/excel_read_file.py --file_path /testbed/data/task.xlsx """
+COMMAND: /bin/bash -c """ python3 /apps/excel_app/excel_read_file.py --file_path /testbed/data/car_records.xlsx """
+COMMAND: /bin/bash -c """ python3 /apps/calendar_app/calendar_create_event.py --user '''buyer''' --summary 'Meeting between buyer and seller' --time_start '2024-06-01 13:00:00' --time_end '2024-06-01 14:00:00' """
+COMMAND: /bin/bash -c """ python3 /apps/email_app/email_send_email.py --sender User --recipient '''Alice''' --subject '''Task for Review''' --content '''Hi Alice,
+
+Please find the attached task.pdf for your review.
+
+Best regards,
+User''' """
+  [1/2] 3-40/0 L3  success=False  latency=18.0s  calls=12  steps=9  PM_size=0
+[INFO] Agent, evaluation containers stopped
+  [2/2] 3-1/0 L3  success=False  latency=26.1s  calls=16  steps=13  PM_size=0
+
+================================================================
+PER-TASK LATENCY
+================================================================
+      task  L  success  latency_s  calls  steps
+     3-1/0  3    False       26.1     16     13
+    3-40/0  3    False       18.0     12      9
+
+accuracy: 0/2   wall(parallel): 39.7s   sum per-task latency: 44.1s   avg: 22.1s   min/max: 18.0/26.1s
+traces: /Users/chirag/Documents/Agentic_MM/concurrent_mm/real_traces

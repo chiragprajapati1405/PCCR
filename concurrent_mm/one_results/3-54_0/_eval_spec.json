@@ -1,0 +1,1 @@
+[{"function": "evaluate_file_exist", "args": {"file": "data/reward.docx"}}, {"function": "evaluate_contain", "args": {"doc_type": "email", "username": "Tina", "keywords": ["midterm1", "highest", "score"]}}]

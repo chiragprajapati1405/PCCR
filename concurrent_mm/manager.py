@@ -34,3 +34,10 @@ class MemoryManager:
         spec = self.tool.get(app)                        # O(1), no lock, immutable
         self.tool_read_time_s += time.perf_counter() - t0
         return spec
+
+    # -- sync (thread-safe) API for the real threaded runner -----------------
+    def orchestrator_read_pm_sync(self, query, k: int = 3):
+        return self.pm.read_sync(query, k)
+
+    def orchestrator_write_pm_sync(self, traj):
+        self.pm.write_sync(traj)

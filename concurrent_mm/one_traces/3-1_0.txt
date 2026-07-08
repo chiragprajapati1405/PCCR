@@ -1,0 +1,9 @@
+TASK 3-1/0 L3 success=False latency=5.7s calls=4 failed=evaluate_file_exist
+PLAN:
+  - excel: Read /testbed/data/task.xlsx
+  - pdf: Convert /testbed/data/task.xlsx to PDF and save as /testbed/data/task.pdf
+  - email: Create an email to Alice with subject "Task PDF for review", attach /testbed/data/task.pdf, and save as /testbed/data/Alice.eml
+STEPS:
+  [excel] {"action": "read_file", "file_path": "/testbed/data/task.xlsx"} -> The following is the table from the excel file:
+(1, 1): Tasks	(1, 2): [Empty Cell]	(1, 3):
+  [email] {"action": "send_email", "sender": "Me", "recipient": "Alice", "subject": "Task PDF for review", "content": "P -> Successfully sent email to Alice.

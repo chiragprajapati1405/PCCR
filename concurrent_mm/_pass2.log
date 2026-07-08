@@ -1,0 +1,173 @@
+/Users/chirag/Documents/Agentic_MM/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+[INFO] Use pytorch device_name: mps
+[INFO] Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 12.44it/s]
+PM loaded with 1 past trajectories (vector search)
+
+ONE-CONTAINER real OfficeBench (Option B) — 15 tasks, in-container concurrency 15
+
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 40.27it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 30.09it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 38.40it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 49.08it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 55.25it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 143.10it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 59.35it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 59.90it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 62.85it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 49.00it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 60.58it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 143.83it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 61.19it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 206.53it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00, 50.28it/s]
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+  [1/15] 2-38/1 L2 success=False latency=3.2s calls=2 used_pm=True PM=1
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+  [2/15] 2-13/0 L2 success=False latency=4.3s calls=4 used_pm=True PM=1
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+  [3/15] 1-5/3 L1 success=False latency=4.8s calls=8 used_pm=True PM=1
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+  [4/15] 3-1/0 L3 success=False latency=5.7s calls=4 used_pm=True PM=1
+  [5/15] 1-7/4 L1 success=False latency=5.6s calls=4 used_pm=True PM=1
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+  [6/15] 1-5/0 L1 success=False latency=5.4s calls=6 used_pm=True PM=1
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00,  5.82it/s]Batches: 100%|██████████| 1/1 [00:00<00:00,  5.81it/s]
+  [7/15] 1-15/0 L1 success=True latency=5.6s calls=5 used_pm=True PM=2
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+  [8/15] 3-71/0 L3 success=False latency=6.4s calls=5 used_pm=True PM=2
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+  [9/15] 3-40/0 L3 success=False latency=6.9s calls=6 used_pm=True PM=2
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 401 Unauthorized"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+!!! File not exist: /Users/chirag/Documents/Agentic_MM/concurrent_mm/one_results/2-37_1/testbed/./data/answer.txt
+  [10/15] 2-37/1 L2 success=False latency=7.7s calls=8 used_pm=True PM=2
+  [11/15] 3-54/0 L3 success=False latency=7.8s calls=16 used_pm=True PM=2
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+  [12/15] 3-43/0 L3 success=False latency=7.9s calls=9 used_pm=True PM=2
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+!!! File not exist: /Users/chirag/Documents/Agentic_MM/concurrent_mm/one_results/1-20_4/testbed/data/answer.txt
+  [13/15] 1-20/4 L1 success=False latency=7.8s calls=12 used_pm=True PM=2
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+!!! File not exist: /Users/chirag/Documents/Agentic_MM/concurrent_mm/one_results/2-31_0/testbed/data/answer.txt
+  [14/15] 2-31/0 L2 success=False latency=9.8s calls=5 used_pm=True PM=2
+[INFO] HTTP Request: POST https://api.cerebras.ai/v1/chat/completions "HTTP/1.1 200 OK"
+  [15/15] 2-26/0 L2 success=False latency=11.1s calls=13 used_pm=True PM=2
+
+============================================================
+PER-TASK LATENCY (one container)
+============================================================
+      task  L  success  latency_s  calls
+    1-15/0  1     True        5.6      5
+    1-20/4  1    False        7.8     12
+     1-5/0  1    False        5.4      6
+     1-5/3  1    False        4.8      8
+     1-7/4  1    False        5.6      4
+    2-13/0  2    False        4.3      4
+    2-26/0  2    False       11.1     13
+    2-31/0  2    False        9.8      5
+    2-37/1  2    False        7.7      8
+    2-38/1  2    False        3.2      2
+     3-1/0  3    False        5.7      4
+    3-40/0  3    False        6.9      6
+    3-43/0  3    False        7.9      9
+    3-54/0  3    False        7.8     16
+    3-71/0  3    False        6.4      5
+
+accuracy: 1/15   TOTAL wall(all in ONE container): 11.7s   max task: 11.1s   avg: 6.7s
+traces: /Users/chirag/Documents/Agentic_MM/concurrent_mm/one_traces   results: /Users/chirag/Documents/Agentic_MM/concurrent_mm/one_results

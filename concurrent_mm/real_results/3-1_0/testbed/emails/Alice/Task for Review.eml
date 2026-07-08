@@ -1,0 +1,13 @@
+From: User@example.com
+To: Alice@example.com
+Subject: Task for Review
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Hi Alice,
+
+Please find the attached task.pdf for your review.
+
+Best regards,
+User

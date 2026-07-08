@@ -54,7 +54,7 @@ DEFAULT_SPEC = {
     "pdf":      {"read_file": {"args": ["pdf_file_path"]},
                  "convert_to_word": {"args": ["pdf_file_path"]},
                  "convert_to_image": {"args": ["pdf_file_path"]}},
-    "ocr":      {"recognize_file": {"args": ["image_path"]}},
+    "ocr":      {"recognize_file": {"args": ["file_path"], "note": "arg is file_path (not image_path)"}},
     "calendar": {"create_event": {"args": ["user", "summary", "time_start", "time_end"],
                                   "format": "times = 'YYYY-MM-DD HH:MM:SS' (with seconds)"},
                  "delete_event": {"args": ["user", "summary"]},
