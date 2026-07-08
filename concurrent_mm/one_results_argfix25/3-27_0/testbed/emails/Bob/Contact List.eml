@@ -1,0 +1,13 @@
+From: Bob@example.com
+To: Alice@example.com
+Subject: Contact List
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Dear Alice,
+
+Please find attached the contact.xlsx file.
+
+Best regards,
+Bob

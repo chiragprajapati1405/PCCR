@@ -1,0 +1,13 @@
+From: Professor@example.com
+To: student_name@example.com
+Subject: Congratulations
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Dear student_name,
+
+Congratulations on your achievement!
+
+Best regards,
+Professor

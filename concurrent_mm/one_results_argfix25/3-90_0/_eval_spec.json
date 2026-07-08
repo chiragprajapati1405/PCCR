@@ -1,0 +1,1 @@
+[{"function": "evaluate_file_exist", "args": {"file": "data/report.pdf"}}, {"function": "evaluate_contain", "args": {"doc_type": "pdf", "file": "data/report.pdf", "keywords": ["weekly"]}}]

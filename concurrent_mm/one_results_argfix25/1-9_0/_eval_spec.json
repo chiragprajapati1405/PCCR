@@ -1,0 +1,1 @@
+[{"function": "evaluate_excel_cell_value", "args": {"file": "./data/score.xlsx", "matches": [{"row": "22", "col": "1", "value": "Average"}, {"row": "22", "col": "2", "value": "80.5"}, {"row": "22", "col": "3", "value": "78.3"}]}}]

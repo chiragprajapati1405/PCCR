@@ -1,0 +1,1 @@
+[{"function": "evaluate_contain", "args": {"file": "data/car_records.xlsx", "doc_type": "xlsx", "keywords": ["2024-03-18", "Toyota Camry", "Alice", "Bob", "15000"]}}, {"function": "evaluate_not_contain", "args": {"file": "data/car_records.xlsx", "doc_type": "xlsx", "keywords": ["Honda Civic", "Ford Mustang", "BMW", "Benz", "Porsche"]}}]

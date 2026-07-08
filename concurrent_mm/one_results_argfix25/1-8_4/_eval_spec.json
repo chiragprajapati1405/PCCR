@@ -1,0 +1,1 @@
+[{"function": "evaluate_exact_match", "args": {"doc_type": "xlsx", "result_file": "./data/shopping_list.xlsx", "expected_file": "../../../../reference/shopping_list.xlsx"}}]

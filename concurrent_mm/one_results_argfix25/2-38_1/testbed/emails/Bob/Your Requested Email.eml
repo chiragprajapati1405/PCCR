@@ -1,0 +1,8 @@
+From: User@example.com
+To: Bob@example.com
+Subject: Your Requested Email
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Please see the attached document.

@@ -1,0 +1,1 @@
+[{"function": "evaluate_contain", "args": {"doc_type": "ics", "file": "./calendar/Bob.ics", "keywords": ["DTSTART:20240517T103000", "Meeting", "DTEND:20240517T110000"]}}]

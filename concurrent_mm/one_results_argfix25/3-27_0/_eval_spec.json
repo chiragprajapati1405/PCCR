@@ -1,0 +1,1 @@
+[{"function": "evaluate_file_exist", "args": {"file": "data/contact.xlsx"}}, {"function": "evaluate_file_exist", "args": {"file": "emails/Bob/Bob.eml"}}, {"function": "evaluate_contain", "args": {"doc_type": "email", "username": "Bob", "keywords": ["Alice", "Phone", "Bob@example.com", "1234 Elm Street"]}}]
