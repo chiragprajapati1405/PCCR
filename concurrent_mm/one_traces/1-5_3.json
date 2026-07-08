@@ -3,14 +3,16 @@
   "level": 1,
   "success": false,
   "failed_predicate": "evaluate_excel_cell_value",
-  "latency_s": 4.8,
+  "latency_s": 6.3,
   "llm_calls": 8,
-  "used_pm": true,
-  "steps": 3,
+  "used_pm": false,
+  "steps": 4,
   "plan": [
-    "excel: Read /testbed/data/company_budget.xlsx and retrieve the budget value from the last row",
-    "excel: Calculate predicted budget = retrieved budget * (1.10)^3",
-    "excel: Write the predicted budget value into the last row of /testbed/data/company_budget.xlsx in a new column labeled 'predicted budget' and save the file"
+    "excel: Read the last row budget value from /testbed/data/company_budget.xlsx",
+    "excel: Compute predicted budget = last row budget * (1.10)^3",
+    "excel: Add a new column header \"Predicted Budget 3yr\" to /testbed/data/company_budget.xlsx",
+    "excel: Write the predicted budget value to the last row under the new column in /testbed/data/company_budget.xlsx",
+    "excel: Save and close /testbed/data/company_budget.xlsx"
   ],
   "trajectory": [
     {
@@ -28,6 +30,17 @@
         "file_path": "/testbed/data/company_budget.xlsx"
       },
       "obs": "The following is the table from the excel file:\n(1, 1): Name\t(1, 2): amount\t\n(2, 1): salary\t(2, 2): 2000000\t\n(3, 1): computer\t(3, 2): 50000\t\n(4, 1): entertain\t(4, 2): 1000"
+    },
+    {
+      "agent": "excel",
+      "action": {
+        "action": "set_cell",
+        "file_path": "/testbed/data/company_budget.xlsx",
+        "text": "Predicted Budget 3yr",
+        "row_idx": 1,
+        "column_idx": 5
+      },
+      "obs": "Successfully write text to /testbed/run_1-5_3/data/company_budget.xlsx"
     },
     {
       "agent": "excel",

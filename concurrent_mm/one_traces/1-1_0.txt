@@ -1,0 +1,13 @@
+TASK 1-1/0 L1 success=True latency=8.0s calls=8 failed=None
+PLAN:
+  - calendar: Open Bob's calendar
+  - calendar: Check for existing events on 5/17/2024 between 10:30 a.m. and 11:00 a.m.
+  - calendar: Add a meeting to Bob's calendar on 5/17/2024 from 10:30 a.m. to 11:00 a.m.
+  - calendar: Save and close the calendar
+STEPS:
+  [calendar] {"action": "list_events", "user": "Bob"} -> Malformed action! ('username')
+  [calendar] {"action": "list_events", "user": "Bob"} -> Malformed action! ('username')
+  [calendar] {"action": "list_events", "user": "default"} -> Malformed action! ('username')
+  [calendar] {"action": "list_events", "user": "default_user"} -> Malformed action! ('username')
+  [calendar] {"action": "list_events", "user": "default_user"} -> Malformed action! ('username')
+  [calendar] {"action": "create_event", "user": "Bob", "summary": "Meeting", "time_start": "2024-05-17 10:30:00", "time_end -> Successfully create a new event to Bob's calendar.

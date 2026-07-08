@@ -1,0 +1,57 @@
+{
+  "task": "3-90/0",
+  "level": 3,
+  "success": false,
+  "failed_predicate": "evaluate_file_exist",
+  "latency_s": 9.1,
+  "llm_calls": 8,
+  "used_pm": false,
+  "steps": 5,
+  "plan": [
+    "calendar: list all calendar events",
+    "calendar: calculate meeting frequency from calendar events",
+    "pdf: create report.pdf summarizing meeting frequency"
+  ],
+  "trajectory": [
+    {
+      "agent": "calendar",
+      "action": {
+        "action": "list_events",
+        "user": "me"
+      },
+      "obs": "Malformed action! ('username')"
+    },
+    {
+      "agent": "calendar",
+      "action": {
+        "action": "list_events",
+        "user": "user"
+      },
+      "obs": "Malformed action! ('username')"
+    },
+    {
+      "agent": "calendar",
+      "action": {
+        "action": "list_events",
+        "user": "user"
+      },
+      "obs": "Malformed action! ('username')"
+    },
+    {
+      "agent": "calendar",
+      "action": {
+        "action": "list_events",
+        "user": "user"
+      },
+      "obs": "Malformed action! ('username')"
+    },
+    {
+      "agent": "calendar",
+      "action": {
+        "action": "list_events",
+        "user": "user"
+      },
+      "obs": "Malformed action! ('username')"
+    }
+  ]
+}

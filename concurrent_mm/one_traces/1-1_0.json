@@ -1,0 +1,69 @@
+{
+  "task": "1-1/0",
+  "level": 1,
+  "success": true,
+  "failed_predicate": null,
+  "latency_s": 8.0,
+  "llm_calls": 8,
+  "used_pm": false,
+  "steps": 6,
+  "plan": [
+    "calendar: Open Bob's calendar",
+    "calendar: Check for existing events on 5/17/2024 between 10:30\u202fa.m. and 11:00\u202fa.m.",
+    "calendar: Add a meeting to Bob's calendar on 5/17/2024 from 10:30\u202fa.m. to 11:00\u202fa.m.",
+    "calendar: Save and close the calendar"
+  ],
+  "trajectory": [
+    {
+      "agent": "calendar",
+      "action": {
+        "action": "list_events",
+        "user": "Bob"
+      },
+      "obs": "Malformed action! ('username')"
+    },
+    {
+      "agent": "calendar",
+      "action": {
+        "action": "list_events",
+        "user": "Bob"
+      },
+      "obs": "Malformed action! ('username')"
+    },
+    {
+      "agent": "calendar",
+      "action": {
+        "action": "list_events",
+        "user": "default"
+      },
+      "obs": "Malformed action! ('username')"
+    },
+    {
+      "agent": "calendar",
+      "action": {
+        "action": "list_events",
+        "user": "default_user"
+      },
+      "obs": "Malformed action! ('username')"
+    },
+    {
+      "agent": "calendar",
+      "action": {
+        "action": "list_events",
+        "user": "default_user"
+      },
+      "obs": "Malformed action! ('username')"
+    },
+    {
+      "agent": "calendar",
+      "action": {
+        "action": "create_event",
+        "user": "Bob",
+        "summary": "Meeting",
+        "time_start": "2024-05-17 10:30:00",
+        "time_end": "2024-05-17 11:00:00"
+      },
+      "obs": "Successfully create a new event to Bob's calendar."
+    }
+  ]
+}

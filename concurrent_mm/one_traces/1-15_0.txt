@@ -1,12 +1,10 @@
-TASK 1-15/0 L1 success=True latency=5.6s calls=5 failed=None
+TASK 1-15/0 L1 success=True latency=7.4s calls=3 failed=None
 PLAN:
   - word: Read the contents of /testbed/data/House_creak.docx
-  - word: Append the sentence "This is a test sentence for task 1-15-0." to the end of /testbed/data/House_creak.docx
-  - word: Save /testbed/data/House_creak.docx
+  - word: Append the sentence "This is a test sentence for task 1-15-0." to the end of /testbed/data/House_creak.docx and save
 STEPS:
   [word] {"action": "read_file", "file_path": "/testbed/data/House_creak.docx"} -> The following is the content from the word file:
 The House that Creaked
 
 Life was full of 
-  [word] {"action": "write_to_file", "file_path": "/testbed/data/House_creak.docx", "contents": "The House that Creaked -> Successfully write contents to /testbed/run_1-15_0/data/House_creak.docx
   [word] {"action": "write_to_file", "file_path": "/testbed/data/House_creak.docx", "contents": "The House that Creaked -> Successfully write contents to /testbed/run_1-15_0/data/House_creak.docx

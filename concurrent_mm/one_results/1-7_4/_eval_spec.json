@@ -1,1 +1,0 @@
-[{"function": "evaluate_diff_contain_text", "file": "./data/company_budget.xlsx", "args": {"input_file": "../../../../cache/4/testbed/data/company_budget.xlsx", "output_file": "./data/company_budget.xlsx", "doc_type": "xlsx", "keywords": ["computer", "50000"]}}]

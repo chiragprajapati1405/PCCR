@@ -1,8 +1,7 @@
-TASK 1-7/4 L1 success=False latency=5.6s calls=4 failed=evaluate_diff_contain_text:ERR:[Errno 2] No such file or directory: '/U
+TASK 1-7/4 L1 success=False latency=8.3s calls=3 failed=evaluate_diff_contain_text:ERR:[Errno 2] No such file or directory: '/U
 PLAN:
-  - excel: Read /testbed/data/company_budget.xlsx
-  - excel: Delete the row that references computer replacement in /testbed/data/company_budget.xlsx
-  - excel: Save the modified /testbed/data/company_budget.xlsx
+  - excel: list rows in /testbed/data/company_budget.xlsx to locate the row for computer replacement
+  - excel: delete the row containing "computer" in /testbed/data/company_budget.xlsx
 STEPS:
   [excel] {"action": "read_file", "file_path": "/testbed/data/company_budget.xlsx"} -> The following is the table from the excel file:
 (1, 1): Name	(1, 2): amount	

@@ -1,1 +1,0 @@
-[{"function": "evaluate_file_exist", "args": {"file": "calendar/Bob.ics"}}, {"function": "evaluate_contain", "args": {"doc_type": "ics", "file": "calendar/Bob.ics", "keywords": ["Financial", "Meeting", "Agenda"]}}, {"function": "evaluate_file_exist", "args": {"file": "data/agenda.jpg"}}]

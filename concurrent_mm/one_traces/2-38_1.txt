@@ -1,6 +1,13 @@
-TASK 2-38/1 L2 success=False latency=3.2s calls=2 failed=evaluate_contain
+TASK 2-38/1 L2 success=False latency=7.0s calls=4 failed=evaluate_contain
 PLAN:
-  - email: send email to Bob with subject "Party" and body "You are invited to the party held by Jane Doe."
+  - word: read /testbed/data/notification.docx
+  - email: compose email to Bob with invitation details from the document
+  - email: send the composed email to Bob
 STEPS:
-  [email] {"action": "send_email", "sender": "Jane Doe", "recipient": "Bob", "subject": "Party", "content": "You are inv -> ERROR: Could not consume arg: Doe
-Usage: email_send_email.py --sender Jane Doe --recipient
+  [word] {"action": "read_file", "file_path": "/testbed/data/notification.docx"} -> The following is the content from the word file:
+Important Notification
+
+
+This is to infor
+  [email] {"action": "send_email", "sender": "Alice", "recipient": "Bob", "subject": "Invitation: Important Notification -> Successfully sent email to Bob.
+  [email] {"action": "send_email", "sender": "User", "recipient": "Bob", "subject": "Important Notification", "content": -> Successfully sent email to Bob.
